@@ -57,19 +57,20 @@ class BransonCommandWrapper(FSCommandWrapper):
         "hohlraum_single_shrunk": "3D_hohlraum_single_node_shrunk.xml",
         "hohlraum_multi": "3D_hohlraum_multi_node.xml",
         "hohlraum_multi_shrunk": "3D_hohlraum_multi_node_shrunk.xml",
+        "cube_decomp": "cube_decomp_test.xml",
     }
 
     def __init__(self, num_processes: int, input_name: str):
         super().__init__("/home/ubuntu/benchmarks/branson/build/BRANSON")
         self._num_processes = num_processes
-        self._input_name = BransonCommandWrapper.input_translator[input_name]
+        self._input_name = BransonCommandWrapper._input_translator[input_name]
         self._input_path = (
             f"{BransonCommandWrapper._base_input_path}/{self._input_name}"
         )
 
     def generate_cmdline(self):
         return (
-            f"mpirun -n {self._num_processes} "
+            f"mpiexec -n {self._num_processes} "
             f"{self._binary_path} {self._input_path}"
         )
 
