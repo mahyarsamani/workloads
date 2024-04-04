@@ -73,6 +73,7 @@ void thread_init_()
 
 #elif defined(GEM5FS)
 #include "gem5/m5ops.h"
+#include "gem5/m5_mmap.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -85,7 +86,10 @@ void annotate_init_()
     printf("running %s\n",buf);
     system(buf);
     printf("ready to call m5 writefile\n");
-    system("m5 writefile proc_maps.txt;");
+    system("m5 --addr 0x10010000 writefile proc_maps.txt;");
+    printf("enable m5 address mode\n");
+    m5op_addr = 0x10010000;
+    map_m5_mem();
 }
 
 void region_begin_(const char* region)
@@ -95,12 +99,13 @@ void region_end_(const char* region)
 {}
 
 void roi_begin_() {
-    m5_work_begin(0, 0);
+    m5_work_begin_addr(0, 0);
 }
 
 void roi_end_()
 {
-    m5_work_end(0,0);
+    m5_work_end_addr(0,0);
+    unmap_m5_mem();
 }
 
 void thread_init_()
