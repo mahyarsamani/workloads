@@ -1,15 +1,42 @@
 from typing import Union
 
+_mpirun_command_template = (
+    "mpirun -np {num_processes} "
+    "-mca coll basic,self,libnbc -mca btl self,vader --noprefix {workload_cmd}"
+)
+
 
 class FSCommandWrapper:
-    def __init__(self, binary_path: str):
-        self._binary_path = binary_path
+    def __init__(self, cwd: str, binary_name: str):
+        self._cwd = cwd
+        self._binary_name = binary_name
 
     def generate_cmdline(self):
+        return f"#!/bin/bash\ncd {self._cwd};\n{self._generate_cmdline()};\n"
+
+    def _generate_cmdline(self):
         raise NotImplementedError
 
     def generate_id_dict(self):
         raise NotImplementedError
+
+
+class MPIHelloWorldCommandWrapper(FSCommandWrapper):
+    def __init__(self, num_processes: int):
+        super().__init__("/home/gem5/benchmarks", "mpi_hello_world")
+        self._num_processes = num_processes
+
+    def _generate_cmdline(self):
+        return _mpirun_command_template.format(
+            num_processes=self._num_processes,
+            workload_cmd=f"./{self._binary_name}",
+        )
+
+    def generate_id_dict(self):
+        return {
+            "name": "mpi_hello_world",
+            "num_processes": self._num_processes,
+        }
 
 
 class HPCGCommandWrapper(FSCommandWrapper):
@@ -22,7 +49,7 @@ class HPCGCommandWrapper(FSCommandWrapper):
         dim_z: int,
         seconds: int,
     ):
-        super().__init__("/home/ubuntu/benchmarks/hpcg/bin/xhpcg")
+        super().__init__("/home/gem5/benchmarks/hpcg/bin", "xhpcg")
         self._num_processes = num_processes
         self._x = dim_x
         self._y = dim_y
@@ -31,12 +58,12 @@ class HPCGCommandWrapper(FSCommandWrapper):
         self._dat_content = (
             f"\n\n{self._x} {self._y} {self._z}\n{self._secs}\n"
         )
-        self._write_dat = f"echo {self._dat_content} > hpcg.dat;"
+        self._write_dat = f"echo {self._dat_content} > hpcg.dat"
 
-    def generate_cmdline(self):
-        return (
-            f"{self._write_dat}\n"
-            f"mpirun -n {self._num_processes} {self._binary_path}"
+    def _generate_cmdline(self):
+        return f"{self._write_dat};\n" + _mpirun_command_template.format(
+            num_processes=self._num_processes,
+            workload_cmd=f"./{self._binary_name}",
         )
 
     def generate_id_dict(self):
@@ -46,12 +73,12 @@ class HPCGCommandWrapper(FSCommandWrapper):
             "dim_x": self._x,
             "dim_y": self._y,
             "dim_z": self._z,
-            "set time": self.secs,
+            "set time": self._secs,
         }
 
 
 class BransonCommandWrapper(FSCommandWrapper):
-    _base_input_path = "/home/ubuntu/benchmarks/branson/inputs"
+    _base_input_path = "/home/gem5/benchmarks/branson/inputs"
     _input_translator = {
         "hohlraum_single": "3D_hohlraum_multi_node.xml",
         "hohlraum_single_shrunk": "3D_hohlraum_single_node_shrunk.xml",
@@ -61,17 +88,17 @@ class BransonCommandWrapper(FSCommandWrapper):
     }
 
     def __init__(self, num_processes: int, input_name: str):
-        super().__init__("/home/ubuntu/benchmarks/branson/build/BRANSON")
+        super().__init__("/home/gem5/benchmarks/branson/build", "BRANSON")
         self._num_processes = num_processes
         self._input_name = BransonCommandWrapper._input_translator[input_name]
         self._input_path = (
             f"{BransonCommandWrapper._base_input_path}/{self._input_name}"
         )
 
-    def generate_cmdline(self):
-        return (
-            f"mpiexec -n {self._num_processes} "
-            f"{self._binary_path} {self._input_path}"
+    def _generate_cmdline(self):
+        workload_cmd = f"./{self._binary_name} {self._input_path}"
+        return _mpirun_command_template.format(
+            num_processes=self._num_processes, workload_cmd=workload_cmd
         )
 
     def generate_id_dict(self):
@@ -83,23 +110,26 @@ class BransonCommandWrapper(FSCommandWrapper):
 
 
 class UMECommandWrapper(FSCommandWrapper):
-    _base_input_path = "/home/ubuntu/benchmarks/UME/inputs"
+    _base_input_path = "/home/gem5/benchmarks/UME/inputs"
     _input_translator = {
         "blake": ("blake/blake", 1),
         "pipe_3d": ("pipe_3d/pipe_3d_00001", 8),
     }
 
     def __init__(self, input_name: str):
-        super().__init__("/home/ubuntu/benchmarks/UME/build/src/ume_mpi")
+        super().__init__("/home/gem5/benchmarks/UME/build/src", "ume_mpi")
         self._input_name = input_name
         self._input_file, self._num_processes = (
             UMECommandWrapper._input_translator[input_name]
         )
 
-    def generate_cmdline(self):
-        return (
-            f"mpirun -n {self._num_processes} "
-            f"{self._binary_path} {self._input_file}"
+    def _generate_cmdline(self):
+        workload_cmd = (
+            f"./{self._binary_name} "
+            f"{UMECommandWrapper._base_input_path}/{self._input_file}"
+        )
+        return _mpirun_command_template.format(
+            num_processes=self._num_processes, workload_cmd=workload_cmd
         )
 
     def generate_id_dict(self):
@@ -116,18 +146,18 @@ class NPBCommandWrapper(FSCommandWrapper):
         self._size = size
         binary_name = f"{workload}.{size}.x"
         super().__init__(
-            f"/home/ubuntu/benchmarks/NPB3.4-OMP/bin/{binary_name}"
+            f"/home/gem5/benchmarks/NPB3.4-OMP/bin", f"{binary_name}"
         )
 
-    def generate_cmdline(self):
-        return f"{self._binary_path}"
+    def _generate_cmdline(self):
+        return f"./{self._binary_name}"
 
     def generate_id_dict(self):
         return {"name": "npb", "workload": self._workload, "size": self._size}
 
 
 class SimpleVectorWrapper(FSCommandWrapper):
-    def __init__(self, binary_path: str, use_sve: Union[bool, str]):
+    def __init__(self, cwd: str, binary_name: str, use_sve: Union[bool, str]):
         def try_convert_bool(bool_like):
             def convert_str_bool(bool_like):
                 assert bool_like.lower() in ["true", "false"]
@@ -163,7 +193,7 @@ class SimpleVectorWrapper(FSCommandWrapper):
             "sve" if try_convert_bool(use_sve) else "scalar"
         )
         suffix = "-sve.gem5" if try_convert_bool(use_sve) else ".gem5"
-        super().__init__(binary_path + suffix)
+        super().__init__(cwd, binary_name + suffix)
 
 
 class GUPSCommandWrapper(SimpleVectorWrapper):
@@ -174,15 +204,16 @@ class GUPSCommandWrapper(SimpleVectorWrapper):
         use_sve: Union[bool, str],
     ):
         super().__init__(
-            "/home/ubuntu/benchmarks/simple-vector-bench/gups/bin/gups",
+            "/home/gem5/benchmarks/simple-vector-bench/gups/bin",
+            "gups",
             use_sve,
         )
         self._num_elements = num_elements
         self._updates_per_burst = updates_per_burst
 
-    def generate_cmdline(self):
+    def _generate_cmdline(self):
         return (
-            f"{self._binary_path} "
+            f"./{self._binary_name} "
             f"{self._num_elements} "
             f"{self._updates_per_burst}"
         )
@@ -199,15 +230,16 @@ class GUPSCommandWrapper(SimpleVectorWrapper):
 class PermutatingGatherCommandWrapper(SimpleVectorWrapper):
     def __init__(self, seed: int, mod: int, use_sve: Union[bool, str]):
         super().__init__(
-            "/home/ubuntu/benchmarks/simple-vector-bench/"
-            "permutating-gather/bin/permutating-gather",
+            "/home/gem5/benchmarks/simple-vector-bench/"
+            "permutating-gather/bin",
+            "permutating-gather",
             use_sve,
         )
         self._seed = seed
         self._mod = mod
 
-    def generate_cmdline(self):
-        return f"{self._binary_path} {self._seed} {self._mod}"
+    def _generate_cmdline(self):
+        return f"./{self._binary_name} {self._seed} {self._mod}"
 
     def generate_id_dict(self):
         return {
@@ -221,15 +253,16 @@ class PermutatingGatherCommandWrapper(SimpleVectorWrapper):
 class PermutatingScatterCommandWrapper(SimpleVectorWrapper):
     def __init__(self, seed: int, mod: int, use_sve: Union[bool, str]):
         super().__init__(
-            "/home/ubuntu/benchmarks/simple-vector-bench/"
-            "permutating-scatter/bin/permutating-scatter",
+            "/home/gem5/benchmarks/simple-vector-bench/"
+            "permutating-scatter/bin",
+            "permutating-scatter",
             use_sve,
         )
         self._seed = seed
         self._mod = mod
 
-    def generate_cmdline(self):
-        return f"{self._binary_path} {self._seed} {self._mod}"
+    def _generate_cmdline(self):
+        return f"./{self._binary_name} {self._seed} {self._mod}"
 
     def generate_id_dict(self):
         return {
@@ -242,7 +275,7 @@ class PermutatingScatterCommandWrapper(SimpleVectorWrapper):
 
 class SpatterCommandWrapper(SimpleVectorWrapper):
     _base_input_path = (
-        "/home/ubuntu/benchmarks/simple-vector-bench/spatter/patterns"
+        "/home/gem5/benchmarks/simple-vector-bench/spatter/patterns"
     )
     _input_translator = {
         "flag": "flag/static_2d/001.json",
@@ -253,7 +286,8 @@ class SpatterCommandWrapper(SimpleVectorWrapper):
 
     def __init__(self, pattern_name: str, use_sve: Union[bool, str]):
         super().__init__(
-            "/home/ubuntu/benchmarks/simple-vector-bench/spatter/bin/spatter",
+            "/home/gem5/benchmarks/simple-vector-bench/spatter/bin",
+            "spatter",
             use_sve,
         )
         self._pattern_name = pattern_name
@@ -262,8 +296,8 @@ class SpatterCommandWrapper(SimpleVectorWrapper):
             f"{SpatterCommandWrapper._input_translator[self._pattern_name]}"
         )
 
-    def generate_cmdline(self):
-        return f"{self._binary_path} {self._json_file_path}"
+    def _generate_cmdline(self):
+        return f"./{self._binary_name} {self._json_file_path}"
 
     def generate_id_dict(self):
         return {
@@ -276,13 +310,14 @@ class SpatterCommandWrapper(SimpleVectorWrapper):
 class StreamCommandWrapper(SimpleVectorWrapper):
     def __init__(self, array_size, use_sve: Union[bool, str]):
         super().__init__(
-            "/home/ubuntu/benchmarks/simple-vector-bench/stream/bin/stream",
+            "/home/gem5/benchmarks/simple-vector-bench/stream/bin",
+            "stream",
             use_sve,
         )
         self._array_size = array_size
 
-    def generate_cmdline(self):
-        return f"{self._binary_path} {self._array_size}"
+    def _generate_cmdline(self):
+        return f"./{self._binary_name} {self._array_size}"
 
     def generate_id_dict(self):
         return {
