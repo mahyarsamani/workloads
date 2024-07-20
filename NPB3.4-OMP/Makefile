@@ -28,43 +28,46 @@ endif
 default: header
 	@ sys/print_instructions
 
-BT: bt
+make_dir:
+	mkdir -p bin
+
+BT: bt make_dir
 bt: header
 	cd BT; $(MAKE) CLASS=$(CLASS) VERSION=$(VERSION) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
-SP: sp
+SP: sp make_dir
 sp: header
 	cd SP; $(MAKE) CLASS=$(CLASS) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
-LU: lu
+LU: lu make_dir
 lu: header
 	cd LU; $(MAKE) CLASS=$(CLASS) VERSION=$(VERSION) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
-MG: mg
+MG: mg make_dir
 mg: header
 	cd MG; $(MAKE) CLASS=$(CLASS) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
-FT: ft
+FT: ft make_dir
 ft: header
 	cd FT; $(MAKE) CLASS=$(CLASS) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
-IS: is
+IS: is make_dir
 is: header
 	cd IS; $(MAKE) CLASS=$(CLASS) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
-CG: cg
+CG: cg make_dir
 cg: header
 	cd CG; $(MAKE) CLASS=$(CLASS) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
-EP: ep
+EP: ep make_dir
 ep: header
 	cd EP; $(MAKE) CLASS=$(CLASS) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
-UA: ua
+UA: ua make_dir
 ua: header
 	cd UA; $(MAKE) CLASS=$(CLASS) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
-DC: dc
+DC: dc make_dir
 dc: header
 	cd DC; $(MAKE) CLASS=$(CLASS) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
@@ -81,6 +84,7 @@ clean:
 	- rm -f */*.o */*.obj */*.exe */*.mod */npbparams.h */blk_par.h
 	- rm -f sys/setparams sys/makesuite sys/setparams.h
 	- rm -rf */rii_files
+	- rm -rf bin
 
 veryclean: clean
 	- rm -f config/make.def config/suite.def
