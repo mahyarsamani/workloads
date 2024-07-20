@@ -178,18 +178,30 @@ def test_events(event_list: list, test_binary: Path):
 
 
 def partition_papi_events(
-    event_list: list, max_partition_size: int, test_binary: Path
+    event_list: list,
+    forbidden_pairs: dict,
+    max_partition_size: int,
+    test_binary: Path,
 ):
-    def _all_subsets(in_set: list, max_length: int, current_set: list):
+    def _all_subsets(
+        in_set: list, forbidden_pairs: dict, max_length: int, current_set: list
+    ):
         if len(current_set) == max_length:
             return [current_set]
         if len(in_set) + len(current_set) < max_length:
             return []
 
         current_item = in_set[0]
-        rest = in_set[1:]
-        return _all_subsets(rest, max_length, current_set) + _all_subsets(
-            rest, max_length, current_set + [current_item]
+        rest_w = [
+            x
+            for x in in_set[1:]
+            if x not in forbidden_pairs.get(current_item, [])
+        ]
+        rest_wo = in_set[1:]
+        return _all_subsets(
+            rest_wo, forbidden_pairs, max_length, current_set
+        ) + _all_subsets(
+            rest_w, forbidden_pairs, max_length, current_set + [current_item]
         )
 
     remaining_events = event_list.copy()
@@ -198,6 +210,7 @@ def partition_papi_events(
     while len(remaining_events) > 0:
         subsets = _all_subsets(
             remaining_events,
+            forbidden_pairs,
             min(len(remaining_events), max_partition_size),
             [],
         )
@@ -211,7 +224,15 @@ def partition_papi_events(
             if not event in select:
                 new_remaining_events.append(event)
         if len(new_remaining_events) == len(remaining_events):
-            print(f"Could not find a partition for {remaining_events}.")
+            max_partition_size -= 1
+        if (
+            len(new_remaining_events) == len(remaining_events)
+            and max_partition_size == 0
+        ):
+            print(
+                f"Could not find a partition for {remaining_events} with "
+                f"max_partition_size={max_partition_size}."
+            )
             break
         remaining_events = new_remaining_events
 
@@ -219,7 +240,21 @@ def partition_papi_events(
 
 
 if __name__ == "__main__":
+    skip_derived = True
     test_binary = compile_test_program()
-    num_counters, event_list = get_papi_event_list(skip_derived=True)
-    partitions = partition_papi_events(event_list, num_counters, test_binary)
-    print(partitions)
+    num_counters, event_list = get_papi_event_list(skip_derived=skip_derived)
+    print(f"number of counters: {num_counters}")
+    print(
+        f"all events {'not' if skip_derived  else ''} including derived events: {event_list}"
+    )
+    forbidden_pairs = find_forbidden_pairs(event_list, test_binary)
+    print(f"forbidden pairs: {forbidden_pairs}")
+    partitions = partition_papi_events(
+        event_list, forbidden_pairs, num_counters, test_binary
+    )
+
+    with open(roi_dir / "papi_partitions.json", "w") as partitions_file:
+        json.dump(partitions, partitions_file)
+        print(
+            f"You can find your partitioned events in {partitions_file.name}"
+        )
