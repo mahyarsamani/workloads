@@ -2,6 +2,7 @@
 #define __COMMON_ROI_H__
 
 void annotate_init_();
+void annotate_term_();
 
 void region_begin_(const char* region);
 void region_end_(const char* region);
