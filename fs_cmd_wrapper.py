@@ -23,7 +23,7 @@ class FSCommandWrapper:
 
 class MPIHelloWorldCommandWrapper(FSCommandWrapper):
     def __init__(self, num_processes: int):
-        super().__init__("/home/gem5/benchmarks", "mpi_hello_world")
+        super().__init__("/home/gem5/workloads", "mpi_hello_world")
         self._num_processes = num_processes
 
     def _generate_cmdline(self):
@@ -49,7 +49,7 @@ class HPCGCommandWrapper(FSCommandWrapper):
         dim_z: int,
         seconds: int,
     ):
-        super().__init__("/home/gem5/benchmarks/hpcg/bin", "xhpcg")
+        super().__init__("/home/gem5/workloads/hpcg/bin", "xhpcg")
         self._num_processes = num_processes
         self._x = dim_x
         self._y = dim_y
@@ -78,7 +78,7 @@ class HPCGCommandWrapper(FSCommandWrapper):
 
 
 class BransonCommandWrapper(FSCommandWrapper):
-    _base_input_path = "/home/gem5/benchmarks/branson/inputs"
+    _base_input_path = "/home/gem5/workloads/branson/inputs"
     _input_translator = {
         "hohlraum_single": "3D_hohlraum_multi_node.xml",
         "hohlraum_single_shrunk": "3D_hohlraum_single_node_shrunk.xml",
@@ -88,7 +88,7 @@ class BransonCommandWrapper(FSCommandWrapper):
     }
 
     def __init__(self, num_processes: int, input_name: str):
-        super().__init__("/home/gem5/benchmarks/branson/build", "BRANSON")
+        super().__init__("/home/gem5/workloads/branson/build", "BRANSON")
         self._num_processes = num_processes
         self._input_name = BransonCommandWrapper._input_translator[input_name]
         self._input_path = (
@@ -110,14 +110,14 @@ class BransonCommandWrapper(FSCommandWrapper):
 
 
 class UMECommandWrapper(FSCommandWrapper):
-    _base_input_path = "/home/gem5/benchmarks/UME/inputs"
+    _base_input_path = "/home/gem5/workloads/UME/inputs"
     _input_translator = {
         "blake": ("blake/blake", 1),
         "pipe_3d": ("pipe_3d/pipe_3d_00001", 8),
     }
 
     def __init__(self, input_name: str):
-        super().__init__("/home/gem5/benchmarks/UME/build/src", "ume_mpi")
+        super().__init__("/home/gem5/workloads/UME/build/src", "ume_mpi")
         self._input_name = input_name
         self._input_file, self._num_processes = (
             UMECommandWrapper._input_translator[input_name]
@@ -146,7 +146,7 @@ class NPBCommandWrapper(FSCommandWrapper):
         self._size = size
         binary_name = f"{workload}.{size}.x"
         super().__init__(
-            f"/home/gem5/benchmarks/NPB3.4-OMP/bin", f"{binary_name}"
+            f"/home/gem5/workloads/NPB3.4-OMP/bin", f"{binary_name}"
         )
 
     def _generate_cmdline(self):
@@ -192,7 +192,7 @@ class SimpleVectorWrapper(FSCommandWrapper):
         self._processing_mode = (
             "sve" if try_convert_bool(use_sve) else "scalar"
         )
-        suffix = "-sve.gem5" if try_convert_bool(use_sve) else ".gem5"
+        suffix = "-sve.gem5fs" if try_convert_bool(use_sve) else ".gem5"
         super().__init__(cwd, binary_name + suffix)
 
 
@@ -204,7 +204,7 @@ class GUPSCommandWrapper(SimpleVectorWrapper):
         use_sve: Union[bool, str],
     ):
         super().__init__(
-            "/home/gem5/benchmarks/simple-vector-bench/gups/bin",
+            "/home/gem5/workloads/simple-vector-bench/gups/bin",
             "gups",
             use_sve,
         )
@@ -230,7 +230,7 @@ class GUPSCommandWrapper(SimpleVectorWrapper):
 class PermutatingGatherCommandWrapper(SimpleVectorWrapper):
     def __init__(self, seed: int, mod: int, use_sve: Union[bool, str]):
         super().__init__(
-            "/home/gem5/benchmarks/simple-vector-bench/"
+            "/home/gem5/workloads/simple-vector-bench/"
             "permutating-gather/bin",
             "permutating-gather",
             use_sve,
@@ -253,7 +253,7 @@ class PermutatingGatherCommandWrapper(SimpleVectorWrapper):
 class PermutatingScatterCommandWrapper(SimpleVectorWrapper):
     def __init__(self, seed: int, mod: int, use_sve: Union[bool, str]):
         super().__init__(
-            "/home/gem5/benchmarks/simple-vector-bench/"
+            "/home/gem5/workloads/simple-vector-bench/"
             "permutating-scatter/bin",
             "permutating-scatter",
             use_sve,
@@ -275,18 +275,22 @@ class PermutatingScatterCommandWrapper(SimpleVectorWrapper):
 
 class SpatterCommandWrapper(SimpleVectorWrapper):
     _base_input_path = (
-        "/home/gem5/benchmarks/simple-vector-bench/spatter/patterns"
+        "/home/gem5/workloads/simple-vector-bench/spatter-patterns"
     )
     _input_translator = {
-        "flag": "flag/static_2d/001.json",
-        "flag-nonfp": "flag/static_2d/001.nonfp.json",
-        "flag-fp": "flag/static_2d/001.fp.json",
-        "xrage": "xrage/asteroid/spatter.json",
+        "flag": "001.json",
+        "flag-nonfp": "001.nonfp.json",
+        "flag-fp": "001.fp.json",
+        "xrage": "spatter.json",
+        "amg": "amg.json",
+        "lulesh": "lulesh.json",
+        "nekbone": "nekbone.json",
+        "pennant": "pennant.json",
     }
 
     def __init__(self, pattern_name: str, use_sve: Union[bool, str]):
         super().__init__(
-            "/home/gem5/benchmarks/simple-vector-bench/spatter/bin",
+            "/home/gem5/workloads/simple-vector-bench/spatter/bin",
             "spatter",
             use_sve,
         )
@@ -310,7 +314,7 @@ class SpatterCommandWrapper(SimpleVectorWrapper):
 class StreamCommandWrapper(SimpleVectorWrapper):
     def __init__(self, array_size, use_sve: Union[bool, str]):
         super().__init__(
-            "/home/gem5/benchmarks/simple-vector-bench/stream/bin",
+            "/home/gem5/workloads/simple-vector-bench/stream/bin",
             "stream",
             use_sve,
         )

@@ -5,14 +5,14 @@ L3_SIZE_BYTES=33554432
 ITERS_PER_TEST=2048
 
 CXX=g++
-ROI_DIR=$(PWD)/../roi
+ROI_DIR=$(PWD)/../annotate
 CXXFLAGS=-O3
 TYPE_INT=-DINT
 TYPE_FP=-DFP
 CXXFLAGS_ASM=-S -fverbose-asm
 CXXFLAGS_ANNOTATE=-DANNOTATE
-CXXFLAGS_GEM5=$(CXXFLAGS_ANNOTATE) -I$(ROI_DIR)/include -I$(ROI_DIR)/gem5/include -L$(ROI_DIR)/lib -L$(ROI_DIR)/gem5/lib -lroi.gem5se -lm5
-CXXFLAGS_PAPI=$(CXXFLAGS_ANNOTATE) -I$(ROI_DIR)/include -I$(ROI_DIR)/papi/install/include -L$(ROI_DIR)/lib -L$(ROI_DIR)/papi/install/lib -lroi.papi -lpapi -lpthread
+CXXFLAGS_GEM5=$(CXXFLAGS_ANNOTATE) -I$(ROI_DIR)/include -I$(ROI_DIR)/gem5/include -L$(ROI_DIR)/lib -L$(ROI_DIR)/gem5/lib -lannotate.gem5se -lm5
+CXXFLAGS_PAPI=$(CXXFLAGS_ANNOTATE) -I$(ROI_DIR)/include -I$(ROI_DIR)/papi/install/include -L$(ROI_DIR)/lib -L$(ROI_DIR)/papi/install/lib -lannotate.papi -lpapi -lpthread
 USER_DEFINES=-DL1_SIZE_BYTES=$(L1_SIZE_BYTES) -DL2_SIZE_BYTES=$(L2_SIZE_BYTES) -DL3_SIZE_BYTES=$(L3_SIZE_BYTES) -DITERS_PER_TEST=$(ITERS_PER_TEST)
 
 
