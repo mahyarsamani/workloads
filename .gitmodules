@@ -1,5 +1,5 @@
-[submodule "roi/papi"]
-	path = roi/papi
+[submodule "annotate/papi"]
+	path = annotate/papi
 	url = https://github.com/mahyarsamani/papi.git
 [submodule "branson"]
 	path = branson
