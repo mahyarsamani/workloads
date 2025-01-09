@@ -1,5 +1,6 @@
-# Benchmarks
+# Workloads
 
+**THIS IS OUT OF DATE AND WILL BE UPDATED IN DUE COURSE.**
 For instructions on how to build the benchmarks please refer to [this section](#building-benchmarks).
 For instructions on how to run the benchmarks please refer to [this section]().
 
