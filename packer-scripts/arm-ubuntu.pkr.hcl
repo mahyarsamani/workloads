@@ -36,14 +36,14 @@ locals {
     "22.04" = {
       iso_url       = "https://old-releases.ubuntu.com/releases/jammy/ubuntu-22.04-live-server-arm64.iso"
       iso_checksum  = "sha256:c209ab013280d3cd26a344def60b7b19fbb427de904ea285057d94ca6ac82dd5"
-      output_dir    = "arm-disk-image-22-04"
-      http_directory = "http/arm-22-04"
+      output_dir    = "arm-disk-image-2204"
+      http_directory = "http/arm-2204"
     }
     "24.04" = {
       iso_url       = "https://cdimage.ubuntu.com/releases/24.04/release/ubuntu-24.04.1-live-server-arm64.iso"
       iso_checksum  = "sha256:5ceecb7ef5f976e8ab3fffee7871518c8e9927ec221a3bb548ee1193989e1773"
-      output_dir    = "arm-disk-image-24-04"
-      http_directory = "http/arm-24-04"
+      output_dir    = "arm-disk-image-2404"
+      http_directory = "http/arm-2404"
     }
   }
 }
