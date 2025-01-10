@@ -76,20 +76,4 @@ ln -s /usr/local/bin/gem5-bridge /usr/local/bin/m5
 rm -rf gem5
 echo "Done building and installing gem5-bridge (m5) and libm5"
 
-# You can extend this script to install your own packages here or by modifying the `x86-ubuntu.pkr.hcl`
-# or `arm-ubuntu.pkr.hcl` file depending on the disk you are building.
-
-# Disable network by default
-echo "Disabling network by default"
-echo "See README.md for instructions on how to enable network"
-if [ -f /etc/netplan/50-cloud-init.yaml ]; then
-    mv /etc/netplan/50-cloud-init.yaml /etc/netplan/50-cloud-init.yaml.bak
-elif [ -f /etc/netplan/00-installer-config.yaml ]; then
-    mv /etc/netplan/00-installer-config.yaml /etc/netplan/00-installer-config.yaml.bak
-    netplan apply
-fi
-# Disable systemd service that waits for network to be online
-systemctl disable systemd-networkd-wait-online.service
-systemctl mask systemd-networkd-wait-online.service
-
 echo "Post Installation Done"

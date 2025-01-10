@@ -208,12 +208,18 @@ build {
   provisioner "shell" {
     execute_command = "echo '${var.ssh_password}' | {{ .Vars }} sudo -E -S bash '{{ .Path }}'"
     scripts         = ["scripts/post-installation.sh", "scripts/install-packages.sh"]
-    environment_vars = ["ISA=arm64"]
+    environment_vars = ["ISA=arm64", "DEBIAN_FRONTEND=noninteractive"]
     expect_disconnect = true
   }
 
   provisioner "shell" {
     scripts = ["scripts/install-benchmarks.sh"]
+  }
+
+  provisioner "shell" {
+    execute_command = "echo '${var.ssh_password}' | {{ .Vars }} sudo -E -S bash '{{ .Path }}'"
+    scripts         = ["scripts/disable-network.sh"]
+    expect_disconnect = true
   }
 
 }
