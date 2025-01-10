@@ -157,11 +157,6 @@ build {
 
   provisioner "file" {
     destination = "/home/gem5/workloads/annotate/"
-    source      = "annotate/lib"
-  }
-
-  provisioner "file" {
-    destination = "/home/gem5/workloads/annotate/"
     source      = "annotate/annotate.c"
   }
 
@@ -212,9 +207,13 @@ build {
 
   provisioner "shell" {
     execute_command = "echo '${var.ssh_password}' | {{ .Vars }} sudo -E -S bash '{{ .Path }}'"
-    scripts         = ["scripts/post-installation.sh"]
+    scripts         = ["scripts/post-installation.sh", "scripts/install-packages.sh"]
     environment_vars = ["ISA=arm64"]
     expect_disconnect = true
+  }
+
+  provisioner "shell" {
+    scripts = ["scripts/install-benchmarks.sh"]
   }
 
 }

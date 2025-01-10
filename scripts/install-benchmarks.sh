@@ -3,8 +3,6 @@
 cd $HOME
 
 cd workloads
-git submodule init
-git submodule update
 
 mpicc -o mpi_hello_world mpi_hello_world.c
 
