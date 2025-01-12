@@ -1,18 +1,22 @@
 [submodule "branson"]
 	path = branson
 	url = https://github.com/mahyarsamani/branson.git
+	branch = main
 [submodule "microbench"]
 	path = microbench
 	url = https://github.com/mahyarsamani/microbench.git
+	branch = main
 [submodule "simple-vector-bench/spatter/json"]
 	path = simple-vector-bench/spatter/json
 	url = https://github.com/mahyarsamani/json.git
 [submodule "UME"]
 	path = UME
 	url = https://github.com/mahyarsamani/UME.git
+	branch = main
 [submodule "hpcg"]
 	path = hpcg
 	url = https://github.com/mahyarsamani/hpcg.git
+	branch = master
 [submodule "annotate/papi"]
 	path = annotate/papi
 	url = https://github.com/mahyarsamani/papi.git
