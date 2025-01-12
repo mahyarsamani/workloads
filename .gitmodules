@@ -9,6 +9,7 @@
 [submodule "simple-vector-bench/spatter/json"]
 	path = simple-vector-bench/spatter/json
 	url = https://github.com/mahyarsamani/json.git
+	branch = main
 [submodule "UME"]
 	path = UME
 	url = https://github.com/mahyarsamani/UME.git
@@ -20,3 +21,4 @@
 [submodule "annotate/papi"]
 	path = annotate/papi
 	url = https://github.com/mahyarsamani/papi.git
+	branch = master
