@@ -8,7 +8,10 @@ echo 'Post Installation Started'
 # Installing the packages in this script instead of the user-data
 # file dueing ubuntu autoinstall. The reason is that sometimes
 # the package install failes. This method is more reliable.
-echo 'installing packages'
+
+sudo debconf-set-selections <<< "* libraries/restart-without-asking boolean true"
+
+echo "installing packages"
 apt-get update
 apt-get install -y scons
 apt-get install -y git
