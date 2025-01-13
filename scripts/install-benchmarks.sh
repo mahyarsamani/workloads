@@ -63,12 +63,12 @@ cd ..
 cd spatter
 make gem5fs
 make gem5fs EXTENSION=sve
-cd ../../../..
+cd ../..
 cd spatter-traces
 ./remake_partitioned_files.sh
 cd ..
 
-cd stream
+cd simple-vector-bench/stream
 make gem5fs
 make gem5fs EXTENSION=sve
-cd ..
+cd ../..
