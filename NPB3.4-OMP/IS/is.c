@@ -41,7 +41,7 @@
  *************************************************************************/
 
 #include "npbparams.h"
-#include "roi.h"
+#include "annotate.h"
 #include <stdlib.h>
 #include <stdio.h>
 #ifdef _OPENMP

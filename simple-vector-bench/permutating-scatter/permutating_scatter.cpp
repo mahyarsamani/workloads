@@ -5,7 +5,7 @@
 #include<iostream>
 
 extern "C" {
-#include "roi.h"
+#include "annotate.h"
 #include "scatter_kernel.h"
 }
 

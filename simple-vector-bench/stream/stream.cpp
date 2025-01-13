@@ -12,7 +12,7 @@
 #include <chrono>
 
 extern "C" {
-#include "roi.h"
+#include "annotate.h"
 #include "stream_kernels.h"
 }
 

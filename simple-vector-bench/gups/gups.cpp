@@ -4,7 +4,7 @@
 #include <chrono>
 
 extern "C" {
-#include "roi.h"
+#include "annotate.h"
 #include "gups_kernels.h"
 }
 

@@ -13,7 +13,7 @@
 #include "json.hpp"
 
 extern "C" {
-#include "roi.h"
+#include "annotate.h"
 #include "scatter_gather_kernels.h"
 }
 
