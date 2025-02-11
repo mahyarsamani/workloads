@@ -29,6 +29,9 @@ if [[ "$ubuntu_version" != "22.04" && "$ubuntu_version" != "24.04" ]]; then
     exit 1
 fi
 
+# Store the image name from the second command line argument or default to "arm-ubuntu"
+image_name="${2:-arm-ubuntu}"
+
 # make the flash0.img file
 cd ./files
 dd if=/dev/zero of=flash0.img bs=1M count=64
@@ -39,4 +42,4 @@ cd ..
 ./packer init ./packer-scripts/arm-ubuntu.pkr.hcl
 
 # Build the image with the specified Ubuntu version
-./packer build -var "ubuntu_version=${ubuntu_version}" ./packer-scripts/arm-ubuntu.pkr.hcl
+./packer build -var "ubuntu_version=${ubuntu_version}" -var "image_name=${image_name}" ./packer-scripts/arm-ubuntu.pkr.hcl

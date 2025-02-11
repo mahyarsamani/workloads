@@ -1,0 +1,7 @@
+#!/bin/bash
+
+qemu-system-aarch64 -m 16384 -smp 8 -cpu host -M virt -M gic-version=3 --enable-kvm -nographic \
+-drive if=pflash,file=files/flash0.img,format=raw \
+-drive if=none,file=dev-test-2204/disk-image,id=hd0,format=raw \
+-device virtio-blk-device,drive=hd0 \
+-netdev user,id=eth0,hostfwd=tcp::6666-:22

@@ -3,38 +3,34 @@
 # Copyright (c) 2024 The Regents of the University of California.
 # SPDX-License-Identifier: BSD 3-Clause
 
-echo 'Post Installation Started'
+echo "Post Installation Started."
+
+
+echo "Installing serial service for autologin after systemd."
+mkdir /etc/systemd/system/serial-getty@.service.d/
+mv serial-getty@.service-override.conf /etc/systemd/system/serial-getty@.service.d/override.conf
 
 # Installing the packages in this script instead of the user-data
 # file dueing ubuntu autoinstall. The reason is that sometimes
 # the package install failes. This method is more reliable.
 
-sudo debconf-set-selections <<< "* libraries/restart-without-asking boolean true"
-
-echo "installing packages"
+echo "Installing packages required for gem5-bridge (m5) and libm5."
 apt-get update
 apt-get install -y scons
 apt-get install -y git
 apt-get install -y vim
 apt-get install -y build-essential
 
-echo "Installing serial service for autologin after systemd"
-mv /home/gem5/serial-getty@.service /lib/systemd/system/
-
-echo "Installing the gem5 init script in /sbin"
-mv /home/gem5/gem5_init.sh /sbin
-mv /sbin/init /sbin/init.old
-ln -s /sbin/gem5_init.sh /sbin/init
-
 # Add after_boot.sh to bashrc in the gem5 user account
 # This will run the script after the user automatically logs in
+echo "Adding after_boot.sh to the gem5 user's .bashrc."
 echo -e "\nif [ -z \"\$AFTER_BOOT_EXECUTED\" ]; then\n   export AFTER_BOOT_EXECUTED=1\n    /home/gem5/after_boot.sh\nfi\n" >> /home/gem5/.bashrc
 
 # Remove the motd
 rm /etc/update-motd.d/*
 
 # Build and install the gem5-bridge (m5) binary, library, and headers
-echo "Building and installing gem5-bridge (m5) and libm5"
+echo "Building and installing gem5-bridge (m5) and libm5."
 
 # Ensure the ISA environment variable is set
 if [ -z "$ISA" ]; then
@@ -77,6 +73,4 @@ ln -s /usr/local/bin/gem5-bridge /usr/local/bin/m5
 
 # delete the git repo for gem5
 rm -rf gem5
-echo "Done building and installing gem5-bridge (m5) and libm5"
-
-echo "Post Installation Done"
+echo "Done building and installing gem5-bridge (m5) and libm5."

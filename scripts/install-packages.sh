@@ -1,15 +1,16 @@
 #!/bin/bash
 
+# Copyright (c) 2024 The Regents of the University of California.
+# SPDX-License-Identifier: BSD 3-Clause
+
+echo "Installing user packages..."
+
+# Put your package installation commands here
 sudo apt-get -y update
 
-# Force apt-get to keep existing config files (confold) and accept defaults (confdef)
-sudo apt-get -y \
-  -o Dpkg::Options::="--force-confdef" \
-  -o Dpkg::Options::="--force-confold" \
-  upgrade
+sudo apt-get -y -o Dpkg::Options::="--force-confnew" upgrade
 
 # Install desired packages
-sudo apt-get -y \
-  -o Dpkg::Options::="--force-confdef" \
-  -o Dpkg::Options::="--force-confold" \
-  install python3-pip gfortran cmake openmpi-bin libopenmpi-dev
+sudo apt-get -y -o Dpkg::Options::="--force-confnew" install python3-pip gfortran cmake openmpi-bin libopenmpi-dev
+
+echo "Done installing user packages."

@@ -9,7 +9,6 @@ packer {
 
 variable "image_name" {
   type    = string
-  default = "arm-ubuntu"
 }
 
 variable "ssh_password" {
@@ -36,13 +35,13 @@ locals {
     "22.04" = {
       iso_url       = "https://old-releases.ubuntu.com/releases/jammy/ubuntu-22.04-live-server-arm64.iso"
       iso_checksum  = "sha256:c209ab013280d3cd26a344def60b7b19fbb427de904ea285057d94ca6ac82dd5"
-      output_dir    = "arm-disk-image-2204"
+      output_dir    = "${var.image_name}-2204"
       http_directory = "http/arm-2204"
     }
     "24.04" = {
       iso_url       = "https://cdimage.ubuntu.com/releases/24.04/release/ubuntu-24.04.1-live-server-arm64.iso"
       iso_checksum  = "sha256:5ceecb7ef5f976e8ab3fffee7871518c8e9927ec221a3bb548ee1193989e1773"
-      output_dir    = "arm-disk-image-2404"
+      output_dir    = "${var.image_name}-2404"
       http_directory = "http/arm-2404"
     }
   }
@@ -106,17 +105,12 @@ source "qemu" "initialize" {
   ssh_password     = "${var.ssh_password}"
   ssh_username     = "${var.ssh_username}"
   ssh_wait_timeout = "60m"
-  vm_name          = "${var.image_name}"
+  vm_name          = "disk-image"
   ssh_handshake_attempts = "1000"
 }
 
 build {
   sources = ["source.qemu.initialize"]
-
-  provisioner "file" {
-    destination = "/home/gem5/"
-    source      = "files/exit.sh"
-  }
 
   provisioner "file" {
     destination = "/home/gem5/"
@@ -130,7 +124,7 @@ build {
 
   provisioner "file" {
     destination = "/home/gem5/"
-    source      = "files/serial-getty@.service"
+    source      = "files/serial-getty@.service-override.conf"
   }
 
   provisioner "file" {
@@ -207,7 +201,7 @@ build {
 
   provisioner "shell" {
     execute_command = "echo '${var.ssh_password}' | {{ .Vars }} sudo -E -S bash '{{ .Path }}'"
-    scripts         = ["scripts/post-installation.sh", "scripts/install-packages.sh"]
+    scripts         = ["scripts/install-driver.sh", "scripts/install-packages.sh"]
     environment_vars = ["ISA=arm64", "DEBIAN_FRONTEND=noninteractive"]
     expect_disconnect = true
   }
@@ -218,7 +212,7 @@ build {
 
   provisioner "shell" {
     execute_command = "echo '${var.ssh_password}' | {{ .Vars }} sudo -E -S bash '{{ .Path }}'"
-    scripts         = ["scripts/disable-network.sh"]
+    scripts         = ["scripts/install-gem5-init.sh", "scripts/disable-network.sh"]
     expect_disconnect = true
   }
 
