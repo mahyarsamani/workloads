@@ -1,6 +1,5 @@
 from .microbench import workloads
 
-from .fs_cmd_wrapper import MPIHelloWorldCommandWrapper as MPIHelloWorldWrapper
 from .fs_cmd_wrapper import HPCGCommandWrapper as HPCGWrapper
 from .fs_cmd_wrapper import BransonCommandWrapper as BransonWrapper
 from .fs_cmd_wrapper import UMECommandWrapper as UMEWrapper
