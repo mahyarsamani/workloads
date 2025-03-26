@@ -7,8 +7,6 @@ cd $HOME
 
 cd workloads
 
-mpicc -o mpi_hello_world mpi_hello_world.c
-
 cd annotate/
 make gem5fs
 cd ..

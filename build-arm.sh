@@ -15,7 +15,7 @@ fi
 
 # Check if the Ubuntu version variable is provided
 if [ -z "$1" ]; then
-    echo "Usage: $0 <ubuntu_version>"
+    echo "Usage: $0 <ubuntu_version> [image_name]"
     echo "Example: $0 22.04 or $0 24.04"
     exit 1
 fi

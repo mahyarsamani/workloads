@@ -1,4 +1,18 @@
-from typing import Union
+import argparse
+
+from enum import Enum
+from pathlib import Path
+from typing import Optional, Union
+
+from m5.simulate import checkpoint
+from m5.stats import reset as reset_stats
+from m5.stats import dump as dump_stats
+from m5.util import inform
+
+from gem5.components.boards.abstract_board import AbstractBoard
+from gem5.components.processors.switchable_processor import SwitchableProcessor
+from gem5.simulate.exit_event import ExitEvent
+
 
 _mpirun_command_template = (
     "mpirun -np {num_processes} "
@@ -6,10 +20,143 @@ _mpirun_command_template = (
 )
 
 
+def take_checkpoint(checkpoint_path: Path):
+    checkpoint(str(checkpoint_path))
+
+
+class ExitEventHandlerWrapper:
+    def __init__(
+        self,
+        take_checkpoint: bool,
+        continue_after_checkpoint: bool,
+        checkpoint_path: Optional[Union[Path, None]],
+    ):
+        self._take_checkpoint = take_checkpoint
+        self._continue_after_checkpoint = continue_after_checkpoint
+        self._checkpoint_path = checkpoint_path
+
+    def _validate_options(self, board: AbstractBoard):
+        if self._take_checkpoint:
+            if self._checkpoint_path is None:
+                raise ValueError("Checkpoint base path is not provided.")
+            if isinstance(board.get_processor(), SwitchableProcessor):
+                raise ValueError(
+                    "Checkpointing is not supported with SwitchableProcessor."
+                )
+        if self._continue_after_checkpoint:
+            inform("Continuing after checkpointing is enabled.")
+
+    def get_exit_event_handler(self, board: AbstractBoard):
+        self._validate_options(board)
+        return self._get_exit_event_handler(board)
+
+    def _get_exit_event_handler(self, board: AbstractBoard):
+        return {}
+
+
+class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
+    def __init__(
+        self,
+        num_processes: int,
+        take_checkpoint: bool,
+        continue_after_checkpoint: bool,
+        checkpoint_base_path: Path = None,
+    ):
+        super().__init__(
+            take_checkpoint, continue_after_checkpoint, checkpoint_base_path
+        )
+        self._num_processes = num_processes
+
+    def _get_exit_event_handler(self, board: AbstractBoard):
+        def handle_exit():
+            while True:
+                inform("Received an m5 exit.")
+                yield False
+
+        def handle_work_begin(processor):
+            class Reaction(Enum):
+                NO_REACTION = 0
+                SWITCH = 1
+                CHECKPOINT = 2
+
+            assert processor.get_num_cores() >= self._num_processes
+            last_reaction = Reaction.NO_REACTION
+            num_received_work_begins = 0
+
+            num_expected_work_begins = self._num_processes
+            can_swtich = isinstance(processor, SwitchableProcessor)
+
+            while last_reaction == Reaction.NO_REACTION:
+                inform("Received a work_begin.")
+                num_received_work_begins += 1
+                inform(
+                    f"Received {num_received_work_begins} work_begins so far."
+                )
+                if num_received_work_begins == num_expected_work_begins:
+                    reset_stats()
+                    inform("Reset sim stats.")
+                    if self._take_checkpoint:
+                        take_checkpoint(self._checkpoint_path)
+                        inform(
+                            f"Took a checkpoint in {self._checkpoint_path}."
+                        )
+                        last_reaction = Reaction.CHECKPOINT
+                    if can_swtich:
+                        processor.switch()
+                        inform("Switched to the next processor.")
+                        last_reaction = Reaction.SWITCH
+                if last_reaction == Reaction.NO_REACTION:
+                    yield False
+                if last_reaction == Reaction.SWITCH:
+                    yield False
+                if last_reaction == Reaction.CHECKPOINT:
+                    if self._continue_after_checkpoint:
+                        yield False
+                    else:
+                        yield True
+
+            raise RuntimeError(
+                "Did not expect a work_begin. "
+                f"Have already received {num_received_work_begins}."
+            )
+
+        def handle_work_end(processor):
+            assert processor.get_num_cores() >= self._num_processes
+            not_dumped_yet = True
+            num_received_work_ends = 0
+            num_expected_work_ends = self._num_processes
+
+            while not_dumped_yet:
+                inform("Received a work_end.")
+                num_received_work_ends += 1
+                inform(f"Received {num_received_work_ends} work_ends so far.")
+                if num_received_work_ends == num_expected_work_ends:
+                    dump_stats()
+                    not_dumped_yet = False
+                    yield True
+                yield False
+
+            raise RuntimeError(
+                "Did not expect a work_end. "
+                f"Have already received {num_received_work_ends}."
+            )
+
+        return {
+            ExitEvent.EXIT: handle_exit(),
+            ExitEvent.WORKBEGIN: handle_work_begin(board.get_processor()),
+            ExitEvent.WORKEND: handle_work_end(board.get_processor()),
+        }
+
+
 class FSCommandWrapper:
+    @staticmethod
+    def parse_args(args):
+        raise NotImplementedError
+
     def __init__(self, cwd: str, binary_name: str):
         self._cwd = cwd
         self._binary_name = binary_name
+        self._exit_handler = None
 
     def generate_cmdline(self):
         return f"#!/bin/bash\ncd {self._cwd};\n{self._generate_cmdline()};\n"
@@ -20,26 +167,128 @@ class FSCommandWrapper:
     def generate_id_dict(self):
         raise NotImplementedError
 
+    def generate_id_string(self):
+        ret_id = ""
+        for key, value in self.generate_id_dict().items():
+            ret_id += f"{key.upper()}.{value}-"
+        return ret_id[:-1]
 
-class MPIHelloWorldCommandWrapper(FSCommandWrapper):
-    def __init__(self, num_processes: int):
-        super().__init__("/home/gem5/workloads", "mpi_hello_world")
-        self._num_processes = num_processes
+    def get_exit_event_handler(
+        self,
+        board: AbstractBoard,
+        take_checkpoint,
+        continue_after_checkpoint,
+        checkpoint_path,
+    ):
+        self._create_exit_event_handler(
+            take_checkpoint, continue_after_checkpoint, checkpoint_path
+        )
+        if self._exit_handler is None:
+            raise RuntimeError("Failed to create an exit event handler.")
+        return self._exit_handler.get_exit_event_handler(board)
+
+    def _create_exit_event_handler(
+        self,
+        take_checkpoint: bool,
+        continue_after_checkpoint: bool,
+        checkpoint_path: Path = None,
+    ):
+        self._exit_handler = ExitEventHandlerWrapper(
+            take_checkpoint, continue_after_checkpoint, checkpoint_path
+        )
+
+
+class FSMPICommandWrapper(FSCommandWrapper):
+    def __init__(self, cwd: str, binary_name: str, num_processes: int):
+        super().__init__(cwd, binary_name)
+        self._num_processes = int(num_processes)
+
+    def _create_exit_event_handler(
+        self,
+        take_checkpoint: bool,
+        continue_after_checkpoint: bool,
+        checkpoint_path=None,
+    ):
+        self._exit_handler = MPIExitEventHandlerWrapper(
+            self._num_processes,
+            take_checkpoint,
+            continue_after_checkpoint,
+            checkpoint_path,
+        )
+
+
+class BransonCommandWrapper(FSMPICommandWrapper):
+    _base_input_path = "/home/gem5/workloads/branson/inputs"
+    _input_translator = {
+        "hohlraum_single": "3D_hohlraum_multi_node.xml",
+        "hohlraum_single_shrunk": "3D_hohlraum_single_node_shrunk.xml",
+        "hohlraum_multi": "3D_hohlraum_multi_node.xml",
+        "hohlraum_multi_shrunk": "3D_hohlraum_multi_node_shrunk.xml",
+        "cube_decomp": "cube_decomp_test.xml",
+    }
+
+    @staticmethod
+    def parse_args(args):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--num-processes", type=int, required=True)
+        parser.add_argument(
+            "--input-name",
+            type=str,
+            required=True,
+            choices=BransonCommandWrapper._input_translator.keys(),
+        )
+
+        parsed_args = parser.parse_args(args)
+        return [
+            parsed_args.num_processes,
+            parsed_args.input_name,
+        ]
+
+    def __init__(
+        self,
+        num_processes: int,
+        input_name: str,
+    ):
+        super().__init__(
+            "/home/gem5/workloads/branson/build", "BRANSON", num_processes
+        )
+        self._input_name = BransonCommandWrapper._input_translator[input_name]
+        self._input_path = (
+            f"{BransonCommandWrapper._base_input_path}/{self._input_name}"
+        )
 
     def _generate_cmdline(self):
+        workload_cmd = f"./{self._binary_name} {self._input_path}"
         return _mpirun_command_template.format(
-            num_processes=self._num_processes,
-            workload_cmd=f"./{self._binary_name}",
+            num_processes=self._num_processes, workload_cmd=workload_cmd
         )
 
     def generate_id_dict(self):
         return {
-            "name": "mpi_hello_world",
-            "num_processes": self._num_processes,
+            "name": "branson",
+            "num-processes": self._num_processes,
+            "input": self._input_name,
         }
 
 
-class HPCGCommandWrapper(FSCommandWrapper):
+class HPCGCommandWrapper(FSMPICommandWrapper):
+    @staticmethod
+    def parse_args(args):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--num-processes", type=int, required=True)
+        parser.add_argument("--dim-x", type=int, required=True)
+        parser.add_argument("--dim-y", type=int, required=True)
+        parser.add_argument("--dim-z", type=int, required=True)
+        parser.add_argument("--seconds", type=int, required=True)
+
+        parsed_args = parser.parse_args(args)
+        return [
+            parsed_args.num_processes,
+            parsed_args.dim_x,
+            parsed_args.dim_y,
+            parsed_args.dim_z,
+            parsed_args.seconds,
+        ]
 
     def __init__(
         self,
@@ -49,8 +298,9 @@ class HPCGCommandWrapper(FSCommandWrapper):
         dim_z: int,
         seconds: int,
     ):
-        super().__init__("/home/gem5/workloads/hpcg/bin", "xhpcg")
-        self._num_processes = num_processes
+        super().__init__(
+            "/home/gem5/workloads/hpcg/bin", "xhpcg", num_processes
+        )
         self._x = dim_x
         self._y = dim_y
         self._z = dim_z
@@ -69,59 +319,46 @@ class HPCGCommandWrapper(FSCommandWrapper):
     def generate_id_dict(self):
         return {
             "name": "hpcg",
-            "num_processes": self._num_processes,
-            "dim_x": self._x,
-            "dim_y": self._y,
-            "dim_z": self._z,
+            "num-processes": self._num_processes,
+            "dim-x": self._x,
+            "dim-y": self._y,
+            "dim-z": self._z,
             "set time": self._secs,
         }
 
 
-class BransonCommandWrapper(FSCommandWrapper):
-    _base_input_path = "/home/gem5/workloads/branson/inputs"
-    _input_translator = {
-        "hohlraum_single": "3D_hohlraum_multi_node.xml",
-        "hohlraum_single_shrunk": "3D_hohlraum_single_node_shrunk.xml",
-        "hohlraum_multi": "3D_hohlraum_multi_node.xml",
-        "hohlraum_multi_shrunk": "3D_hohlraum_multi_node_shrunk.xml",
-        "cube_decomp": "cube_decomp_test.xml",
-    }
-
-    def __init__(self, num_processes: int, input_name: str):
-        super().__init__("/home/gem5/workloads/branson/build", "BRANSON")
-        self._num_processes = num_processes
-        self._input_name = BransonCommandWrapper._input_translator[input_name]
-        self._input_path = (
-            f"{BransonCommandWrapper._base_input_path}/{self._input_name}"
-        )
-
-    def _generate_cmdline(self):
-        workload_cmd = f"./{self._binary_name} {self._input_path}"
-        return _mpirun_command_template.format(
-            num_processes=self._num_processes, workload_cmd=workload_cmd
-        )
-
-    def generate_id_dict(self):
-        return {
-            "name": "branson",
-            "num_processes": self._num_processes,
-            "input": self._input_name,
-        }
-
-
-class UMECommandWrapper(FSCommandWrapper):
+class UMECommandWrapper(FSMPICommandWrapper):
     _base_input_path = "/home/gem5/workloads/UME/inputs"
     _input_translator = {
         "blake": ("blake/blake", 1),
         "pipe_3d": ("pipe_3d/pipe_3d_00001", 8),
     }
 
-    def __init__(self, input_name: str):
-        super().__init__("/home/gem5/workloads/UME/build/src", "ume_mpi")
-        self._input_name = input_name
-        self._input_file, self._num_processes = (
-            UMECommandWrapper._input_translator[input_name]
+    @staticmethod
+    def parse_args(args):
+        parser = argparse.ArgumentParser()
+        parser.add_argument(
+            "--input-name",
+            type=str,
+            required=True,
+            choices=UMECommandWrapper._input_translator.keys(),
         )
+
+        parsed_args = parser.parse_args(args)
+        return [parsed_args.input_name]
+
+    def __init__(
+        self,
+        input_name: str,
+    ):
+        input_file, num_processes = UMECommandWrapper._input_translator[
+            input_name
+        ]
+        super().__init__(
+            "/home/gem5/workloads/UME/build/src", "ume_mpi", num_processes
+        )
+        self._input_name = input_name
+        self._input_file = input_file
 
     def _generate_cmdline(self):
         workload_cmd = (
@@ -135,13 +372,27 @@ class UMECommandWrapper(FSCommandWrapper):
     def generate_id_dict(self):
         return {
             "name": "ume",
-            "num_processes": self._num_processes,
+            "num-processes": self._num_processes,
             "input": self._input_name,
         }
 
 
 class NPBCommandWrapper(FSCommandWrapper):
-    def __init__(self, workload: str, size: str):
+
+    @staticmethod
+    def parse_args(args):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--workload", type=str, required=True)
+        parser.add_argument("--size", type=str, required=True)
+
+        parsed_args = parser.parse_args(args)
+        return [parsed_args.workload, parsed_args.size]
+
+    def __init__(
+        self,
+        workload: str,
+        size: str,
+    ):
         self._workload = workload
         self._size = size
         binary_name = f"{workload}.{size}.x"
@@ -157,7 +408,12 @@ class NPBCommandWrapper(FSCommandWrapper):
 
 
 class SimpleVectorWrapper(FSCommandWrapper):
-    def __init__(self, cwd: str, binary_name: str, use_sve: Union[bool, str]):
+    def __init__(
+        self,
+        cwd: str,
+        binary_name: str,
+        use_sve: Union[bool, str],
+    ):
         def try_convert_bool(bool_like):
             def convert_str_bool(bool_like):
                 assert bool_like.lower() in ["true", "false"]
@@ -197,6 +453,20 @@ class SimpleVectorWrapper(FSCommandWrapper):
 
 
 class GUPSCommandWrapper(SimpleVectorWrapper):
+    @staticmethod
+    def parse_args(args):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--num-elements", type=int, required=True)
+        parser.add_argument("--updates-per-burst", type=int, required=True)
+        parser.add_argument("--use-sve", type=str, required=True)
+
+        parsed_args = parser.parse_args(args)
+        return [
+            parsed_args.num_elements,
+            parsed_args.updates_per_burst,
+            parsed_args.use_sve,
+        ]
+
     def __init__(
         self,
         num_elements: int,
@@ -221,14 +491,29 @@ class GUPSCommandWrapper(SimpleVectorWrapper):
     def generate_id_dict(self):
         return {
             "name": "gups",
-            "processing_mode": self._processing_mode,
-            "num_elements": self._num_elements,
-            "updates_per_burst": self._updates_per_burst,
+            "processing-mode": self._processing_mode,
+            "num-elements": self._num_elements,
+            "updates-per-burst": self._updates_per_burst,
         }
 
 
 class PermutatingGatherCommandWrapper(SimpleVectorWrapper):
-    def __init__(self, seed: int, mod: int, use_sve: Union[bool, str]):
+    @staticmethod
+    def parse_args(args):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--seed", type=int, required=True)
+        parser.add_argument("--mod", type=int, required=True)
+        parser.add_argument("--use-sve", type=str, required=True)
+
+        parsed_args = parser.parse_args(args)
+        return [parsed_args.seed, parsed_args.mod, parsed_args.use_sve]
+
+    def __init__(
+        self,
+        seed: int,
+        mod: int,
+        use_sve: Union[bool, str],
+    ):
         super().__init__(
             "/home/gem5/workloads/simple-vector-bench/"
             "permutating-gather/bin",
@@ -244,14 +529,29 @@ class PermutatingGatherCommandWrapper(SimpleVectorWrapper):
     def generate_id_dict(self):
         return {
             "name": "permutating-gather",
-            "processing_mode": self._processing_mode,
+            "processing-mode": self._processing_mode,
             "seed": self._seed,
             "mod": self._mod,
         }
 
 
 class PermutatingScatterCommandWrapper(SimpleVectorWrapper):
-    def __init__(self, seed: int, mod: int, use_sve: Union[bool, str]):
+    @staticmethod
+    def parse_args(args):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--seed", type=int, required=True)
+        parser.add_argument("--mod", type=int, required=True)
+        parser.add_argument("--use-sve", type=str, required=True)
+
+        parsed_args = parser.parse_args(args)
+        return [parsed_args.seed, parsed_args.mod, parsed_args.use_sve]
+
+    def __init__(
+        self,
+        seed: int,
+        mod: int,
+        use_sve: Union[bool, str],
+    ):
         super().__init__(
             "/home/gem5/workloads/simple-vector-bench/"
             "permutating-scatter/bin",
@@ -267,7 +567,7 @@ class PermutatingScatterCommandWrapper(SimpleVectorWrapper):
     def generate_id_dict(self):
         return {
             "name": "permutating-scatter",
-            "processing_mode": self._processing_mode,
+            "processing-mode": self._processing_mode,
             "seed": self._seed,
             "mod": self._mod,
         }
@@ -288,7 +588,20 @@ class SpatterCommandWrapper(SimpleVectorWrapper):
         "pennant": "pennant.json",
     }
 
-    def __init__(self, pattern_name: str, use_sve: Union[bool, str]):
+    @staticmethod
+    def parse_args(args):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--pattern_name", type=str, required=True)
+        parser.add_argument("--use_sve", type=str, required=True)
+
+        parsed_args = parser.parse_args(args)
+        return [parsed_args.pattern_name, parsed_args.use_sve]
+
+    def __init__(
+        self,
+        pattern_name: str,
+        use_sve: Union[bool, str],
+    ):
         super().__init__(
             "/home/gem5/workloads/simple-vector-bench/spatter/bin",
             "spatter",
@@ -306,13 +619,26 @@ class SpatterCommandWrapper(SimpleVectorWrapper):
     def generate_id_dict(self):
         return {
             "name": "spatter",
-            "processing_mode": self._processing_mode,
-            "pattern_name": self._pattern_name,
+            "processing-mode": self._processing_mode,
+            "pattern-name": self._pattern_name,
         }
 
 
 class StreamCommandWrapper(SimpleVectorWrapper):
-    def __init__(self, array_size, use_sve: Union[bool, str]):
+    @staticmethod
+    def parse_args(args):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--array_size", type=int, required=True)
+        parser.add_argument("--use_sve", type=str, required=True)
+
+        parsed_args = parser.parse_args(args)
+        return [parsed_args.array_size, parsed_args.use_sve]
+
+    def __init__(
+        self,
+        array_size,
+        use_sve: Union[bool, str],
+    ):
         super().__init__(
             "/home/gem5/workloads/simple-vector-bench/stream/bin",
             "stream",
@@ -326,6 +652,6 @@ class StreamCommandWrapper(SimpleVectorWrapper):
     def generate_id_dict(self):
         return {
             "name": "stream",
-            "processing_mode": self._processing_mode,
-            "array_size": self._array_size,
+            "processing-mode": self._processing_mode,
+            "array-size": self._array_size,
         }
