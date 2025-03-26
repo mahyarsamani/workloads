@@ -357,7 +357,7 @@ class HPCGCommandWrapper(FSMPICommandWrapper):
             "dim-x": self._x,
             "dim-y": self._y,
             "dim-z": self._z,
-            "set time": self._secs,
+            "set-time": self._secs,
         }
 
 
@@ -427,12 +427,12 @@ class NPBCommandWrapper(FSCommandWrapper):
         workload: str,
         size: str,
     ):
-        self._workload = workload
-        self._size = size.upper()
-        binary_name = f"{workload}.{size}.x"
+        binary_name = f"{workload}.{size.upper()}.x"
         super().__init__(
             f"/home/gem5/workloads/NPB3.4-OMP/bin", f"{binary_name}"
         )
+        self._workload = workload
+        self._size = size.upper()
 
     def _generate_cmdline(self):
         return f"./{self._binary_name}"
