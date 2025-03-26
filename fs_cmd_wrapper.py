@@ -51,7 +51,40 @@ class ExitEventHandlerWrapper:
         return self._get_exit_event_handler(board)
 
     def _get_exit_event_handler(self, board: AbstractBoard):
-        return {}
+        def handle_exit():
+            inform("Received an exit.")
+            yield False
+
+        def handle_work_begin(processor):
+            can_switch = isinstance(processor, SwitchableProcessor)
+            assert can_switch != self._take_checkpoint
+            inform("Received a work_begin.")
+            reset_stats()
+            inform("Reset sim stats.")
+            if self._take_checkpoint:
+                take_checkpoint(self._checkpoint_path)
+                inform(f"Took a checkpoint in {self._checkpoint_path}.")
+                if self._continue_after_checkpoint:
+                    inform("Continuing after checkpointing.")
+                yield not self._continue_after_checkpoint
+            if can_switch:
+                processor.switch()
+                inform("Switched to the next processor.")
+                yield False
+            raise RuntimeError("Did not expect a work_begin.")
+
+        def handle_work_end():
+            inform("Received a work_end.")
+            dump_stats()
+            inform("Dumped sim stats.")
+            yield True
+            raise RuntimeError("Did not expect a work_end.")
+
+        return {
+            ExitEvent.EXIT: handle_exit(),
+            ExitEvent.WORKBEGIN: handle_work_begin(board.get_processor()),
+            ExitEvent.WORKEND: handle_work_end(board.get_processor()),
+        }
 
 
 class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
@@ -79,12 +112,12 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                 SWITCH = 1
                 CHECKPOINT = 2
 
+            can_switch = isinstance(processor, SwitchableProcessor)
+            assert can_switch != self._take_checkpoint
             assert processor.get_num_cores() >= self._num_processes
             last_reaction = Reaction.NO_REACTION
             num_received_work_begins = 0
-
             num_expected_work_begins = self._num_processes
-            can_swtich = isinstance(processor, SwitchableProcessor)
 
             while last_reaction == Reaction.NO_REACTION:
                 inform("Received a work_begin.")
@@ -101,7 +134,7 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                             f"Took a checkpoint in {self._checkpoint_path}."
                         )
                         last_reaction = Reaction.CHECKPOINT
-                    if can_swtich:
+                    if can_switch:
                         processor.switch()
                         inform("Switched to the next processor.")
                         last_reaction = Reaction.SWITCH
