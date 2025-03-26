@@ -52,8 +52,9 @@ class ExitEventHandlerWrapper:
 
     def _get_exit_event_handler(self, board: AbstractBoard):
         def handle_exit():
-            inform("Received an exit.")
-            yield False
+            while True:
+                inform("Received an exit.")
+                yield False
 
         def handle_work_begin(processor):
             can_switch = isinstance(processor, SwitchableProcessor)
@@ -83,7 +84,7 @@ class ExitEventHandlerWrapper:
         return {
             ExitEvent.EXIT: handle_exit(),
             ExitEvent.WORKBEGIN: handle_work_begin(board.get_processor()),
-            ExitEvent.WORKEND: handle_work_end(board.get_processor()),
+            ExitEvent.WORKEND: handle_work_end(),
         }
 
 
@@ -427,7 +428,7 @@ class NPBCommandWrapper(FSCommandWrapper):
         size: str,
     ):
         self._workload = workload
-        self._size = size
+        self._size = size.upper()
         binary_name = f"{workload}.{size}.x"
         super().__init__(
             f"/home/gem5/workloads/NPB3.4-OMP/bin", f"{binary_name}"
