@@ -12,6 +12,7 @@ from m5.util import inform
 from gem5.components.boards.abstract_board import AbstractBoard
 from gem5.components.processors.switchable_processor import SwitchableProcessor
 from gem5.simulate.exit_event import ExitEvent
+from gem5.simulate.exit_event_generators import SimStep
 
 
 _mpirun_command_template = (
@@ -27,10 +28,12 @@ def take_checkpoint(checkpoint_path: Path):
 class ExitEventHandlerWrapper:
     def __init__(
         self,
+        sample_stats: bool,
         take_checkpoint: bool,
         continue_after_checkpoint: bool,
         checkpoint_path: Optional[Union[Path, None]],
     ):
+        self._sample_stats = sample_stats
         self._take_checkpoint = take_checkpoint
         self._continue_after_checkpoint = continue_after_checkpoint
         self._checkpoint_path = checkpoint_path
@@ -53,8 +56,22 @@ class ExitEventHandlerWrapper:
     def _get_exit_event_handler(self, board: AbstractBoard):
         def handle_exit():
             while True:
-                inform("Received an exit.")
-                yield False
+                inform("Received an exit. Continuing simulation.")
+                yield SimStep.REMAINING_TIME
+
+        def handle_max_tick():
+            not_done = True
+            while not_done:
+                inform("Received a max_tick.")
+                if self._sample_stats:
+                    dump_stats()
+                    inform("Dumped sim stats.")
+                    yield "40ms"
+                else:
+                    dump_stats()
+                    not_done = False
+                    yield SimStep.STOP
+            raise RuntimeError("Did not expect a max_tick.")
 
         def handle_work_begin(processor):
             can_switch = isinstance(processor, SwitchableProcessor)
@@ -67,22 +84,27 @@ class ExitEventHandlerWrapper:
                 inform(f"Took a checkpoint in {self._checkpoint_path}.")
                 if self._continue_after_checkpoint:
                     inform("Continuing after checkpointing.")
-                yield not self._continue_after_checkpoint
+                yield (
+                    SimStep.REMAINTIN_TIME
+                    if self._continue_after_checkpoint
+                    else SimStep.STOP
+                )
             if can_switch:
                 processor.switch()
                 inform("Switched to the next processor.")
-                yield False
+                yield SimStep.REMAINING_TIME
             raise RuntimeError("Did not expect a work_begin.")
 
         def handle_work_end():
             inform("Received a work_end.")
             dump_stats()
             inform("Dumped sim stats.")
-            yield True
+            yield SimStep.STOP
             raise RuntimeError("Did not expect a work_end.")
 
         return {
             ExitEvent.EXIT: handle_exit(),
+            ExitEvent.MAX_TICK: handle_max_tick(),
             ExitEvent.WORKBEGIN: handle_work_begin(board.get_processor()),
             ExitEvent.WORKEND: handle_work_end(),
         }
@@ -92,20 +114,38 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
     def __init__(
         self,
         num_processes: int,
+        sample_stats: bool,
         take_checkpoint: bool,
         continue_after_checkpoint: bool,
         checkpoint_base_path: Path = None,
     ):
         super().__init__(
-            take_checkpoint, continue_after_checkpoint, checkpoint_base_path
+            sample_stats,
+            take_checkpoint,
+            continue_after_checkpoint,
+            checkpoint_base_path,
         )
         self._num_processes = num_processes
 
     def _get_exit_event_handler(self, board: AbstractBoard):
         def handle_exit():
             while True:
-                inform("Received an m5 exit.")
-                yield False
+                inform("Received an exit. Continuing simulation.")
+                yield SimStep.REMAINING_TIME
+
+        def handle_max_tick():
+            not_done = True
+            while not_done:
+                inform("Received a max_tick.")
+                if self._sample_stats:
+                    dump_stats()
+                    inform("Dumped sim stats.")
+                    yield "40ms"
+                else:
+                    dump_stats()
+                    not_done = False
+                    yield SimStep.STOP
+            raise RuntimeError("Did not expect a max_tick.")
 
         def handle_work_begin(processor):
             class Reaction(Enum):
@@ -140,14 +180,14 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                         inform("Switched to the next processor.")
                         last_reaction = Reaction.SWITCH
                 if last_reaction == Reaction.NO_REACTION:
-                    yield False
+                    yield SimStep.REMAINING_TIME
                 if last_reaction == Reaction.SWITCH:
-                    yield False
+                    yield SimStep.REMAINING_TIME
                 if last_reaction == Reaction.CHECKPOINT:
                     if self._continue_after_checkpoint:
-                        yield False
+                        yield SimStep.REMAINING_TIME
                     else:
-                        yield True
+                        yield SimStep.STOP
 
             raise RuntimeError(
                 "Did not expect a work_begin. "
@@ -167,8 +207,8 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                 if num_received_work_ends == num_expected_work_ends:
                     dump_stats()
                     not_dumped_yet = False
-                    yield True
-                yield False
+                    yield SimStep.STOP
+                yield SimStep.REMAINING_TIME
 
             raise RuntimeError(
                 "Did not expect a work_end. "
@@ -177,6 +217,7 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
 
         return {
             ExitEvent.EXIT: handle_exit(),
+            ExitEvent.MAX_TICK: handle_max_tick(),
             ExitEvent.WORKBEGIN: handle_work_begin(board.get_processor()),
             ExitEvent.WORKEND: handle_work_end(board.get_processor()),
         }
@@ -210,12 +251,16 @@ class FSCommandWrapper:
     def get_exit_event_handler(
         self,
         board: AbstractBoard,
+        sample_stats,
         take_checkpoint,
         continue_after_checkpoint,
         checkpoint_path,
     ):
         self._create_exit_event_handler(
-            take_checkpoint, continue_after_checkpoint, checkpoint_path
+            sample_stats,
+            take_checkpoint,
+            continue_after_checkpoint,
+            checkpoint_path,
         )
         if self._exit_handler is None:
             raise RuntimeError("Failed to create an exit event handler.")
@@ -223,12 +268,16 @@ class FSCommandWrapper:
 
     def _create_exit_event_handler(
         self,
+        sample_stats: bool,
         take_checkpoint: bool,
         continue_after_checkpoint: bool,
         checkpoint_path: Path = None,
     ):
         self._exit_handler = ExitEventHandlerWrapper(
-            take_checkpoint, continue_after_checkpoint, checkpoint_path
+            sample_stats,
+            take_checkpoint,
+            continue_after_checkpoint,
+            checkpoint_path,
         )
 
 
@@ -239,12 +288,14 @@ class FSMPICommandWrapper(FSCommandWrapper):
 
     def _create_exit_event_handler(
         self,
+        sample_stats: bool,
         take_checkpoint: bool,
         continue_after_checkpoint: bool,
         checkpoint_path=None,
     ):
         self._exit_handler = MPIExitEventHandlerWrapper(
             self._num_processes,
+            sample_stats,
             take_checkpoint,
             continue_after_checkpoint,
             checkpoint_path,
@@ -254,7 +305,7 @@ class FSMPICommandWrapper(FSCommandWrapper):
 class BransonCommandWrapper(FSMPICommandWrapper):
     _base_input_path = "/home/gem5/workloads/branson/inputs"
     _input_translator = {
-        "hohlraum_single": "3D_hohlraum_multi_node.xml",
+        "hohlraum_single": "3D_hohlraum_single_node.xml",
         "hohlraum_single_shrunk": "3D_hohlraum_single_node_shrunk.xml",
         "hohlraum_multi": "3D_hohlraum_multi_node.xml",
         "hohlraum_multi_shrunk": "3D_hohlraum_multi_node_shrunk.xml",
