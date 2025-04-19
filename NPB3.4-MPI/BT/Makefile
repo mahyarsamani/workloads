@@ -5,7 +5,9 @@ VEC=
 F08=def
 
 include ../config/make.def
-
+FMPI_LIB += $(ROI_LIB)
+FMPI_LIB += $(ROI_OBJ)
+FMPI_INC += $(ROI_INC)
 
 OBJS = bt.o bt_data.o make_set.o initialize.o exact_solution.o \
        exact_rhs.o set_constants.o adi.o define.o copy_faces.o \
@@ -41,19 +43,19 @@ exec: $(OBJS)
 	fi
 
 bt-bt: ${OBJS} btio.o
-	${FLINK} ${FLINKFLAGS} -o ${PROGRAM} ${OBJS} btio.o ${FMPI_LIB}
+	${FLINK} ${FLINKFLAGS} -o ${PROGRAM} ${OBJS} btio.o ${ROI_BIN} ${FMPI_LIB} 
 
 bt-full: ${OBJS} full_mpiio.o btio_common.o
-	${FLINK} ${FLINKFLAGS} -o ${PROGRAM}.mpi_io_full ${OBJS} btio_common.o full_mpiio.o ${FMPI_LIB}
+	${FLINK} ${FLINKFLAGS} -o ${PROGRAM}.mpi_io_full ${OBJS} btio_common.o full_mpiio.o ${ROI_BIN} ${FMPI_LIB}  
 
 bt-simple: ${OBJS} simple_mpiio.o btio_common.o
-	${FLINK} ${FLINKFLAGS} -o ${PROGRAM}.mpi_io_simple ${OBJS} btio_common.o simple_mpiio.o ${FMPI_LIB}
+	${FLINK} ${FLINKFLAGS} -o ${PROGRAM}.mpi_io_simple ${OBJS} btio_common.o simple_mpiio.o ${ROI_BIN} ${FMPI_LIB}  
 
 bt-fortran: ${OBJS} fortran_io.o btio_common.o
-	${FLINK} ${FLINKFLAGS} -o ${PROGRAM}.fortran_io ${OBJS} btio_common.o fortran_io.o ${FMPI_LIB}
+	${FLINK} ${FLINKFLAGS} -o ${PROGRAM}.fortran_io ${OBJS} btio_common.o fortran_io.o ${ROI_BIN} ${FMPI_LIB}  
 
 bt-epio: ${OBJS} epio.o btio_common.o
-	${FLINK} ${FLINKFLAGS} -o ${PROGRAM}.ep_io ${OBJS} btio_common.o epio.o ${FMPI_LIB}
+	${FLINK} ${FLINKFLAGS} -o ${PROGRAM}.ep_io ${OBJS} btio_common.o epio.o ${ROI_BIN} ${FMPI_LIB} 
 
 .f90.o:
 	${FCOMPILE} $<

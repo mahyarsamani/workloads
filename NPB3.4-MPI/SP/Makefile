@@ -14,11 +14,13 @@ OBJS = sp.o sp_data.o make_set.o initialize.o exact_solution.o \
        ${COMMON}/print_results.o ${COMMON}/timers.o
 
 include ../sys/make.common
-
+FMPI_LIB += $(ROI_LIB)
+FMPI_LIB += $(ROI_OBJ)
+FMPI_INC += $(ROI_INC)
 # npbparams.h is included by sp_data module (via sp_data.o)
 
 ${PROGRAM}: config ${OBJS}
-	${FLINK} ${FLINKFLAGS} -o ${PROGRAM} ${OBJS} ${FMPI_LIB}
+	${FLINK} ${FLINKFLAGS} -o ${PROGRAM} ${OBJS} ${ROI_BIN} ${FMPI_LIB}
 
 .f90.o:
 	${FCOMPILE} $<

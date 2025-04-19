@@ -270,6 +270,8 @@
       call mpi_barrier(comm_work,ierr)
 
       call timer_start(T_bench)
+      call annotate_init
+      call roi_begin
 
       call resid(u,v,r,n1,n2,n3,a,k)
       call norm2u3(r,n1,n2,n3,rnm2,rnmu,nx(lt),ny(lt),nz(lt))
@@ -288,6 +290,7 @@
 
       call norm2u3(r,n1,n2,n3,rnm2,rnmu,nx(lt),ny(lt),nz(lt))
 
+      call roi_end
       call timer_stop(T_bench)
 
       t0 = timer_read(T_bench)

@@ -301,7 +301,8 @@
 
       call timer_clear( 1 )
       call timer_start( 1 )
-
+      call annotate_init
+      call roi_begin
 !---------------------------------------------------------------------
 !---->
 !  Main Iteration for inverse power method
@@ -374,6 +375,7 @@
 
       enddo                              ! end of main iter inv pow meth
 
+      call roi_end
       call timer_stop( 1 )
 
 !---------------------------------------------------------------------

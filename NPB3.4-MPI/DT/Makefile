@@ -5,6 +5,10 @@ BENCHMARKU=DT
 include ../config/make.def
 
 include ../sys/make.common
+CMPI_LIB += $(ROI_LIB)
+CMPI_LIB += $(ROI_OBJ)
+CMPI_INC += $(ROI_INC)
+
 #Override PROGRAM
 DTPROGRAM  = $(BINDIR)/$(BENCHMARK).$(CLASS).x
 
@@ -13,7 +17,7 @@ OBJS = dt.o DGraph.o \
 
 
 ${PROGRAM}: config ${OBJS}
-	${CLINK} ${CLINKFLAGS} -o ${DTPROGRAM} ${OBJS} ${CMPI_LIB}
+	${CLINK} ${CLINKFLAGS} -o ${DTPROGRAM} ${OBJS} ${ROI_BIN} ${CMPI_LIB} 
 
 .c.o:
 	${CCOMPILE} $<

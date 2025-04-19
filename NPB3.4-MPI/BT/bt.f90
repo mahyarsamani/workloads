@@ -205,6 +205,8 @@
        call mpi_barrier(comm_setup, error)
 
        call timer_start(1)
+       call annotate_init
+       call roi_begin
 
        do  step = 1, niter
 
@@ -234,6 +236,7 @@
           endif
        end do
 
+       call roi_end
        call timer_start(2)
        call btio_cleanup
        call timer_stop(2)

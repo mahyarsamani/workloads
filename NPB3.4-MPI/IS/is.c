@@ -36,6 +36,7 @@
 
 #include "mpi.h"
 #include "npbparams.h"
+#include "annotate.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -1100,7 +1101,7 @@ int main( int argc, char **argv )
 /*  Start timer  */             
     timer_start( 0 );
 
-    // roi_begin();
+    roi_begin_();
 /*  This is the main iteration */
     for( iteration=1; iteration<=MAX_ITERATIONS; iteration++ )
     {
@@ -1110,7 +1111,7 @@ int main( int argc, char **argv )
 
 
 /*  Stop timer, obtain time for processors */
-    // roi_end();
+    roi_end_();
     timer_stop( 0 );
 
     timecounter = timer_read( 0 );

@@ -6,13 +6,15 @@ F08=def
 include ../config/make.def
 
 include ../sys/make.common
+FMPI_LIB += $(ROI_LIB)
+FMPI_LIB += $(ROI_OBJ)
+FMPI_INC += $(ROI_INC)
 
 OBJS = ft.o ft_data.o mpinpb.o ${COMMON}/get_active_nprocs.o \
 	${COMMON}/${RAND}.o ${COMMON}/print_results.o ${COMMON}/timers.o
 
 ${PROGRAM}: config ${OBJS}
-	${FLINK} ${FLINKFLAGS} -o ${PROGRAM} ${OBJS} ${FMPI_LIB}
-
+	${FLINK} ${FLINKFLAGS} -o ${PROGRAM} ${OBJS} ${ROI_BIN} ${FMPI_LIB} 
 
 .f90.o:
 	${FCOMPILE} $<

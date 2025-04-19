@@ -6,42 +6,66 @@ F08=def
 MFLAGS=CLASS=$(CLASS) F08=$(F08)
 SFILE=config/suite.def
 
+ROI_DIR=$(PWD)/../annotate
+ROI_BIN=
+ROI_OBJ=
+ROI_INC=-I$(ROI_DIR)/include
+ROI_LIB=
+
+ifeq ($(PLATFORM), papi)
+	ROI_BIN+=$(ROI_DIR)/lib/libannotate.papi.so
+	ROI_INC+=-I$(ROI_DIR)/papi/install/include
+	ROI_LIB+=-L$(ROI_DIR)/papi/install/lib
+	ROI_OBJ+=-lpapi
+	ROI_OBJ+=-lpthread
+else ifeq ($(PLATFORM), gem5)
+	ROI_BIN+=$(ROI_DIR)/lib/libannotate.gem5fs.so
+	ROI_INC+=-I$(ROI_DIR)/gem5/include
+	ROI_LIB+=-L$(ROI_DIR)/gem5/lib
+	ROI_OBJ+=-lm5
+else
+	ROI_BIN+=$(ROI_DIR)/lib/libannotate.native.so
+endif
+
 default: header
 	@ sys/print_instructions
 
-BT: bt
+make_dir:
+	mkdir -p bin
+
+BT: bt make_dir
 bt: header
 	cd BT; $(MAKE) $(MFLAGS) SUBTYPE=$(SUBTYPE) VERSION=$(VERSION)
 
-SP: sp
+SP: sp make_dir
 sp: header
 	cd SP; $(MAKE) $(MFLAGS)
 
-LU: lu
+LU: lu make_dir
 lu: header
 	cd LU; $(MAKE) $(MFLAGS) VERSION=$(VERSION)
 
-MG: mg
+MG: mg make_dir
 mg: header
 	cd MG; $(MAKE) $(MFLAGS)
 
-FT: ft
+FT: ft make_dir
 ft: header
 	cd FT; $(MAKE) $(MFLAGS)
 
-IS: is
+IS: is make_dir
 is: header
 	cd IS; $(MAKE) $(MFLAGS)
 
-CG: cg
+CG: cg make_dir
 cg: header
 	cd CG; $(MAKE) $(MFLAGS)
 
-EP: ep
+EP: ep make_dir
 ep: header
 	cd EP; $(MAKE) $(MFLAGS)
 
-DT: dt
+DT: dt make_dir
 dt: header
 	cd DT; $(MAKE) $(MFLAGS)
 

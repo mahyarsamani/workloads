@@ -15,7 +15,9 @@ OBJS = lu.o lu_data$(VEC).o init_comm.o read_input.o bcast_inputs.o \
        ${COMMON}/print_results.o ${COMMON}/timers.o
 
 include ../sys/make.common
-
+FMPI_LIB += $(ROI_LIB)
+FMPI_LIB += $(ROI_OBJ)
+FMPI_INC += $(ROI_INC)
 
 # npbparams.h is included by lu_data module (via lu_data.o)
 
@@ -29,7 +31,7 @@ ${PROGRAM}: config
 	fi
 
 exec: $(OBJS)
-	${FLINK} ${FLINKFLAGS} -o ${PROGRAM} ${OBJS} ${FMPI_LIB}
+	${FLINK} ${FLINKFLAGS} -o ${PROGRAM} ${OBJS} ${ROI_BIN} ${FMPI_LIB}
 
 .f90.o :
 	${FCOMPILE} $<

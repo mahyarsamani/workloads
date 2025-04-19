@@ -9,9 +9,12 @@ OBJS = ep.o ep_data.o verify.o mpinpb.o \
 	${COMMON}/print_results.o ${COMMON}/${RAND}.o ${COMMON}/timers.o
 
 include ../sys/make.common
+FMPI_LIB += $(ROI_LIB)
+FMPI_LIB += $(ROI_OBJ)
+FMPI_INC += $(ROI_INC)
 
 ${PROGRAM}: config ${OBJS}
-	${FLINK} ${FLINKFLAGS} -o ${PROGRAM} ${OBJS} ${FMPI_LIB}
+	${FLINK} ${FLINKFLAGS} -o ${PROGRAM} ${OBJS} ${ROI_BIN} ${FMPI_LIB}
 
 .f90.o:
 	${FCOMPILE} $<

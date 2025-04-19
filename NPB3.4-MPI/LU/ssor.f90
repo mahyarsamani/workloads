@@ -73,6 +73,9 @@
  
       call timer_clear(1)
       call timer_start(1)
+      // CHECK
+      call annotate_init
+      call roi_begin
 
 !---------------------------------------------------------------------
 !   the timestep loop
@@ -243,7 +246,7 @@
  
       end do
   900 continue
- 
+      call roi_end
       call timer_stop(1)
       wtime = timer_read(1)
  

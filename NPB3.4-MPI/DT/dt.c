@@ -38,6 +38,7 @@
 
 #include "mpi.h"
 #include "npbparams.h"
+#include "annotate.h"
 
 #ifndef CLASS
 #define CLASS 'S'
@@ -716,11 +717,17 @@ int main(int argc,char **argv ){
       timer_clear(0);
       timer_start(0);
     }
+    // CHECK
+    annotate_init_();
+    roi_begin_();
     verified=ProcessNodes(dg,my_rank);
     
     featnum=NUM_SAMPLES*fielddim;
     bytes_sent=featnum*dg->numArcs;
     bytes_sent/=1048576;
+
+    roi_end_();
+
     if(my_rank==0){
       timer_stop(0);
       tot_time=timer_read(0);

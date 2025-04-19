@@ -166,6 +166,9 @@
        call timer_clear(1)
        call timer_start(1)
 
+       call annotate_init
+       call roi_begin
+
        do  step = 1, niter
 
           if (node .eq. root) then
@@ -180,6 +183,7 @@
 
        end do
 
+       call roi_end
        call timer_stop(1)
        t = timer_read(1)
        

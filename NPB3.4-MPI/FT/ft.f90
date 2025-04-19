@@ -104,6 +104,7 @@
       end do
 
       call timer_start(T_init)
+
       call compute_indexmap(twiddle, dims(1,3), dims(2,3), dims(3,3))
       call compute_initial_conditions(u1, dims(1,1), dims(2,1),  &
      &                                dims(3,1))
@@ -125,6 +126,8 @@
       call MPI_Barrier(comm_solve, ierr)
 
       call timer_start(T_total)
+      call annotate_init
+      call roi_begin
       if (timers_enabled) call timer_start(T_setup)
 
       call compute_indexmap(twiddle, dims(1,3), dims(2,3), dims(3,3))
@@ -154,6 +157,7 @@
       end do
 
       call verify(niter, verified, class)
+      call roi_end
       call timer_stop(t_total)
 !!      if (np .ne. np_min) verified = .false.
       total_time = timer_read(t_total)

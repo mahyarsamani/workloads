@@ -159,6 +159,9 @@
       call mpi_barrier(comm_solve, ierr)
       call timer_start(1)
 
+      call annotate_init
+      call roi_begin
+
       t1 = a
       call vranlc(0, t1, a, x)
 
@@ -256,6 +259,7 @@
         gc = gc + q(i)
  160  continue
 
+      call roi_end
       call timer_stop(1)
       tm  = timer_read(1)
 
