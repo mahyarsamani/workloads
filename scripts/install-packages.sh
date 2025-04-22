@@ -11,6 +11,6 @@ sudo apt-get -y update
 sudo apt-get -y -o Dpkg::Options::="--force-confnew" upgrade
 
 # Install desired packages
-sudo apt-get -y -o Dpkg::Options::="--force-confnew" install python3-pip gfortran cmake openmpi-bin libopenmpi-dev
+sudo apt-get -y -o Dpkg::Options::="--force-confnew" install python3-pip gfortran cmake openmpi-bin libopenmpi-dev libpfm4 libpfm4-dev
 
 echo "Done installing user packages."

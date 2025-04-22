@@ -100,7 +100,10 @@ for bm in ${benchmarks[@]}; do
     export PAPI_EVENTS="PAPI_L1_DCR,PAPI_L1_DCW,PAPI_L1_DCM,PAPI_L1_DCA,PAPI_TLB_DM"
     export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb_mpi/$bm/backend0_data
     echo "backend0"
-    if [[ "$CONFIG" == "eight-core-def" ]]; then
+    if [[ "$bm" == dt.* ]]; then
+        
+        mpirun -np $NUM_PROCS bin/$bm BH
+    elif [[ "$CONFIG" == "eight-core-def" ]]; then
         numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun -np $NUM_PROCS bin/$bm || numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun bin/$bm
     else
         mpirun -np $NUM_PROCS bin/$bm 
@@ -108,6 +111,10 @@ for bm in ${benchmarks[@]}; do
     export PAPI_EVENTS="PAPI_L2_TCR,PAPI_L2_TCW,PAPI_L2_TCM,PAPI_L2_TCA,PAPI_L3_DCM,PAPI_L3_TCA"
     export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb_mpi/$bm/backend1_data
     echo "backend1"
+    if [[ "$bm" == dt.* ]]; then
+        
+        mpirun -np $NUM_PROCS bin/$bm BH
+    fi
     if [[ "$CONFIG" == "eight-core-def" ]]; then
         numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun -np $NUM_PROCS bin/$bm || numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun bin/$bm
     else
@@ -116,6 +123,10 @@ for bm in ${benchmarks[@]}; do
     export PAPI_EVENTS="PAPI_L1_ICM,PAPI_L1_ICH,PAPI_L1_ICA,PAPI_TLB_IM"
     export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb_mpi/$bm/frontend_data
     echo "frontend"
+    if [[ "$bm" == dt.* ]]; then
+        
+        mpirun -np $NUM_PROCS bin/$bm BH
+    fi
     if [[ "$CONFIG" == "eight-core-def" ]]; then
         numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun -np $NUM_PROCS bin/$bm || numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun bin/$bm
     else
@@ -124,6 +135,10 @@ for bm in ${benchmarks[@]}; do
     export PAPI_EVENTS="PAPI_TOT_INS,PAPI_INT_INS,PAPI_FP_INS,PAPI_LD_INS"
     export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb_mpi/$bm/inst0_data
     echo "inst0"
+    if [[ "$bm" == dt.* ]]; then
+        
+        mpirun -np $NUM_PROCS bin/$bm BH
+    fi
     if [[ "$CONFIG" == "eight-core-def" ]]; then
         numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun -np $NUM_PROCS bin/$bm || numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun bin/$bm
     else
@@ -132,6 +147,10 @@ for bm in ${benchmarks[@]}; do
     export PAPI_EVENTS="PAPI_SR_INS,PAPI_BR_INS,PAPI_VEC_INS"
     export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb_mpi/$bm/inst1_data
     echo "inst1"
+    if [[ "$bm" == dt.* ]]; then
+        
+        mpirun -np $NUM_PROCS bin/$bm BH
+    fi
     if [[ "$CONFIG" == "eight-core-def" ]]; then
         numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun -np $NUM_PROCS bin/$bm || numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun bin/$bm
     else
@@ -140,6 +159,10 @@ for bm in ${benchmarks[@]}; do
     export PAPI_EVENTS="PAPI_STL_ICY,PAPI_STL_CCY,PAPI_BR_MSP,PAPI_BR_PRC,PAPI_RES_STL,PAPI_TOT_CYC,PAPI_LST_INS"
     export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb_mpi/$bm/pipe0_data
     echo "pipe0"
+    if [[ "$bm" == dt.* ]]; then
+        
+        mpirun -np $NUM_PROCS bin/$bm BH
+    fi
     if [[ "$CONFIG" == "eight-core-def" ]]; then
         numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun -np $NUM_PROCS bin/$bm || numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun bin/$bm
     else
@@ -148,6 +171,10 @@ for bm in ${benchmarks[@]}; do
     export PAPI_EVENTS="PAPI_SYC_INS,PAPI_FP_OPS,PAPI_REF_CYC"
     export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb_mpi/$bm/pipe1_data
     echo "pipe1"
+    if [[ "$bm" == dt.* ]]; then
+        
+        mpirun -np $NUM_PROCS bin/$bm BH
+    fi
     if [[ "$CONFIG" == "eight-core-def" ]]; then
         numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun -np $NUM_PROCS bin/$bm || numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun bin/$bm
     else

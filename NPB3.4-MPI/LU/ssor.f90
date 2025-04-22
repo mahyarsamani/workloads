@@ -73,7 +73,7 @@
  
       call timer_clear(1)
       call timer_start(1)
-      // CHECK
+      
       call annotate_init
       call roi_begin
 
