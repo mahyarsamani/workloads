@@ -1100,7 +1100,8 @@ int main( int argc, char **argv )
 
 /*  Start timer  */             
     timer_start( 0 );
-
+    
+    annotate_init_();
     roi_begin_();
 /*  This is the main iteration */
     for( iteration=1; iteration<=MAX_ITERATIONS; iteration++ )

@@ -35,39 +35,39 @@ make_dir:
 
 BT: bt make_dir
 bt: header
-	cd BT; $(MAKE) $(MFLAGS) SUBTYPE=$(SUBTYPE) VERSION=$(VERSION)
+	cd BT; $(MAKE) $(MFLAGS) SUBTYPE=$(SUBTYPE) VERSION=$(VERSION) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
 SP: sp make_dir
 sp: header
-	cd SP; $(MAKE) $(MFLAGS)
+	cd SP; $(MAKE) $(MFLAGS) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
 LU: lu make_dir
 lu: header
-	cd LU; $(MAKE) $(MFLAGS) VERSION=$(VERSION)
+	cd LU; $(MAKE) $(MFLAGS) VERSION=$(VERSION) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
 MG: mg make_dir
 mg: header
-	cd MG; $(MAKE) $(MFLAGS)
+	cd MG; $(MAKE) $(MFLAGS) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
 FT: ft make_dir
 ft: header
-	cd FT; $(MAKE) $(MFLAGS)
+	cd FT; $(MAKE) $(MFLAGS) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
 IS: is make_dir
 is: header
-	cd IS; $(MAKE) $(MFLAGS)
+	cd IS; $(MAKE) $(MFLAGS) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
 CG: cg make_dir
 cg: header
-	cd CG; $(MAKE) $(MFLAGS)
+	cd CG; $(MAKE) $(MFLAGS) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
 EP: ep make_dir
 ep: header
-	cd EP; $(MAKE) $(MFLAGS)
+	cd EP; $(MAKE) $(MFLAGS) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
 DT: dt make_dir
 dt: header
-	cd DT; $(MAKE) $(MFLAGS)
+	cd DT; $(MAKE) $(MFLAGS) ROI_BIN="$(ROI_BIN)" ROI_INC="$(ROI_INC)" ROI_LIB="$(ROI_LIB)" ROI_OBJ="$(ROI_OBJ)"
 
 # Awk script courtesy cmg@cray.com, modified by Haoqiang Jin
 suite:

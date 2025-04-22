@@ -6,7 +6,10 @@ CONFIG="socket"
 SUFFIX=""
 WORKLOAD=""
 SIZE=""
+NUM_PROCS="8"
 
+unset DISPLAY
+export OMPI_MCA_plm=^rsh
 # All benchmarks
 all_benchmarks=(bt.A.x cg.A.x dt.A.x ep.A.x ft.A.x is.A.x lu.A.x mg.A.x sp.A.x 
             bt.B.x cg.B.x dt.B.x ep.B.x ft.B.x is.B.x lu.B.x mg.B.x sp.B.x 
@@ -26,6 +29,7 @@ print_help() {
   echo "  --suffix SUFFIX     Specify the suffix."
   echo "  --workload WORKLOAD Specify a comma-separated list of workloads. Possible values are 'bt', 'cg', 'dt', 'ep', 'ft', 'is', 'lu', 'mg', and 'sp'."
   echo "  --size SIZE         Specify a comma-separated list of sizes. Possible values are 'A', 'B', and 'D'."
+  echo "  --nprocs NUM_PROCS     Specify the number of MPI processes to use (default is unset)."
   echo ""
   echo "Example:"
   echo "  ./run.sh --machine grace --config eight-core-def --suffix test --workload bt,cg --size A,B"
@@ -39,13 +43,14 @@ while [[ "$#" -gt 0 ]]; do
         --suffix) SUFFIX="$2"; shift ;;
         --workload) IFS=',' read -ra WORKLOAD <<< "$2"; shift ;;
         --size) IFS=',' read -ra SIZE <<< "$2"; shift ;;
+        --nprocs) NUM_PROCS="$2"; shift ;;
         *) echo "Unknown parameter passed: $1"; print_help; exit 1 ;;
     esac
     shift
 done
 
 # Check if machine, suffix, workload, and size are set
-if [[ -z "$MACHINE" || -z "$SUFFIX" || -z "$WORKLOAD" || -z "$SIZE" ]]; then
+if [[ -z "$MACHINE" || -z "$SUFFIX" || -z "$WORKLOAD" || -z "$SIZE" || -z "$NUM_PROCS" ]]; then
     echo "Error: --machine, --suffix, --workload, and --size parameters are required."
     print_help
     exit 1
@@ -87,65 +92,65 @@ echo "Workload: ${WORKLOAD[*]}"
 echo "Size: ${SIZE[*]}"
 echo "Benchmarks: ${benchmarks[*]}"
 
-export LD_LIBRARY_PATH=${PWD}/../roi/papi/install/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=${PWD}/../annotate/papi/install/lib:$LD_LIBRARY_PATH
 
 
 for bm in ${benchmarks[@]}; do
     echo $bm
     export PAPI_EVENTS="PAPI_L1_DCR,PAPI_L1_DCW,PAPI_L1_DCM,PAPI_L1_DCA,PAPI_TLB_DM"
-    export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb/$bm/backend0_data
+    export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb_mpi/$bm/backend0_data
     echo "backend0"
     if [[ "$CONFIG" == "eight-core-def" ]]; then
-        numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- ./bin/$bm
+        numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun -np $NUM_PROCS bin/$bm || numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun bin/$bm
     else
-        ./bin/$bm
+        mpirun -np $NUM_PROCS bin/$bm 
     fi
     export PAPI_EVENTS="PAPI_L2_TCR,PAPI_L2_TCW,PAPI_L2_TCM,PAPI_L2_TCA,PAPI_L3_DCM,PAPI_L3_TCA"
-    export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb/$bm/backend1_data
+    export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb_mpi/$bm/backend1_data
     echo "backend1"
     if [[ "$CONFIG" == "eight-core-def" ]]; then
-        numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- ./bin/$bm
+        numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun -np $NUM_PROCS bin/$bm || numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun bin/$bm
     else
-        ./bin/$bm
+        mpirun -np $NUM_PROCS bin/$bm 
     fi
     export PAPI_EVENTS="PAPI_L1_ICM,PAPI_L1_ICH,PAPI_L1_ICA,PAPI_TLB_IM"
-    export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb/$bm/frontend_data
+    export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb_mpi/$bm/frontend_data
     echo "frontend"
     if [[ "$CONFIG" == "eight-core-def" ]]; then
-        numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- ./bin/$bm
+        numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun -np $NUM_PROCS bin/$bm || numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun bin/$bm
     else
-        ./bin/$bm
+        mpirun -np $NUM_PROCS bin/$bm 
     fi
     export PAPI_EVENTS="PAPI_TOT_INS,PAPI_INT_INS,PAPI_FP_INS,PAPI_LD_INS"
-    export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb/$bm/inst0_data
+    export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb_mpi/$bm/inst0_data
     echo "inst0"
     if [[ "$CONFIG" == "eight-core-def" ]]; then
-        numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- ./bin/$bm
+        numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun -np $NUM_PROCS bin/$bm || numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun bin/$bm
     else
-        ./bin/$bm
+        mpirun -np $NUM_PROCS bin/$bm 
     fi
     export PAPI_EVENTS="PAPI_SR_INS,PAPI_BR_INS,PAPI_VEC_INS"
-    export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb/$bm/inst1_data
+    export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb_mpi/$bm/inst1_data
     echo "inst1"
     if [[ "$CONFIG" == "eight-core-def" ]]; then
-        numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- ./bin/$bm
+        numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun -np $NUM_PROCS bin/$bm || numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun bin/$bm
     else
-        ./bin/$bm
+        mpirun -np $NUM_PROCS bin/$bm 
     fi
     export PAPI_EVENTS="PAPI_STL_ICY,PAPI_STL_CCY,PAPI_BR_MSP,PAPI_BR_PRC,PAPI_RES_STL,PAPI_TOT_CYC,PAPI_LST_INS"
-    export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb/$bm/pipe0_data
+    export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb_mpi/$bm/pipe0_data
     echo "pipe0"
     if [[ "$CONFIG" == "eight-core-def" ]]; then
-        numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- ./bin/$bm
+        numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun -np $NUM_PROCS bin/$bm || numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun bin/$bm
     else
-        ./bin/$bm
+        mpirun -np $NUM_PROCS bin/$bm 
     fi
     export PAPI_EVENTS="PAPI_SYC_INS,PAPI_FP_OPS,PAPI_REF_CYC"
-    export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb/$bm/pipe1_data
+    export PAPI_OUTPUT_DIRECTORY=${PWD}/../data/${MACHINE}-${CONFIG}-${SUFFIX}/npb_mpi/$bm/pipe1_data
     echo "pipe1"
     if [[ "$CONFIG" == "eight-core-def" ]]; then
-        numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- ./bin/$bm
+        numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun -np $NUM_PROCS bin/$bm || numactl --physcpubind=0,1,2,3,4,5,6,7 --membind=0 -- mpirun bin/$bm
     else
-        ./bin/$bm
+        mpirun -np $NUM_PROCS bin/$bm 
     fi
 done
