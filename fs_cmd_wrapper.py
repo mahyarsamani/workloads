@@ -29,11 +29,13 @@ class ExitEventHandlerWrapper:
     def __init__(
         self,
         sample_stats: bool,
+        sample_period: str,
         take_checkpoint: bool,
         continue_after_checkpoint: bool,
         checkpoint_path: Optional[Union[Path, None]],
     ):
         self._sample_stats = sample_stats
+        self._sample_period = sample_period
         self._take_checkpoint = take_checkpoint
         self._continue_after_checkpoint = continue_after_checkpoint
         self._checkpoint_path = checkpoint_path
@@ -48,6 +50,11 @@ class ExitEventHandlerWrapper:
                 )
         if self._continue_after_checkpoint:
             inform("Continuing after checkpointing is enabled.")
+        if self._sample_period != "none":
+            if not self._sample_stats:
+                raise ValueError(
+                    "Sample period is set, but sample_stats is disabled."
+                )
 
     def get_exit_event_handler(self, board: AbstractBoard):
         self._validate_options(board)
@@ -66,7 +73,7 @@ class ExitEventHandlerWrapper:
                 if self._sample_stats:
                     dump_stats()
                     inform("Dumped sim stats.")
-                    yield "40ms"
+                    yield self._sample_period
                 else:
                     dump_stats()
                     not_done = False
@@ -115,12 +122,14 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
         self,
         num_processes: int,
         sample_stats: bool,
+        sample_period: str,
         take_checkpoint: bool,
         continue_after_checkpoint: bool,
-        checkpoint_base_path: Path = None,
+        checkpoint_base_path: Optional[Union[str, Path]],
     ):
         super().__init__(
             sample_stats,
+            sample_period,
             take_checkpoint,
             continue_after_checkpoint,
             checkpoint_base_path,
@@ -140,7 +149,7 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                 if self._sample_stats:
                     dump_stats()
                     inform("Dumped sim stats.")
-                    yield "40ms"
+                    yield self._sample_period
                 else:
                     dump_stats()
                     not_done = False
@@ -251,13 +260,15 @@ class FSCommandWrapper:
     def get_exit_event_handler(
         self,
         board: AbstractBoard,
-        sample_stats,
-        take_checkpoint,
-        continue_after_checkpoint,
-        checkpoint_path,
+        sample_stats: bool,
+        sample_period: str,
+        take_checkpoint: bool,
+        continue_after_checkpoint: bool,
+        checkpoint_path: Optional[Union[str, Path]],
     ):
         self._create_exit_event_handler(
             sample_stats,
+            sample_period,
             take_checkpoint,
             continue_after_checkpoint,
             checkpoint_path,
@@ -269,12 +280,14 @@ class FSCommandWrapper:
     def _create_exit_event_handler(
         self,
         sample_stats: bool,
+        sample_period: str,
         take_checkpoint: bool,
         continue_after_checkpoint: bool,
-        checkpoint_path: Path = None,
+        checkpoint_path: Optional[Union[str, Path]],
     ):
         self._exit_handler = ExitEventHandlerWrapper(
             sample_stats,
+            sample_period,
             take_checkpoint,
             continue_after_checkpoint,
             checkpoint_path,
@@ -289,13 +302,15 @@ class FSMPICommandWrapper(FSCommandWrapper):
     def _create_exit_event_handler(
         self,
         sample_stats: bool,
+        sample_period: str,
         take_checkpoint: bool,
         continue_after_checkpoint: bool,
-        checkpoint_path=None,
+        checkpoint_path: Optional[Union[str, Path]],
     ):
         self._exit_handler = MPIExitEventHandlerWrapper(
             self._num_processes,
             sample_stats,
+            sample_period,
             take_checkpoint,
             continue_after_checkpoint,
             checkpoint_path,
