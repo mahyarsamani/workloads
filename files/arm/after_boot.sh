@@ -28,7 +28,7 @@ fi
 printf "Interactive mode: $interactive\n"
 
 if [[ $interactive == true ]]; then
-    printf "Interactive mode enabled, dropping to shell."
+    printf "Interactive mode enabled, dropping to shell.\n"
     /bin/bash
 else
     # Try to read the file from the host when running with gem5

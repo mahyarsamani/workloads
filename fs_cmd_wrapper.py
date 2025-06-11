@@ -25,6 +25,38 @@ def take_checkpoint(checkpoint_path: Path):
     checkpoint(str(checkpoint_path))
 
 
+def try_convert_bool(bool_like):
+    def convert_str_bool(bool_like):
+        assert bool_like.lower() in ["true", "false"]
+        return True if bool_like.lower() == "true" else False
+
+    def is_int_like(int_like):
+        try:
+            ret = int(int_like)
+            return True
+        except:
+            return False
+
+    def convert_int_bool(bool_like):
+        assert bool_like >= 0
+        return bool_like > 0
+
+    if isinstance(bool_like, str):
+        if is_int_like(bool_like):
+            return convert_int_bool(bool_like)
+        else:
+            return convert_str_bool(bool_like)
+    elif isinstance(bool_like, int):
+        return convert_int_bool(bool_like)
+    elif isinstance(bool_like, bool):
+        return bool_like
+    else:
+        raise ValueError(
+            "bool_like argument should be a "
+            "string/positive integer/boolean."
+        )
+
+
 class ExitEventHandlerWrapper:
     def __init__(
         self,
@@ -114,6 +146,40 @@ class ExitEventHandlerWrapper:
             ExitEvent.MAX_TICK: handle_max_tick(),
             ExitEvent.WORKBEGIN: handle_work_begin(board.get_processor()),
             ExitEvent.WORKEND: handle_work_end(),
+        }
+
+
+class BootExitEventHandlerWrapper(ExitEventHandlerWrapper):
+    def __init__(self):
+        super().__init__(
+            sample_stats=False,
+            sample_period="none",
+            take_checkpoint=False,
+            continue_after_checkpoint=False,
+            checkpoint_path=None,
+        )
+
+    def _get_exit_event_handler(self, board):
+        def handle_exit():
+            num_exits_received = 0
+            can_swith = isinstance(board.get_processor(), SwitchableProcessor)
+            while True:
+                inform("Received an exit.")
+                num_exits_received += 1
+                if num_exits_received == 1:
+                    inform("It's from after_boot.sh.")
+                    inform("Continuing simulation past after_boot.sh.")
+                    yield SimStep.REMAINING_TIME
+                if num_exits_received == 2:
+                    inform("It's from gem5_init.sh.")
+                    if can_swith:
+                        board.get_processor().switch()
+                        inform("Switched to the next processor.")
+                    inform("Continuing simulation past gem5_init.sh.")
+                    yield SimStep.REMAINING_TIME
+
+        return {
+            ExitEvent.EXIT: handle_exit(),
         }
 
 
@@ -317,6 +383,89 @@ class FSMPICommandWrapper(FSCommandWrapper):
         )
 
 
+class BootCommandWrapper(FSCommandWrapper):
+    @staticmethod
+    def parse_args(args):
+        inform("BootCommandWrapper does not accept any arguments.")
+        return []
+
+    def __init__(self):
+        super().__init__("/home/gem5", "")
+
+    def _generate_cmdline(self):
+        return ""
+
+    def _create_exit_event_handler(
+        self,
+        sample_stats,
+        sample_period,
+        take_checkpoint,
+        continue_after_checkpoint,
+        checkpoint_path,
+    ):
+        inform(
+            "BootCommandWrapper ignores all of `sample_stats`, "
+            "`sample_period`, `take_checkpoint`, "
+            "`continue_after_checkpoint`, `checkpoint_path`."
+        )
+        self._exit_handler = BootExitEventHandlerWrapper()
+
+    def generate_id_dict(self):
+        return {"name": "boot"}
+
+
+class MPIBenchCommandWrapper(FSMPICommandWrapper):
+    @staticmethod
+    def parse_args(args):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--num-processes", type=int, required=True)
+        parser.add_argument("--num-elements", type=int, required=True)
+        parser.add_argument("--seed", type=int, required=True)
+        parser.add_argument("--use-sve", type=str, required=True)
+
+        parsed_args = parser.parse_args(args)
+        return [
+            parsed_args.num_processes,
+            parsed_args.num_elements,
+            parsed_args.seed,
+            parsed_args.use_sve,
+        ]
+
+    def __init__(
+        self,
+        num_processes: int,
+        num_elements: int,
+        seed: int,
+        use_sve: Union[bool, int, str],
+    ):
+        binary_name = (
+            "mpi_bench_gem5_sve"
+            if try_convert_bool(use_sve)
+            else "mpi_bench_gem5"
+        )
+        super().__init__(
+            "/home/gem5/workloads/mpi_bench", binary_name, num_processes
+        )
+        self._num_elements = num_elements
+        self._seed = seed
+        self._use_sve = try_convert_bool(use_sve)
+
+    def _generate_cmdline(self):
+        workload_cmd = f"./{self._binary_name} index.txt data.txt"
+        return _mpirun_command_template.format(
+            num_processes=self._num_processes, workload_cmd=workload_cmd
+        )
+
+    def generate_id_dict(self):
+        return {
+            "name": "mpi-bench",
+            "use-sve": self._use_sve,
+            "num-processes": self._num_processes,
+            "num-elements": self._num_elements,
+            "seed": self._seed,
+        }
+
+
 class BransonCommandWrapper(FSMPICommandWrapper):
     _base_input_path = "/home/gem5/workloads/branson/inputs"
     _input_translator = {
@@ -507,6 +656,45 @@ class NPBCommandWrapper(FSCommandWrapper):
         return {"name": "npb", "workload": self._workload, "size": self._size}
 
 
+class NPBMPICommandWrapper(FSMPICommandWrapper):
+    @staticmethod
+    def parse_args(args):
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--num-processes", type=int, required=True)
+        parser.add_argument("--workload", type=str, required=True)
+        parser.add_argument("--size", type=str, required=True)
+
+        parsed_args = parser.parse_args(args)
+        return [
+            parsed_args.num_processes,
+            parsed_args.workload,
+            parsed_args.size,
+        ]
+
+    def __init__(self, num_processes: int, workload: str, size: str):
+        binary_name = f"{workload}.{size.upper()}.x"
+        super().__init__(
+            "/home/gem5/workloads/NPB3.4-MPI/bin", binary_name, num_processes
+        )
+        self._num_processes = num_processes
+        self._workload = workload
+        self._size = size.upper()
+
+    def _generate_cmdline(self):
+        workload_cmd = f"./{self._binary_name}"
+        return _mpirun_command_template.format(
+            num_processes=self._num_processes, workload_cmd=workload_cmd
+        )
+
+    def generate_id_dict(self):
+        return {
+            "name": "npb-mpi",
+            "num-processes": self._num_processes,
+            "workload": self._workload,
+            "size": self._size,
+        }
+
+
 class SimpleVectorWrapper(FSCommandWrapper):
     def __init__(
         self,
@@ -514,37 +702,6 @@ class SimpleVectorWrapper(FSCommandWrapper):
         binary_name: str,
         use_sve: Union[bool, str],
     ):
-        def try_convert_bool(bool_like):
-            def convert_str_bool(bool_like):
-                assert bool_like.lower() in ["true", "false"]
-                return True if bool_like.lower() == "true" else False
-
-            def is_int_like(int_like):
-                try:
-                    ret = int(int_like)
-                    return True
-                except:
-                    return False
-
-            def convert_int_bool(bool_like):
-                assert bool_like >= 0
-                return bool_like > 0
-
-            if isinstance(bool_like, str):
-                if is_int_like(bool_like):
-                    return convert_int_bool(bool_like)
-                else:
-                    return convert_str_bool(bool_like)
-            elif isinstance(bool_like, int):
-                return convert_int_bool(bool_like)
-            elif isinstance(bool_like, bool):
-                return bool_like
-            else:
-                raise ValueError(
-                    "bool_like argument should be a "
-                    "string/positive integer/boolean."
-                )
-
         self._processing_mode = (
             "sve" if try_convert_bool(use_sve) else "scalar"
         )

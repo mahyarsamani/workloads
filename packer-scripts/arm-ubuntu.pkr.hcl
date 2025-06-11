@@ -166,12 +166,12 @@ build {
 
   provisioner "file" {
     destination = "/home/gem5/workloads/"
-    source      = "branson"
+    source      = "mpi_bench"
   }
 
   provisioner "file" {
     destination = "/home/gem5/workloads/"
-    source      = "cache_ubench"
+    source      = "branson"
   }
 
   provisioner "file" {
@@ -182,6 +182,11 @@ build {
   provisioner "file" {
     destination = "/home/gem5/workloads/"
     source      = "NPB3.4-OMP"
+  }
+
+  provisioner "file" {
+    destination = "/home/gem5/workloads/"
+    source      = "NPB3.4-MPI"
   }
 
   provisioner "file" {

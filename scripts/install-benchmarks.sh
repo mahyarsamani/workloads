@@ -11,7 +11,15 @@ cd annotate/
 make gem5fs
 cd ..
 
+cd mpi_bench
+make gem5
+cd ..
+
 cd NPB3.4-OMP
+./build_npb_gem5.sh
+cd ..
+
+cd NPB3.4-MPI
 ./build_npb_gem5.sh
 cd ..
 
