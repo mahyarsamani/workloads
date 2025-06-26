@@ -32,11 +32,11 @@
 
       integer IERROR
 
- 
+
 !---------------------------------------------------------------------
 !   begin pseudo-time stepping iterations
 !---------------------------------------------------------------------
-      tmp = 1.0d+00 / ( omega * ( 2.0d+00 - omega ) ) 
+      tmp = 1.0d+00 / ( omega * ( 2.0d+00 - omega ) )
 
 !---------------------------------------------------------------------
 !   initialize a,b,c,d to zero (guarantees that page tables have been
@@ -57,24 +57,23 @@
 !   compute the steady-state residuals
 !---------------------------------------------------------------------
       call rhs
- 
+
 !---------------------------------------------------------------------
 !   compute the L2 norms of newton iteration residuals
 !---------------------------------------------------------------------
       call l2norm( isiz1, isiz2, isiz3, nx0, ny0, nz0,  &
      &             ist, iend, jst, jend,  &
      &             rsd, rsdnm )
-  
+
       do i = 1, t_last
          call timer_clear(i)
       end do
 
       call MPI_BARRIER( comm_solve, IERROR )
- 
+
       call timer_clear(1)
       call timer_start(1)
-      
-      call annotate_init
+
       call roi_begin
 
 !---------------------------------------------------------------------
@@ -90,7 +89,7 @@
  200           format(' Time step ', i4)
             endif
          endif
- 
+
 !---------------------------------------------------------------------
 !   perform SSOR iteration
 !---------------------------------------------------------------------
@@ -103,8 +102,8 @@
                end do
             end do
          end do
- 
-         do k = 2, nz -1 
+
+         do k = 2, nz -1
 !---------------------------------------------------------------------
 !   receive data from north and west
 !---------------------------------------------------------------------
@@ -121,7 +120,7 @@
 !   form the lower triangular part of the jacobian matrix
 !---------------------------------------------------------------------
                call jacld(j, k)
- 
+
 !---------------------------------------------------------------------
 !   perform the lower triangular solution
 !---------------------------------------------------------------------
@@ -143,7 +142,7 @@
             call exchange_1( rsd,k,iex )
             if (timeron) call timer_stop(t_lcomm)
          end do
- 
+
          do k = nz - 1, 2, -1
 !---------------------------------------------------------------------
 !   receive data from south and east
@@ -182,11 +181,11 @@
             call exchange_1( rsd,k,iex )
             if (timeron) call timer_stop(t_ucomm)
          end do
- 
+
 !---------------------------------------------------------------------
 !   update the variables
 !---------------------------------------------------------------------
- 
+
          do k = 2, nz-1
             do j = jst, jend
                do i = ist, iend
@@ -197,7 +196,7 @@
                end do
             end do
          end do
- 
+
 !---------------------------------------------------------------------
 !   compute the max-norms of newton iteration corrections
 !---------------------------------------------------------------------
@@ -211,12 +210,12 @@
 !                write (*,'(i5,f15.6)') istep,delunm(5)
 !            end if
          end if
- 
+
 !---------------------------------------------------------------------
 !   compute the steady-state residuals
 !---------------------------------------------------------------------
          call rhs
- 
+
 !---------------------------------------------------------------------
 !   compute the max-norms of newton iteration residuals
 !---------------------------------------------------------------------
@@ -243,13 +242,13 @@
             end if
             go to 900
          end if
- 
+
       end do
   900 continue
       call roi_end
       call timer_stop(1)
       wtime = timer_read(1)
- 
+
 
       call MPI_ALLREDUCE( wtime,  &
      &                    maxtime,  &
@@ -258,11 +257,11 @@
      &                    MPI_MAX,  &
      &                    comm_solve,  &
      &                    IERROR )
- 
+
 
 
       return
-      
+
  1001 format (1x/5x,'pseudo-time SSOR iteration no.=',i4/)
  1004 format (1x/1x,'convergence was achieved after ',i4,  &
      &   ' pseudo-time steps' )
@@ -286,5 +285,5 @@
      & 'fourth pde = ',1pe12.5/,  &
      & 1x,'RMS-norm of steady-state residual for ',  &
      & 'fifth pde  = ',1pe12.5)
- 
+
       end

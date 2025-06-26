@@ -1,35 +1,35 @@
 /*************************************************************************
- *                                                                       * 
+ *                                                                       *
  *        N  A  S     P A R A L L E L     B E N C H M A R K S  3.4       *
- *                                                                       * 
- *                                  D T					 * 
- *                                                                       * 
- ************************************************************************* 
- *                                                                       * 
+ *                                                                       *
+ *                                  D T					 *
+ *                                                                       *
+ *************************************************************************
+ *                                                                       *
  *   This benchmark is part of the NAS Parallel Benchmark 3.4 suite.     *
- *                                                                       * 
- *   Permission to use, copy, distribute and modify this software        * 
- *   for any purpose with or without fee is hereby granted.  We          * 
- *   request, however, that all derived work reference the NAS           * 
+ *                                                                       *
+ *   Permission to use, copy, distribute and modify this software        *
+ *   for any purpose with or without fee is hereby granted.  We          *
+ *   request, however, that all derived work reference the NAS           *
  *   Parallel Benchmarks 3.4. This software is provided "as is"          *
- *   without express or implied warranty.                                * 
- *                                                                       * 
+ *   without express or implied warranty.                                *
+ *                                                                       *
  *   Information on NPB 3.4, including the technical report, the         *
- *   original specifications, source code, results and information       * 
- *   on how to submit new results, is available at:                      * 
- *                                                                       * 
- *          http:  www.nas.nasa.gov/Software/NPB                         * 
- *                                                                       * 
- *   Send comments or suggestions to  npb@nas.nasa.gov                   * 
- *                                                                       * 
- *         NAS Parallel Benchmarks Group                                 * 
- *         NASA Ames Research Center                                     * 
- *         Moffett Field, CA   94035-1000                                * 
- *                                                                       * 
- ************************************************************************* 
- *                                                                       * 
+ *   original specifications, source code, results and information       *
+ *   on how to submit new results, is available at:                      *
+ *                                                                       *
+ *          http:  www.nas.nasa.gov/Software/NPB                         *
+ *                                                                       *
+ *   Send comments or suggestions to  npb@nas.nasa.gov                   *
+ *                                                                       *
+ *         NAS Parallel Benchmarks Group                                 *
+ *         NASA Ames Research Center                                     *
+ *         Moffett Field, CA   94035-1000                                *
+ *                                                                       *
+ *************************************************************************
+ *                                                                       *
  *   Author: M. Frumkin							 *
- *                                                                       * 
+ *                                                                       *
  *************************************************************************/
 
 #include <stdlib.h>
@@ -49,7 +49,7 @@ extern double randlc( double *X, double *A );
 extern
 void c_print_results( char   *name,
                       char   class,
-                      int    n1, 
+                      int    n1,
                       int    n2,
                       int    n3,
                       int    niter,
@@ -67,7 +67,7 @@ void c_print_results( char   *name,
                       char   *cmpi_inc,
                       char   *cflags,
                       char   *clinkflags );
-		      
+
 #include "../common/c_timers.h"
 int timer_on=0,timers_tot=64;
 
@@ -161,10 +161,10 @@ int verify(char *bmname,double rnm2){
     }else{
        verified = -1;
     }
-    return  verified;  
+    return  verified;
   }
 
-int ipowMod(int a,long long int n,int md){ 
+int ipowMod(int a,long long int n,int md){
   int seed=1,q=a,r=1;
   if(n<0){
     fprintf(stderr,"ipowMod: exponent must be nonnegative exp=%lld\n",n);
@@ -207,7 +207,7 @@ DGraph *buildSH(char cls){
   int mask=0x0,ndid=0,ndoff=0;
   int i=0,j=0;
   char nm[BLOCK_SIZE];
-  
+
   sprintf(nm,"DT_SH.%c",cls);
   dg=newDGraph(nm);
 
@@ -228,11 +228,11 @@ DGraph *buildSH(char cls){
       AttachNode(dg,nd);
       ndoff=i&(~mask);
       ndid=firstLayerNode+ndoff;
-      ar=newArc(dg->node[ndid],nd);     
+      ar=newArc(dg->node[ndid],nd);
       AttachArc(dg,ar);
       ndoff+=mask;
       ndid=firstLayerNode+ndoff;
-      ar=newArc(dg->node[ndid],nd);     
+      ar=newArc(dg->node[ndid],nd);
       AttachArc(dg,ar);
     }
     firstLayerNode+=numSources;
@@ -244,11 +244,11 @@ DGraph *buildSH(char cls){
     AttachNode(dg,nd);
     ndoff=i&(~mask);
     ndid=firstLayerNode+ndoff;
-    ar=newArc(dg->node[ndid],nd);     
+    ar=newArc(dg->node[ndid],nd);
     AttachArc(dg,ar);
     ndoff+=mask;
     ndid=firstLayerNode+ndoff;
-    ar=newArc(dg->node[ndid],nd);     
+    ar=newArc(dg->node[ndid],nd);
     AttachArc(dg,ar);
   }
 return dg;
@@ -299,7 +299,7 @@ DGraph *buildWH(char cls){
     numPrevLayerNodes=numLayerNodes;
   }
   source=newNode("Source");
-  AttachNode(dg,source);   
+  AttachNode(dg,source);
   for(i=0;i<numPrevLayerNodes;i++){
     nd=dg->node[firstLayerNode+i];
     ar=newArc(source,nd);
@@ -359,7 +359,7 @@ DGraph *buildBH(char cls){
     numPrevLayerNodes=numLayerNodes;
   }
   sink=newNode("Sink");
-  AttachNode(dg,sink);   
+  AttachNode(dg,sink);
   for(i=0;i<numPrevLayerNodes;i++){
     nd=dg->node[firstLayerNode+i];
     ar=newArc(nd,sink);
@@ -388,7 +388,7 @@ double CheckVal(Arr *feat){
   double csum=0.0;
   int i=0;
   for(i=0;i<feat->len;i++){
-    csum+=feat->val[i]*feat->val[i]/feat->len; /* The truncation does not work since 
+    csum+=feat->val[i]*feat->val[i]/feat->len; /* The truncation does not work since
                                                   result will be 0 for large len  */
   }
    return csum;
@@ -440,7 +440,7 @@ Arr* RandomFeatures(char *bmname,int fdim,int id){
     timer_stop(id+1);
     fprintf(stderr,"** RandomFeatures time in node %d = %f\n",id,timer_read(id+1));
   }
-  return feat;   
+  return feat;
 }
 void Resample(Arr *a,int blen){
     long long int i=0,j=0,jlo=0,jhi=0;
@@ -449,10 +449,10 @@ void Resample(Arr *a,int blen){
     Arr *tmp=newArr(10);
     for(i=0;i<blen;i++) nval[i]=0.0;
     for(i=1;i<a->len-1;i++){
-      jlo=(int)(0.5*(2*i-1)*(blen/a->len)); 
+      jlo=(int)(0.5*(2*i-1)*(blen/a->len));
       jhi=(int)(0.5*(2*i+1)*(blen/a->len));
 
-      avval=a->val[i]/(jhi-jlo+1);    
+      avval=a->val[i]/(jhi-jlo+1);
       for(j=jlo;j<=jhi;j++){
         nval[j]+=avval;
       }
@@ -468,7 +468,7 @@ Arr* WindowFilter(Arr *a, Arr* b,int w){
   int i=0,j=0,k=0;
   double rms0=0.0,rms1=0.0,rmsm1=0.0;
   double weight=((double) (w+1))/(w+2);
- 
+
   w+=1;
   if(timer_on){
     timer_clear(w);
@@ -502,20 +502,20 @@ Arr* WindowFilter(Arr *a, Arr* b,int w){
       a->val[i]=weight*b->val[i];
       a->val[i+1]=weight*b->val[i+1];
       a->val[i+2]=weight*b->val[i+2];
-      a->val[i+3]=weight*b->val[i+3];  
+      a->val[i+3]=weight*b->val[i+3];
     }else if(k==1){
       j=i+fielddim;
       a->val[i]=weight*b->val[j];
       a->val[i+1]=weight*b->val[j+1];
       a->val[i+2]=weight*b->val[j+2];
-      a->val[i+3]=weight*b->val[j+3];  
+      a->val[i+3]=weight*b->val[j+3];
     }else { /*if(k==-1)*/
       j=i-fielddim;
       a->val[i]=weight*b->val[j];
       a->val[i+1]=weight*b->val[j+1];
       a->val[i+2]=weight*b->val[j+2];
-      a->val[i+3]=weight*b->val[j+3];  
-    }	   
+      a->val[i+3]=weight*b->val[j+3];
+    }
   }
   if(timer_on){
     timer_stop(w);
@@ -566,7 +566,7 @@ Arr* CombineStreams(DGraph *dg,DGNode *nd){
       featp=(Arr *)tail->feat;
       feat=newArr(featp->len);
       memcpy(feat->val,featp->val,featp->len*sizeof(double));
-      resfeat=WindowFilter(resfeat,feat,nd->id);  
+      resfeat=WindowFilter(resfeat,feat,nd->id);
       free(feat);
     }
   }
@@ -580,7 +580,7 @@ double Reduce(Arr *a,int w){
     timer_clear(w);
     timer_start(w);
   }
-  retv=(int)(w*CheckVal(a));/* The casting needed for node  
+  retv=(int)(w*CheckVal(a));/* The casting needed for node
                                and array dependent verifcation */
   if(timer_on){
     timer_stop(w);
@@ -608,10 +608,10 @@ double ReduceStreams(DGraph *dg,DGNode *nd){
       MPI_Recv(&len,1,MPI_INT,tail->address,tag,MPI_COMM_WORLD,&status);
       feat=newArr(len);
       MPI_Recv(feat->val,feat->len,MPI_DOUBLE,tail->address,tag,MPI_COMM_WORLD,&status);
-      csum+=Reduce(feat,(nd->id+1));  
+      csum+=Reduce(feat,(nd->id+1));
       free(feat);
     }else{
-      csum+=Reduce(tail->feat,(nd->id+1));  
+      csum+=Reduce(tail->feat,(nd->id+1));
     }
   }
   if(nd->inDegree>0)csum=(((long long int)csum)/nd->inDegree);
@@ -631,7 +631,7 @@ int ProcessNodes(DGraph *dg,int me){
     nd=dg->node[i];
     if(nd->address!=me) continue;
     if(strstr(nd->name,"Source")){
-      nd->feat=RandomFeatures(dg->name,fielddim,nd->id); 
+      nd->feat=RandomFeatures(dg->name,fielddim,nd->id);
       SendResults(dg,nd,nd->feat);
     }else if(strstr(nd->name,"Sink")){
       chksum=ReduceStreams(dg,nd);
@@ -684,7 +684,10 @@ int main(int argc,char **argv ){
       }
       MPI_Finalize();
       exit(1);
-    } 
+    }
+
+    annotate_init_();
+
    if(strncmp(argv[1],"BH",2)==0){
       dg=buildBH(CLASS);
     }else if(strncmp(argv[1],"WH",2)==0){
@@ -708,7 +711,7 @@ int main(int argc,char **argv ){
       MPI_Finalize();
       exit(1);
     }
-    for(i=0;i<dg->numNodes;i++){ 
+    for(i=0;i<dg->numNodes;i++){
       dg->node[i]->address=i;
     }
     if( my_rank == 0 ){
@@ -718,10 +721,10 @@ int main(int argc,char **argv ){
       timer_start(0);
     }
     // CHECK
-    annotate_init_();
+
     roi_begin_();
     verified=ProcessNodes(dg,my_rank);
-    
+
     featnum=NUM_SAMPLES*fielddim;
     bytes_sent=featnum*dg->numArcs;
     bytes_sent/=1048576;
@@ -741,7 +744,7 @@ int main(int argc,char **argv ){
         	       comm_size,
         	       tot_time,
         	       bytes_sent/tot_time,
-        	       "bytes transmitted", 
+        	       "bytes transmitted",
         	       verified,
         	       NPBVERSION,
         	       COMPILETIME,
@@ -751,7 +754,9 @@ int main(int argc,char **argv ){
         	       CMPI_INC,
         	       CFLAGS,
         	       CLINKFLAGS );
-    }          
+    }
+    annotate_term_();
+
     MPI_Finalize();
   return 0;
 }

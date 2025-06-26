@@ -64,6 +64,9 @@
      &             ' totcomp', ' totcomm'/
 
        call setup_mpi
+
+       call annotate_init
+
        if (.not. active) goto 999
 
 !---------------------------------------------------------------------
@@ -80,7 +83,7 @@
 !
           rd_interval = 0
           if (fstatus .eq. 0) then
-            write(*,233) 
+            write(*,233)
  233        format(' Reading from input file inputbt.data')
             read (2,*) niter
             read (2,*) dt
@@ -98,7 +101,7 @@
             endif
             close(2)
           else
-            write(*,234) 
+            write(*,234)
             niter = niter_default
             dt    = dt_default
             grid_points(1) = problem_size
@@ -205,7 +208,7 @@
        call mpi_barrier(comm_setup, error)
 
        call timer_start(1)
-       call annotate_init
+
        call roi_begin
 
        do  step = 1, niter
@@ -344,6 +347,8 @@
 
  999   continue
        call mpi_barrier(MPI_COMM_WORLD, error)
+
+       call annotate_term
        call mpi_finalize(error)
 
        end

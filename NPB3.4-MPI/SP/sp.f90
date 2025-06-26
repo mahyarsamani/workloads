@@ -44,7 +44,7 @@
        use mpinpb
 
        implicit none
-      
+
        integer          i, niter, step, c, error, fstatus
        external timer_read
        double precision mflops, n3, t, tmax, timer_read
@@ -59,6 +59,7 @@
      &             ' totcomp', ' totcomm'/
 
        call setup_mpi
+       call annotate_init
        if (.not. active) goto 999
 
 !---------------------------------------------------------------------
@@ -66,7 +67,7 @@
 !      defaults from parameters
 !---------------------------------------------------------------------
        if (node .eq. root) then
-          
+
           write(*, 1000)
 
           call check_timer_flag( timeron )
@@ -74,14 +75,14 @@
           open (unit=2,file='inputsp.data',status='old', iostat=fstatus)
 !
           if (fstatus .eq. 0) then
-            write(*,233) 
+            write(*,233)
  233        format(' Reading from input file inputsp.data')
             read (2,*) niter
             read (2,*) dt
             read (2,*) grid_points(1), grid_points(2), grid_points(3)
             close(2)
           else
-            write(*,234) 
+            write(*,234)
             niter = niter_default
             dt    = dt_default
             grid_points(1) = problem_size
@@ -166,7 +167,6 @@
        call timer_clear(1)
        call timer_start(1)
 
-       call annotate_init
        call roi_begin
 
        do  step = 1, niter
@@ -186,7 +186,7 @@
        call roi_end
        call timer_stop(1)
        t = timer_read(1)
-       
+
        call verify(class, verified)
 
        call free_space
@@ -245,6 +245,7 @@
 
  999   continue
        call mpi_barrier(MPI_COMM_WORLD, error)
+       call annotate_term
        call mpi_finalize(error)
 
        end

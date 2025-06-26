@@ -32,7 +32,7 @@
 
 !---------------------------------------------------------------------
 !
-! Authors: P. O. Frederickson 
+! Authors: P. O. Frederickson
 !          D. H. Bailey
 !          A. C. Woo
 !          R. F. Van der Wijngaart
@@ -82,6 +82,7 @@
       call mpi_comm_rank(comm_solve,node,ierr)
       call mpi_comm_size(comm_solve,no_nodes,ierr)
 
+      call annotate_init
       root = 0
 
       if (.not. convertdouble) then
@@ -117,8 +118,8 @@
 
       verified = .false.
 
-!   Compute the number of "batches" of random number pairs generated 
-!   per processor. Adjust if the number of processors does not evenly 
+!   Compute the number of "batches" of random number pairs generated
+!   per processor. Adjust if the number of processors does not evenly
 !   divide the total number
 
       np = nn / no_nodes
@@ -159,7 +160,6 @@
       call mpi_barrier(comm_solve, ierr)
       call timer_start(1)
 
-      call annotate_init
       call roi_begin
 
       t1 = a
@@ -194,7 +194,7 @@
       endif
 
       do 150 k = 1, np
-         kk = k_offset + k 
+         kk = k_offset + k
          t1 = s
          t2 = an
 
@@ -215,9 +215,9 @@
          call vranlc(2 * nk, t1, a, x)
          if (timers_enabled) call timer_stop(t_randn)
 
-!        Compute Gaussian deviates by acceptance-rejection method and 
-!        tally counts in concentric square annuli.  This loop is not 
-!        vectorizable. 
+!        Compute Gaussian deviates by acceptance-rejection method and
+!        tally counts in concentric square annuli.  This loop is not
+!        vectorizable.
 
          if (timers_enabled) call timer_start(t_gpairs)
 
@@ -314,6 +314,7 @@
  810  format(' timer ', i2, '(', A8, ') :', 3(2x,f10.4))
 
  999  continue
+      call annotate_term
       call mpi_finalize(ierr)
 
       end

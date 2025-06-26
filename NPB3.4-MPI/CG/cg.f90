@@ -82,6 +82,9 @@
 !  Set up mpi initialization and number of proc testing
 !---------------------------------------------------------------------
       call initialize_mpi
+
+      call annotate_init
+
       if (.not. active) goto 999
 
 !---------------------------------------------------------------------
@@ -148,7 +151,7 @@
       endif
 
       if( me .eq. root )then
-         write( *,1000 ) 
+         write( *,1000 )
          write( *,1001 ) na, class
          write( *,1002 ) niter
          write( *,1003 ) nonzer
@@ -198,7 +201,7 @@
 !        values of j used in indexing rowstr go from 1 --> lastrow-firstrow+1
 !        values of colidx which are col indexes go from firstcol --> lastcol
 !        So:
-!        Shift the col index vals from actual (firstcol --> lastcol ) 
+!        Shift the col index vals from actual (firstcol --> lastcol )
 !        to local, i.e., (1 --> lastcol-firstcol+1)
 !---------------------------------------------------------------------
       do j=1,lastrow-firstrow+1
@@ -271,9 +274,9 @@
 !---------------------------------------------------------------------
 !  Normalize z to obtain x
 !---------------------------------------------------------------------
-         do j=1, lastcol-firstcol+1      
-            x(j) = norm_temp1(2)*z(j)    
-         enddo                           
+         do j=1, lastcol-firstcol+1
+            x(j) = norm_temp1(2)*z(j)
+         enddo
 
 
       enddo                              ! end of do one iteration untimed
@@ -301,7 +304,7 @@
 
       call timer_clear( 1 )
       call timer_start( 1 )
-      call annotate_init
+
       call roi_begin
 !---------------------------------------------------------------------
 !---->
@@ -368,9 +371,9 @@
 !---------------------------------------------------------------------
 !  Normalize z to obtain x
 !---------------------------------------------------------------------
-         do j=1, lastcol-firstcol+1      
-            x(j) = norm_temp1(2)*z(j)    
-         enddo                           
+         do j=1, lastcol-firstcol+1
+            x(j) = norm_temp1(2)*z(j)
+         enddo
 
 
       enddo                              ! end of main iter inv pow meth
@@ -413,7 +416,7 @@
  202           format(' Error is   ', E20.13)
             else
                verified = .FALSE.
-               write(*, 300) 
+               write(*, 300)
                write(*, 301) zeta
                write(*, 302) zeta_verify_value
  300           format(' VERIFICATION FAILED')
@@ -477,6 +480,9 @@
  810  format(' timer ', i2, '(', A8, ') :', 3(2x,f10.4))
 
  999  continue
+
+      call annotate_term
+
       call mpi_finalize(ierr)
 
 
@@ -562,7 +568,7 @@
 !  num_procs must be a power of 2, and num_procs=num_proc_cols*num_proc_rows
 !  When num_procs is not square, then num_proc_cols = 2*num_proc_rows
 !---------------------------------------------------------------------
-!  First, number of procs must be power of two. 
+!  First, number of procs must be power of two.
 !---------------------------------------------------------------------
       if( nprocs .ne. num_procs )then
           if( me .eq. root ) write( *,9000 ) nprocs, num_procs
@@ -572,7 +578,7 @@
           stop
       endif
 
-      
+
       npcols = num_proc_cols
       nprows = num_proc_rows
 
@@ -602,8 +608,8 @@
 
 
 !---------------------------------------------------------------------
-!  If na evenly divisible by npcols, then it is evenly divisible 
-!  by nprows 
+!  If na evenly divisible by npcols, then it is evenly divisible
+!  by nprows
 !---------------------------------------------------------------------
 
       if( na/npcols*npcols .eq. na )then
@@ -615,7 +621,7 @@
           lastrow  = firstrow - 1 + row_size
 !---------------------------------------------------------------------
 !  If na not evenly divisible by npcols, then first subdivide for nprows
-!  and then, if npcols not equal to nprows (i.e., not a sq number of procs), 
+!  and then, if npcols not equal to nprows (i.e., not a sq number of procs),
 !  get col subdivisions by dividing by 2 each row subdivision.
 !---------------------------------------------------------------------
       else
@@ -681,7 +687,7 @@
               send_len   = (lastrow-firstrow+1)/2
           endif
       endif
-          
+
 
 
 
@@ -763,10 +769,10 @@
 !---------------------------------------------------------------------
 
 !---------------------------------------------------------------------
-!  Floaging point arrays here are named as in NPB1 spec discussion of 
+!  Floaging point arrays here are named as in NPB1 spec discussion of
 !  CG algorithm
 !---------------------------------------------------------------------
- 
+
       use cg_data
       use mpinpb
       use timing
@@ -795,7 +801,7 @@
          z(j) = 0.0d0
          r(j) = x(j)
          p(j) = r(j)
-         w(j) = 0.0d0                 
+         w(j) = 0.0d0
       enddo
 
 
@@ -924,7 +930,7 @@
          do j=1, max( lastrow-firstrow+1, lastcol-firstcol+1 )
             w(j) = 0.0d0
          enddo
-         
+
 
 !---------------------------------------------------------------------
 !  Obtain p.q
@@ -981,7 +987,7 @@
             z(j) = z(j) + alpha*p(j)
             r(j) = r(j) - alpha*q(j)
          enddo
-            
+
 !---------------------------------------------------------------------
 !  rho = r.r
 !  Now, obtain the norm of r: First, sum squares of r elements locally...
@@ -1078,7 +1084,7 @@
          enddo
       enddo
       if (timeron) call timer_stop(t_rcomm)
-      
+
 
 !---------------------------------------------------------------------
 !  Exchange piece of q with transpose processor:
@@ -1093,7 +1099,7 @@
      &                   comm_solve,  &
      &                   request,  &
      &                   ierr )
-   
+
          call mpi_send(  w(send_start),   &
      &                   send_len,  &
      &                   dp_type,  &
@@ -1115,10 +1121,10 @@
 !---------------------------------------------------------------------
          sum = 0.0d0
          do j=1, lastcol-firstcol+1
-            d   = x(j) - r(j)         
+            d   = x(j) - r(j)
             sum = sum + d*d
          enddo
-         
+
 !---------------------------------------------------------------------
 !  Obtain d with a sum-reduce
 !---------------------------------------------------------------------

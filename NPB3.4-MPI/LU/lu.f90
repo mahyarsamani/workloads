@@ -71,6 +71,9 @@
 !   initialize communications
 !---------------------------------------------------------------------
       call init_comm()
+
+      call annotate_init
+
       if (.not. active) goto 999
 
 !---------------------------------------------------------------------
@@ -123,7 +126,7 @@
       call erhs()
 
 !---------------------------------------------------------------------
-!   perform one SSOR iteration to touch all data and program pages 
+!   perform one SSOR iteration to touch all data and program pages
 !---------------------------------------------------------------------
       call ssor(1)
 
@@ -201,6 +204,8 @@
  810  format(' timer ', i2, '(', A8, ') :', 3(2x,f10.4))
 
  999  continue
+
+      call annotate_term
       call mpi_finalize(ierr)
       end
 
