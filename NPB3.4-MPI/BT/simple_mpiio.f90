@@ -7,44 +7,44 @@
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-      use bt_data
-      use mpinpb
+         use bt_data
+         use mpinpb
 
-      implicit none
+         implicit none
 
-      integer m, ierr
+         integer m, ierr
 
-      iseek=0
+         iseek = 0
 
-      if (node .eq. root) then
-          call MPI_File_delete(filenm, MPI_INFO_NULL, ierr)
-      endif
+         if (node .eq. root) then
+            call MPI_File_delete(filenm, MPI_INFO_NULL, ierr)
+         end if
 
-      call MPI_Barrier(comm_solve, ierr)
+         call MPI_Barrier(comm_solve, ierr)
 
-      call MPI_File_open(comm_solve,  &
-     &          filenm,  &
-     &          MPI_MODE_RDWR + MPI_MODE_CREATE,  &
-     &          MPI_INFO_NULL,  &
-     &          fp,  &
-     &          ierr)
+         call MPI_File_open(comm_solve,  &
+        &          filenm,  &
+        &          MPI_MODE_RDWR + MPI_MODE_CREATE,  &
+        &          MPI_INFO_NULL,  &
+        &          fp,  &
+        &          ierr)
 
-      call MPI_File_set_view(fp,  &
-     &          iseek, MPI_DOUBLE_PRECISION, MPI_DOUBLE_PRECISION,  &
-     &          'native', MPI_INFO_NULL, ierr)
+         call MPI_File_set_view(fp,  &
+        &          iseek, MPI_DOUBLE_PRECISION, MPI_DOUBLE_PRECISION,  &
+        &          'native', MPI_INFO_NULL, ierr)
 
-      if (ierr .ne. MPI_SUCCESS) then
-          print *, 'Error opening file'
-          stop
-      endif
+         if (ierr .ne. MPI_SUCCESS) then
+            print *, 'Error opening file'
+            stop
+         end if
 
-      do m = 1, 5
-         xce_sub(m) = 0.d0
-      end do
+         do m = 1, 5
+            xce_sub(m) = 0.d0
+         end do
 
-      idump_sub = 0
+         idump_sub = 0
 
-      return
+         return
       end
 
 !---------------------------------------------------------------------
@@ -55,50 +55,50 @@
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-      use bt_data
-      use mpinpb
+         use bt_data
+         use mpinpb
 
-      implicit none
+         implicit none
 
-      integer count, jio, kio, cio, aio
-      integer ierr
+         integer count, jio, kio, cio, aio
+         integer ierr
 
-      do cio=1,ncells
-          do kio=0, cell_size(3,cio)-1
-              do jio=0, cell_size(2,cio)-1
-                  iseek=(cell_low(3,cio)+kio) +  &
+         do cio = 1, ncells
+            do kio = 0, cell_size(3, cio) - 1
+               do jio = 0, cell_size(2, cio) - 1
+                  iseek = (cell_low(3, cio) + kio) +  &
      &                   PROBLEM_SIZE*idump_sub
-                  iseek=(cell_low(2,cio)+jio) +  &
+                  iseek = (cell_low(2, cio) + jio) +  &
      &                   PROBLEM_SIZE*iseek
-                  iseek=5*(cell_low(1,cio) +  &
+                  iseek = 5*(cell_low(1, cio) +  &
      &                   PROBLEM_SIZE*iseek)
 
-                  count=5*cell_size(1,cio)
+                  count = 5*cell_size(1, cio)
 
                   call MPI_File_write_at(fp, iseek,  &
-     &                  u(1,0,jio,kio,cio),  &
+     &                  u(1, 0, jio, kio, cio),  &
      &                  count, MPI_DOUBLE_PRECISION,  &
      &                  mstatus, ierr)
 
                   if (ierr .ne. MPI_SUCCESS) then
-                      print *, 'Error writing to file'
-                      stop
-                  endif
-              enddo
-          enddo
-      enddo
+                     print *, 'Error writing to file'
+                     stop
+                  end if
+               end do
+            end do
+         end do
 
-      idump_sub = idump_sub + 1
-      if (rd_interval .gt. 0) then
-         if (idump_sub .ge. rd_interval) then
+         idump_sub = idump_sub + 1
+         if (rd_interval .gt. 0) then
+            if (idump_sub .ge. rd_interval) then
 
-            call acc_sub_norms(idump+1)
+               call acc_sub_norms(idump + 1)
 
-            idump_sub = 0
-         endif
-      endif
+               idump_sub = 0
+            end if
+         end if
 
-      return
+         return
       end
 
 !---------------------------------------------------------------------
@@ -106,54 +106,54 @@
 
       subroutine acc_sub_norms(idump_cur)
 
-      use bt_data
-      use mpinpb
+         use bt_data
+         use mpinpb
 
-      implicit none
+         implicit none
 
-      integer idump_cur
+         integer idump_cur
 
-      integer count, jio, kio, cio, ii, m, ichunk
-      integer ierr
-      double precision xce_single(5)
+         integer count, jio, kio, cio, ii, m, ichunk
+         integer ierr
+         double precision xce_single(5)
 
-      ichunk = idump_cur - idump_sub + 1
-      do ii=0, idump_sub-1
-        do cio=1,ncells
-          do kio=0, cell_size(3,cio)-1
-              do jio=0, cell_size(2,cio)-1
-                  iseek=(cell_low(3,cio)+kio) +  &
-     &                   PROBLEM_SIZE*ii
-                  iseek=(cell_low(2,cio)+jio) +  &
-     &                   PROBLEM_SIZE*iseek
-                  iseek=5*(cell_low(1,cio) +  &
-     &                   PROBLEM_SIZE*iseek)
+         ichunk = idump_cur - idump_sub + 1
+         do ii = 0, idump_sub - 1
+            do cio = 1, ncells
+               do kio = 0, cell_size(3, cio) - 1
+                  do jio = 0, cell_size(2, cio) - 1
+                     iseek = (cell_low(3, cio) + kio) +  &
+        &                   PROBLEM_SIZE*ii
+                     iseek = (cell_low(2, cio) + jio) +  &
+        &                   PROBLEM_SIZE*iseek
+                     iseek = 5*(cell_low(1, cio) +  &
+        &                   PROBLEM_SIZE*iseek)
 
-                  count=5*cell_size(1,cio)
+                     count = 5*cell_size(1, cio)
 
-                  call MPI_File_read_at(fp, iseek,  &
-     &                  u(1,0,jio,kio,cio),  &
-     &                  count, MPI_DOUBLE_PRECISION,  &
-     &                  mstatus, ierr)
+                     call MPI_File_read_at(fp, iseek,  &
+        &                  u(1, 0, jio, kio, cio),  &
+        &                  count, MPI_DOUBLE_PRECISION,  &
+        &                  mstatus, ierr)
 
-                  if (ierr .ne. MPI_SUCCESS) then
-                      print *, 'Error reading back file'
-                      call MPI_File_close(fp, ierr)
-                      stop
-                  endif
-              enddo
-          enddo
-        enddo
+                     if (ierr .ne. MPI_SUCCESS) then
+                        print *, 'Error reading back file'
+                        call MPI_File_close(fp, ierr)
+                        stop
+                     end if
+                  end do
+               end do
+            end do
 
-        if (node .eq. root) print *, 'Reading data set ', ii+ichunk
+            if (node .eq. root) print *, 'Reading data set ', ii + ichunk
 
-        call error_norm(xce_single)
-        do m = 1, 5
-           xce_sub(m) = xce_sub(m) + xce_single(m)
-        end do
-      enddo
+            call error_norm(xce_single)
+            do m = 1, 5
+               xce_sub(m) = xce_sub(m) + xce_single(m)
+            end do
+         end do
 
-      return
+         return
       end
 
 !---------------------------------------------------------------------
@@ -164,16 +164,16 @@
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-      use bt_data
-      use mpinpb
+         use bt_data
+         use mpinpb
 
-      implicit none
+         implicit none
 
-      integer ierr
+         integer ierr
 
-      call MPI_File_close(fp, ierr)
+         call MPI_File_close(fp, ierr)
 
-      return
+         return
       end
 
 !---------------------------------------------------------------------
@@ -184,43 +184,43 @@
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-      use bt_data
-      use mpinpb
+         use bt_data
+         use mpinpb
 
-      implicit none
+         implicit none
 
-      double precision xce_acc(5)
-      integer m, ierr
+         double precision xce_acc(5)
+         integer m, ierr
 
-      if (rd_interval .gt. 0) goto 20
+         if (rd_interval .gt. 0) goto 20
 
-      call MPI_File_open(comm_solve,  &
-     &          filenm,  &
-     &          MPI_MODE_RDONLY,  &
-     &          MPI_INFO_NULL,  &
-     &          fp,  &
-     &          ierr)
+         call MPI_File_open(comm_solve,  &
+        &          filenm,  &
+        &          MPI_MODE_RDONLY,  &
+        &          MPI_INFO_NULL,  &
+        &          fp,  &
+        &          ierr)
 
-      iseek = 0
-      call MPI_File_set_view(fp,  &
-     &          iseek, MPI_DOUBLE_PRECISION, MPI_DOUBLE_PRECISION,  &
-     &          'native', MPI_INFO_NULL, ierr)
+         iseek = 0
+         call MPI_File_set_view(fp,  &
+        &          iseek, MPI_DOUBLE_PRECISION, MPI_DOUBLE_PRECISION,  &
+        &          'native', MPI_INFO_NULL, ierr)
 
 !     clear the last time step
 
-      call clear_timestep
+         call clear_timestep
 
 !     read back the time steps and accumulate norms
 
-      call acc_sub_norms(idump)
+         call acc_sub_norms(idump)
 
-      call MPI_File_close(fp, ierr)
+         call MPI_File_close(fp, ierr)
 
- 20   continue
-      do m = 1, 5
-         xce_acc(m) = xce_sub(m) / dble(idump)
-      end do
+20       continue
+         do m = 1, 5
+            xce_acc(m) = xce_sub(m)/dble(idump)
+         end do
 
-      return
+         return
       end
 

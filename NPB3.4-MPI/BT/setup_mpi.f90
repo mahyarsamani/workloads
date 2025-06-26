@@ -11,38 +11,38 @@
 ! set up MPI stuff
 !---------------------------------------------------------------------
 
-      use bt_data
-      use mpinpb
+         use bt_data
+         use mpinpb
 
-      implicit none
+         implicit none
 
-      integer error, nc
+         integer error, nc
 
-      call mpi_init(error)
+         call mpi_init(error)
 
-      if (.not. convertdouble) then
-         dp_type = MPI_DOUBLE_PRECISION
-      else
-         dp_type = MPI_REAL
-      endif
+         if (.not. convertdouble) then
+            dp_type = MPI_DOUBLE_PRECISION
+         else
+            dp_type = MPI_REAL
+         end if
 
 !---------------------------------------------------------------------
 !     get a process grid that requires a square number of procs.
 !     excess ranks are marked as inactive.
 !---------------------------------------------------------------------
-      call get_active_nprocs(1, nc, maxcells, no_nodes,  &
-     &                       total_nodes, node, comm_setup, active)
+         call get_active_nprocs(1, nc, maxcells, no_nodes,  &
+        &                       total_nodes, node, comm_setup, active)
 
-      if (.not. active) return
+         if (.not. active) return
 
-      call mpi_comm_dup(comm_setup, comm_solve, error)
-      call mpi_comm_dup(comm_setup, comm_rhs, error)
+         call mpi_comm_dup(comm_setup, comm_solve, error)
+         call mpi_comm_dup(comm_setup, comm_rhs, error)
 
 !---------------------------------------------------------------------
 !     let node 0 be the root for the group (there is only one)
 !---------------------------------------------------------------------
-      root = 0
+         root = 0
 
-      return
+         return
       end
 

@@ -14,23 +14,21 @@
 !
 !---------------------------------------------------------------------
 
-      implicit none
+         implicit none
 
 !---------------------------------------------------------------------
 !  input parameters
 !---------------------------------------------------------------------
-      integer num
+         integer num
 
 !---------------------------------------------------------------------
 !  local variables
 !---------------------------------------------------------------------
-      double precision fnum
+         double precision fnum
 
+         fnum = dble(num)
+         nodedim = log(fnum)/log(2.0d+0) + 0.00001
 
-      fnum = dble(num)
-      nodedim = log(fnum)/log(2.0d+0) + 0.00001
-
-      return
+         return
       end
-
 

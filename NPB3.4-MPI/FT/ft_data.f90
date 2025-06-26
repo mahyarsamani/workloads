@@ -6,43 +6,40 @@
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-      module ft_data
+module ft_data
 
-      include 'npbparams.h'
+   include 'npbparams.h'
 
 ! total number of grid points in floating point number
-      double precision ntotal_f, nx_f
-      parameter (nx_f=dble(nx))
-      parameter (ntotal_f=nx_f*ny*nz)
+   double precision ntotal_f, nx_f
+   parameter(nx_f=dble(nx))
+   parameter(ntotal_f=nx_f*ny*nz)
 
 ! total dimension scaled by the number of processes
-      integer ntdivnp
+   integer ntdivnp
 
-
-      double precision seed, a, pi, alpha
-      parameter (seed = 314159265.d0, a = 1220703125.d0,  &
-     &  pi = 3.141592653589793238d0, alpha=1.0d-6)
+   double precision seed, a, pi, alpha
+   parameter(seed=314159265.d0, a=1220703125.d0,  &
+  &  pi=3.141592653589793238d0, alpha=1.0d-6)
 
 ! roots of unity array
 ! relies on x being largest dimension?
-      double complex, allocatable :: u(:)
-
+   double complex, allocatable :: u(:)
 
 ! for checksum data
-      double complex sums(0:niter_default)
+   double complex sums(0:niter_default)
 
 ! number of iterations
-      integer niter
+   integer niter
 
 ! other stuff
-      logical debug, debugsynch
-
+   logical debug, debugsynch
 
 !--------------------------------------------------------------------
 ! Cache blocking params. These values are good for most
-! RISC processors.  
+! RISC processors.
 ! FFT parameters:
-!  fftblock controls how many ffts are done at a time. 
+!  fftblock controls how many ffts are done at a time.
 !  The default is appropriate for most cache-based machines
 !  On vector machines, the FFT can be vectorized with vector
 !  length equal to the block size, so the block size should
@@ -55,13 +52,12 @@
 !  large (largest dimension of the problem).
 !--------------------------------------------------------------------
 
-      integer fftblock_default, fftblockpad_default
-      parameter (fftblock_default=16, fftblockpad_default=18)
-      integer transblock, transblockpad
-      parameter(transblock=32, transblockpad=34)
-      
-      integer fftblock, fftblockpad
+   integer fftblock_default, fftblockpad_default
+   parameter(fftblock_default=16, fftblockpad_default=18)
+   integer transblock, transblockpad
+   parameter(transblock=32, transblockpad=34)
 
+   integer fftblock, fftblockpad
 
 !--------------------------------------------------------------------
 ! 2D processor array -> 2D grid decomposition (by pencils)
@@ -69,12 +65,12 @@
 ! If processor array is 1x1 -> 0D grid decomposition
 ! For simplicity, do not treat Nx1 (np2 = 1) specially
 !--------------------------------------------------------------------
-      integer np1, np2
+   integer np1, np2
 
 ! basic decomposition strategy
-      integer layout_type
-      integer layout_0D, layout_1D, layout_2D
-      parameter (layout_0D = 0, layout_1D = 1, layout_2D = 2)
+   integer layout_type
+   integer layout_0D, layout_1D, layout_2D
+   parameter(layout_0D=0, layout_1D=1, layout_2D=2)
 
 !--------------------------------------------------------------------
 ! There are basically three stages
@@ -98,7 +94,7 @@
 ! compute residual(1)
 
 ! for the 0D, 1D, 2D strategies, the layouts look like xxx
-!        
+!
 !            0D        1D        2D
 ! 1:        xyz       xyz       xyz
 ! 2:        xyz       xyz       yxz
@@ -106,36 +102,35 @@
 !--------------------------------------------------------------------
 
 ! the array dimensions are stored in dims(coord, phase)
-      integer dims(3, 3)
-      integer xstart(3), ystart(3), zstart(3)
-      integer xend(3), yend(3), zend(3)
+   integer dims(3, 3)
+   integer xstart(3), ystart(3), zstart(3)
+   integer xend(3), yend(3), zend(3)
 
 !--------------------------------------------------------------------
 ! Timing constants
 !--------------------------------------------------------------------
-      integer T_total, T_setup, T_fft, T_evolve, T_checksum,  &
-     &        T_fftlow, T_fftcopy, T_transpose,  &
-     &        T_transxzloc, T_transxzglo, T_transxzfin,  &
-     &        T_transxyloc, T_transxyglo, T_transxyfin,  &
-     &        T_synch, T_init, T_max
-      parameter (T_total = 1, T_setup = 2, T_fft = 3,  &
-     &           T_evolve = 4, T_checksum = 5,  &
-     &           T_fftlow = 6, T_fftcopy = 7, T_transpose = 8,  &
-     &           T_transxzloc = 9, T_transxzglo = 10, T_transxzfin = 11,  &
-     &           T_transxyloc = 12, T_transxyglo = 13,  &
-     &           T_transxyfin = 14,  T_synch = 15, T_init = 16,  &
-     &           T_max = 16)
+   integer T_total, T_setup, T_fft, T_evolve, T_checksum,  &
+  &        T_fftlow, T_fftcopy, T_transpose,  &
+  &        T_transxzloc, T_transxzglo, T_transxzfin,  &
+  &        T_transxyloc, T_transxyglo, T_transxyfin,  &
+  &        T_synch, T_init, T_max
+   parameter(T_total=1, T_setup=2, T_fft=3,  &
+  &           T_evolve=4, T_checksum=5,  &
+  &           T_fftlow=6, T_fftcopy=7, T_transpose=8,  &
+  &           T_transxzloc=9, T_transxzglo=10, T_transxzfin=11,  &
+  &           T_transxyloc=12, T_transxyglo=13,  &
+  &           T_transxyfin=14, T_synch=15, T_init=16,  &
+  &           T_max=16)
 
-      logical timers_enabled
+   logical timers_enabled
 
 !--------------------------------------------------------------------
 ! external functions
 !--------------------------------------------------------------------
-      double precision, external :: randlc, timer_read
-      integer, external ::          ilog2
+   double precision, external :: randlc, timer_read
+   integer, external ::          ilog2
 
-      end module ft_data
-
+end module ft_data
 
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
@@ -145,29 +140,28 @@
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-      module ft_fields
+module ft_fields
 
 !---------------------------------------------------------------------
-! u0, u1, u2 are the main arrays in the problem. 
-! Depending on the decomposition, these arrays will have different 
-! dimensions. To accomodate all possibilities, we allocate them as 
-! one-dimensional arrays and pass them to subroutines for different 
+! u0, u1, u2 are the main arrays in the problem.
+! Depending on the decomposition, these arrays will have different
+! dimensions. To accomodate all possibilities, we allocate them as
+! one-dimensional arrays and pass them to subroutines for different
 ! views
 !  - u0 contains the initial (transformed) initial condition
 !  - u1 and u2 are working arrays
 !---------------------------------------------------------------------
-      double complex, allocatable ::  &
-     &                 u0(:), u1(:), u2(:)
-      double precision, allocatable ::  &
-     &                 twiddle(:)
+   double complex, allocatable ::  &
+  &                 u0(:), u1(:), u2(:)
+   double precision, allocatable ::  &
+  &                 twiddle(:)
 
-      end module ft_fields
-
+end module ft_fields
 
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-      subroutine alloc_space
+subroutine alloc_space
 
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
@@ -176,42 +170,41 @@
 ! allocate space dynamically for data arrays
 !---------------------------------------------------------------------
 
-      use ft_data
-      use ft_fields
-      use mpinpb
+   use ft_data
+   use ft_fields
+   use mpinpb
 
-      implicit none
+   implicit none
 
-      integer ios, ierr
+   integer ios, ierr
 
-
-      ntdivnp = ((nx*ny)/np_min)*nz
+   ntdivnp = ((nx*ny)/np_min)*nz
 
 !---------------------------------------------------------------------
-! Padding+3 is to avoid accidental cache problems, 
+! Padding+3 is to avoid accidental cache problems,
 ! since all array sizes are powers of two.
 !---------------------------------------------------------------------
-      allocate (  &
-     &          u0     (ntdivnp+3),  &
-     &          u1     (ntdivnp+3),  &
-     &          u2     (ntdivnp+3),  &
-     &          twiddle(ntdivnp),  &
-     &          u      (maxdim),  &
-     &          stat = ios)
+   allocate (  &
+  &          u0(ntdivnp + 3),  &
+  &          u1(ntdivnp + 3),  &
+  &          u2(ntdivnp + 3),  &
+  &          twiddle(ntdivnp),  &
+  &          u(maxdim),  &
+  &          stat=ios)
 
-      if (ios .ne. 0) then
-         write(*,*) 'Error encountered in allocating space'
-         call MPI_Abort(MPI_COMM_WORLD, MPI_ERR_OTHER, ierr)
-         stop
-      endif
+   if (ios .ne. 0) then
+      write (*, *) 'Error encountered in allocating space'
+      call MPI_Abort(MPI_COMM_WORLD, MPI_ERR_OTHER, ierr)
+      stop
+   end if
 
-      return
-      end
+   return
+end
 
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-      subroutine free_space
+subroutine free_space
 
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
@@ -220,15 +213,15 @@
 ! free dynamically allocated space
 !---------------------------------------------------------------------
 
-      use ft_data
-      use ft_fields
+   use ft_data
+   use ft_fields
 
-      implicit none
+   implicit none
 
-      integer ios
+   integer ios
 
-      deallocate (u0, u1, u2, twiddle, u,  &
-     &            stat = ios)
+   deallocate (u0, u1, u2, twiddle, u,  &
+  &            stat=ios)
 
-      return
-      end
+   return
+end

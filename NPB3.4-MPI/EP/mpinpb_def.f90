@@ -6,14 +6,14 @@
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-      module mpinpb
+module mpinpb
 
-      use mpi
+   use mpi
 !     include 'mpif.h'
 
-      integer  node, no_nodes, root
-      integer  comm_solve
-      integer  dp_type
+   integer node, no_nodes, root
+   integer comm_solve
+   integer dp_type
 
-      end module mpinpb
+end module mpinpb
 

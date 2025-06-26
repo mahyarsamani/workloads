@@ -15,53 +15,51 @@
 !   the new seed x_1, so that subsequent calls to RANDLC using the same
 !   arguments will generate a continuous sequence.
 
-      implicit none
-      double precision x, a
-      integer(kind=8) i246m1, Lx, La
-      double precision d2m46
+         implicit none
+         double precision x, a
+         integer(kind=8) i246m1, Lx, La
+         double precision d2m46
 
-      parameter(d2m46=0.5d0**46)
+         parameter(d2m46=0.5d0**46)
 
-      parameter(i246m1=INT(Z'00003FFFFFFFFFFF',8))
+         parameter(i246m1=INT(Z'00003FFFFFFFFFFF', 8))
 
-      Lx = X
-      La = A
+         Lx = X
+         La = A
 
-      Lx   = iand(Lx*La,i246m1)
-      randlc = d2m46*dble(Lx)
-      x    = dble(Lx)
-      return
+         Lx = iand(Lx*La, i246m1)
+         randlc = d2m46*dble(Lx)
+         x = dble(Lx)
+         return
       end
 
-
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-
-      SUBROUTINE VRANLC (N, X, A, Y)
-      implicit none
-      integer n, i
-      double precision x, a, y(*)
-      integer(kind=8) i246m1, Lx, La
-      double precision d2m46
+      SUBROUTINE VRANLC(N, X, A, Y)
+         implicit none
+         integer n, i
+         double precision x, a, y(*)
+         integer(kind=8) i246m1, Lx, La
+         double precision d2m46
 
 ! This doesn't work, because the compiler does the calculation in 32
 ! bits and overflows. No standard way (without f90 stuff) to specify
-! that the rhs should be done in 64 bit arithmetic. 
+! that the rhs should be done in 64 bit arithmetic.
 !      parameter(i246m1=2**46-1)
 
-      parameter(d2m46=0.5d0**46)
+         parameter(d2m46=0.5d0**46)
 
-      parameter(i246m1=INT(Z'00003FFFFFFFFFFF',8))
+         parameter(i246m1=INT(Z'00003FFFFFFFFFFF', 8))
 
-      Lx = X
-      La = A
-      do i = 1, N
-         Lx   = iand(Lx*La,i246m1)
-         y(i) = d2m46*dble(Lx)
-      end do
-      x    = dble(Lx)
+         Lx = X
+         La = A
+         do i = 1, N
+            Lx = iand(Lx*La, i246m1)
+            y(i) = d2m46*dble(Lx)
+         end do
+         x = dble(Lx)
 
-      return
+         return
       end
 

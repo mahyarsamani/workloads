@@ -2,23 +2,23 @@
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-       subroutine  adi
+       subroutine adi
 
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-       call copy_faces
+          call copy_faces
 
-       call txinvr
+          call txinvr
 
-       call x_solve
+          call x_solve
 
-       call y_solve
+          call y_solve
 
-       call z_solve
+          call z_solve
 
-       call add
+          call add
 
-       return
+          return
        end
 
