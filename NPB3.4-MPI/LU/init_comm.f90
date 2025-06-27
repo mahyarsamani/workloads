@@ -2,7 +2,7 @@
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-      subroutine init_comm
+subroutine init_comm
 
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
@@ -16,42 +16,42 @@
 !
 !---------------------------------------------------------------------
 
-         use lu_data
-         use mpinpb
+  use lu_data
+  use mpinpb
 
-         implicit none
+  implicit none
 
-         integer nodedim
-         integer IERROR
+  integer nodedim
+  integer IERROR
 
 !---------------------------------------------------------------------
 !    initialize MPI communication
 !---------------------------------------------------------------------
-         call MPI_INIT(IERROR)
+  call MPI_INIT(IERROR)
 
 !---------------------------------------------------------------------
 !     get a process grid that requires a (nx*ny) number of procs.
 !     excess ranks are marked as inactive.
 !---------------------------------------------------------------------
-         call get_active_nprocs(2, xdim, ydim, no_nodes,  &
-        &                       total_nodes, node, comm_solve, active)
+  call get_active_nprocs(2, xdim, ydim, no_nodes,  &
+  &                       total_nodes, node, comm_solve, active)
 
-         if (.not. active) return
+  if (.not. active) return
 
 !---------------------------------------------------------------------
 !   establish the global rank of this process and the group size
 !---------------------------------------------------------------------
-         id = node
-         num = no_nodes
-         root = 0
+  id = node
+  num = no_nodes
+  root = 0
 
-         ndim = nodedim(num)
+  ndim = nodedim(num)
 
-         if (.not. convertdouble) then
-            dp_type = MPI_DOUBLE_PRECISION
-         else
-            dp_type = MPI_REAL
-         end if
+  if (.not. convertdouble) then
+    dp_type = MPI_DOUBLE_PRECISION
+  else
+    dp_type = MPI_REAL
+  end if
 
-         return
-      end
+  return
+end

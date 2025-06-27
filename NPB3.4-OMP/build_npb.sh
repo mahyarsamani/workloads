@@ -1,5 +1,7 @@
 #!/bin/sh
 
+mkdir -p bin
+
 make BT CLASS=A PLATFORM=papi
 make CG CLASS=A PLATFORM=papi
 make DC CLASS=A PLATFORM=papi

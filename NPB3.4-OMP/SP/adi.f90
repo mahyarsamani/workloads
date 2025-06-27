@@ -2,23 +2,23 @@
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-       subroutine  adi
+subroutine adi
 
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-       call compute_rhs
+  call compute_rhs
 
-       call txinvr
+  call txinvr
 
-       call x_solve
+  call x_solve
 
-       call y_solve
+  call y_solve
 
-       call z_solve
+  call z_solve
 
-       call add
+  call add
 
-       return
-       end
+  return
+end
 

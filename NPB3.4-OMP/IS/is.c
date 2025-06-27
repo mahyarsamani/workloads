@@ -641,8 +641,6 @@ void rank( int iteration )
 
 #pragma omp parallel private(i, k)
   {
-    thread_init_();
-    region_begin_("rank");
     INT_TYPE *work_buff, m, k1, k2;
     int myid = 0, num_threads = 1;
 
@@ -774,7 +772,6 @@ void rank( int iteration )
     }
 
 #endif /*USE_BUCKETS*/
-    region_end_("rank");
   } /*omp parallel*/
 
 /* This is the partial verify test section */
@@ -877,6 +874,7 @@ int main( int argc, char **argv )
 
     double          timecounter;
 
+    annotate_init_();
 
 /*  Initialize timers  */
     timer_on = check_timer_flag();
@@ -958,7 +956,6 @@ int main( int argc, char **argv )
 
 /*  Start timer  */
     timer_start( 0 );
-    annotate_init_();
     roi_begin_();
 
 /*  This is the main iteration */
@@ -967,8 +964,6 @@ int main( int argc, char **argv )
         if( CLASS != 'S' ) printf( "        %d\n", iteration );
         rank( iteration );
     }
-
-
 /*  End of timing, obtain maximum time of all processors */
     roi_end_();
     timer_stop( 0 );
@@ -1026,6 +1021,8 @@ int main( int argc, char **argv )
        t_percent = timecounter/t_total * 100.;
        printf(" Sorting        : %8.3f (%5.2f%%)\n", timecounter, t_percent);
     }
+
+    annotate_term_();
 
     return 0;
          /**************************/

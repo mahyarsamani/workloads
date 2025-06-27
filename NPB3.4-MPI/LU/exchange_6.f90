@@ -2,7 +2,7 @@
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-      subroutine exchange_6(g, jbeg, jfin1)
+subroutine exchange_6(g, jbeg, jfin1)
 
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
@@ -11,24 +11,24 @@
 !   compute the right hand side based on exact solution
 !---------------------------------------------------------------------
 
-         use lu_data
-         use mpinpb
+  use lu_data
+  use mpinpb
 
-         implicit none
+  implicit none
 
 !---------------------------------------------------------------------
 !  input parameters
 !---------------------------------------------------------------------
-         integer jbeg, jfin1
-         double precision g(0:isiz2 + 1, 0:isiz3 + 1)
+  integer jbeg, jfin1
+  double precision g(0:isiz2 + 1, 0:isiz3 + 1)
 
 !---------------------------------------------------------------------
 !  local parameters
 !---------------------------------------------------------------------
-         integer k
-         double precision dum(isiz03)
+  integer k
+  double precision dum(isiz03)
 
-         integer IERROR
+  integer IERROR
 
 !---------------------------------------------------------------------
 !   communicate in the east and west directions
@@ -37,41 +37,41 @@
 !---------------------------------------------------------------------
 !   receive from east
 !---------------------------------------------------------------------
-         if (jfin1 .eq. ny) then
-            call MPI_IRECV(dum,  &
-         &                  nz,  &
-         &                  dp_type,  &
-         &                  east,  &
-         &                  from_e,  &
-         &                  comm_solve,  &
-         &                  msgid3,  &
-         &                  IERROR)
+  if (jfin1 .eq. ny) then
+    call MPI_IRECV(dum,  &
+    &                  nz,  &
+    &                  dp_type,  &
+    &                  east,  &
+    &                  from_e,  &
+    &                  comm_solve,  &
+    &                  msgid3,  &
+    &                  IERROR)
 
-            call MPI_WAIT(msgid3, STATUS, IERROR)
+    call MPI_WAIT(msgid3, STATUS, IERROR)
 
-            do k = 1, nz
-               g(ny + 1, k) = dum(k)
-            end do
+    do k = 1, nz
+      g(ny + 1, k) = dum(k)
+    end do
 
-         end if
+  end if
 
 !---------------------------------------------------------------------
 !   send west
 !---------------------------------------------------------------------
-         if (jbeg .eq. 1) then
-            do k = 1, nz
-               dum(k) = g(1, k)
-            end do
+  if (jbeg .eq. 1) then
+    do k = 1, nz
+      dum(k) = g(1, k)
+    end do
 
-            call MPI_SEND(dum,  &
-         &                 nz,  &
-         &                 dp_type,  &
-         &                 west,  &
-         &                 from_e,  &
-         &                 comm_solve,  &
-         &                 IERROR)
+    call MPI_SEND(dum,  &
+    &                 nz,  &
+    &                 dp_type,  &
+    &                 west,  &
+    &                 from_e,  &
+    &                 comm_solve,  &
+    &                 IERROR)
 
-         end if
+  end if
 
-         return
-      end
+  return
+end

@@ -46,7 +46,7 @@
 !---------------------------------------------------------------------
 
 !---------------------------------------------------------------------
-      program applu
+program applu
 !---------------------------------------------------------------------
 
 !---------------------------------------------------------------------
@@ -56,141 +56,143 @@
 !
 !---------------------------------------------------------------------
 
-      use lu_data
-      implicit none
+  use lu_data
+  implicit none
 
-      character class
-      logical verified
-      double precision mflops
+  character class
+  logical verified
+  double precision mflops
 
-      double precision t, tmax, timer_read, trecs(t_last)
-      external timer_read
-      integer i
-      character t_names(t_last)*8
+  double precision t, tmax, timer_read, trecs(t_last)
+  external timer_read
+  integer i
+  character t_names(t_last)*8
 
+  call annotate_init
 !---------------------------------------------------------------------
 !     Setup info for timers
 !---------------------------------------------------------------------
 
-      call check_timer_flag( timeron )
-      if (timeron) then
-         t_names(t_total) = 'total'
-         t_names(t_rhsx) = 'rhsx'
-         t_names(t_rhsy) = 'rhsy'
-         t_names(t_rhsz) = 'rhsz'
-         t_names(t_rhs) = 'rhs'
-         t_names(t_jacld) = 'jacld'
-         t_names(t_blts) = 'blts'
-         t_names(t_jacu) = 'jacu'
-         t_names(t_buts) = 'buts'
-         t_names(t_add) = 'add'
-         t_names(t_l2norm) = 'l2norm'
-      endif
+  call check_timer_flag(timeron)
+  if (timeron) then
+    t_names(t_total) = 'total'
+    t_names(t_rhsx) = 'rhsx'
+    t_names(t_rhsy) = 'rhsy'
+    t_names(t_rhsz) = 'rhsz'
+    t_names(t_rhs) = 'rhs'
+    t_names(t_jacld) = 'jacld'
+    t_names(t_blts) = 'blts'
+    t_names(t_jacu) = 'jacu'
+    t_names(t_buts) = 'buts'
+    t_names(t_add) = 'add'
+    t_names(t_l2norm) = 'l2norm'
+  end if
 
 !---------------------------------------------------------------------
 !   read input data
 !---------------------------------------------------------------------
-      call read_input()
+  call read_input()
 
 !---------------------------------------------------------------------
 !   set up domain sizes
 !---------------------------------------------------------------------
-      call domain()
+  call domain()
 
-      call alloc_space
+  call alloc_space
 
 !---------------------------------------------------------------------
 !   set up coefficients
 !---------------------------------------------------------------------
-      call setcoeff()
+  call setcoeff()
 
 !---------------------------------------------------------------------
 !   set the boundary values for dependent variables
 !---------------------------------------------------------------------
-      call setbv()
+  call setbv()
 
 !---------------------------------------------------------------------
 !   set the initial values for dependent variables
 !---------------------------------------------------------------------
-      call setiv()
+  call setiv()
 
 !---------------------------------------------------------------------
 !   compute the forcing term based on prescribed exact solution
 !---------------------------------------------------------------------
-      call erhs()
+  call erhs()
 
 !---------------------------------------------------------------------
 !   perform one SSOR iteration to touch all data pages
 !---------------------------------------------------------------------
-      call ssor(1)
+  call ssor(1)
 
 !---------------------------------------------------------------------
 !   reset the boundary and initial values
 !---------------------------------------------------------------------
-      call setbv()
-      call setiv()
+  call setbv()
+  call setiv()
 
 !---------------------------------------------------------------------
 !   perform the SSOR iterations
 !---------------------------------------------------------------------
-      call ssor(itmax)
+  call ssor(itmax)
 
 !---------------------------------------------------------------------
 !   compute the solution error
 !---------------------------------------------------------------------
-      call error()
+  call error()
 
 !---------------------------------------------------------------------
 !   compute the surface integral
 !---------------------------------------------------------------------
-      call pintgr()
+  call pintgr()
 
 !---------------------------------------------------------------------
 !   verification test
 !---------------------------------------------------------------------
-      call verify ( rsdnm, errnm, frc, class, verified )
-      mflops = 1.0d-6*dble(itmax)*(1984.77*dble( nx0 )  &
-     &     *dble( ny0 )  &
-     &     *dble( nz0 )  &
-     &     -10923.3*(dble( nx0+ny0+nz0 )/3.)**2  &
-     &     +27770.9* dble( nx0+ny0+nz0 )/3.  &
-     &     -144010.)  &
-     &     / maxtime
+  call verify(rsdnm, errnm, frc, class, verified)
+  mflops = 1.0d-6*dble(itmax)*(1984.77*dble(nx0)  &
+  &     *dble(ny0)  &
+  &     *dble(nz0)  &
+  &     - 10923.3*(dble(nx0 + ny0 + nz0)/3.)**2  &
+  &     + 27770.9*dble(nx0 + ny0 + nz0)/3.  &
+  &     -144010.)  &
+  &     /maxtime
 
-      call print_results('LU', class, nx0,  &
-     &  ny0, nz0, itmax,  &
-     &  maxtime, mflops, '          floating point', verified,  &
-     &  npbversion, compiletime, cs1, cs2, cs3, cs4, cs5, cs6,  &
-     &  '(none)')
+  call print_results('LU', class, nx0,  &
+  &  ny0, nz0, itmax,  &
+  &  maxtime, mflops, '          floating point', verified,  &
+  &  npbversion, compiletime, cs1, cs2, cs3, cs4, cs5, cs6,  &
+  &  '(none)')
 
 !---------------------------------------------------------------------
 !      More timers
 !---------------------------------------------------------------------
-      if (.not.timeron) goto 999
+  if (.not. timeron) goto 999
 
-      do i=1, t_last
-         trecs(i) = timer_read(i)
-      end do
-      tmax = maxtime
-      if ( tmax .eq. 0. ) tmax = 1.0
+  do i = 1, t_last
+    trecs(i) = timer_read(i)
+  end do
+  tmax = maxtime
+  if (tmax .eq. 0.) tmax = 1.0
 
-      write(*,800)
- 800  format('  SECTION     Time (secs)')
-      do i=1, t_last
-         if (i.ne.t_jacld .and. i.ne.t_jacu) then
-            write(*,810) t_names(i), trecs(i), trecs(i)*100./tmax
-         endif
-         if (i.eq.t_rhs) then
-            t = trecs(t_rhsx) + trecs(t_rhsy) + trecs(t_rhsz)
-            write(*,820) 'sub-rhs', t, t*100./tmax
-            t = trecs(i) - t
-            write(*,820) 'rest-rhs', t, t*100./tmax
-         endif
- 810     format(2x,a8,':',f9.3,'  (',f6.2,'%)')
- 820     format(5x,'--> ',a8,':',f9.3,'  (',f6.2,'%)')
-      end do
+  write (*, 800)
+800 format('  SECTION     Time (secs)')
+  do i = 1, t_last
+    if (i .ne. t_jacld .and. i .ne. t_jacu) then
+      write (*, 810) t_names(i), trecs(i), trecs(i)*100./tmax
+    end if
+    if (i .eq. t_rhs) then
+      t = trecs(t_rhsx) + trecs(t_rhsy) + trecs(t_rhsz)
+      write (*, 820) 'sub-rhs', t, t*100./tmax
+      t = trecs(i) - t
+      write (*, 820) 'rest-rhs', t, t*100./tmax
+    end if
+810 format(2x, a8, ':', f9.3, '  (', f6.2, '%)')
+820 format(5x, '--> ', a8, ':', f9.3, '  (', f6.2, '%)')
+  end do
 
- 999  continue
-      end
+999 continue
+    call annotate_term
 
+end
 

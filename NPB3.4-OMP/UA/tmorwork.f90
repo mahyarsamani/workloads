@@ -3,15 +3,15 @@
 !     module for thread-local working arrays
 !------------------------------------------------------------------
 !------------------------------------------------------------------
-      module tmorwork
+module tmorwork
 
-      double precision, pointer ::  &
-     &                   tmorwk(:,:), mormulwk(:,:)
+  double precision, pointer ::  &
+  &                   tmorwk(:, :), mormulwk(:, :)
 
-      double precision, pointer ::  &
-     &                   tmorl(:), mormull(:)
-      integer :: myid, nwthreads
+  double precision, pointer ::  &
+  &                   tmorl(:), mormull(:)
+  integer :: myid, nwthreads
 !$omp threadprivate( tmorl, mormull, myid, nwthreads )
 
-      end module tmorwork
+end module tmorwork
 

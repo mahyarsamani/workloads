@@ -112,6 +112,7 @@ int main ( int argc, char * argv[] )
     fprintf(stderr,"The last argument, (a parameter file) can be skipped\n");
     exit(1);
   }
+  annotate_init_();
 
   if(  !(parp = (ADC_PAR*) malloc(sizeof(ADC_PAR)))
      ||!(adcpp = (ADC_VIEW_PARS*) malloc(sizeof(ADC_VIEW_PARS)))){
@@ -152,6 +153,7 @@ int main ( int argc, char * argv[] )
   strcpy(adcpp->adcName, parp->filename);
   strcpy(adcpp->adcInpFileName, parp->filename);
 
+
   if((retCode=DC(adcpp))) {
      PutErrMsg("main.DC failed")
      fprintf(stderr, "main.ParRun failed: retcode = %d\n", retCode);
@@ -160,6 +162,8 @@ int main ( int argc, char * argv[] )
 
   if(parp)  { free(parp);   parp = 0; }
   if(adcpp) { free(adcpp); adcpp = 0; }
+
+  annotate_term_();
   return 0;
 }
 
@@ -190,7 +194,7 @@ int32 DC(ADC_VIEW_PARS *adcpp) {
    pvstp->totalViewSizesInBytes = 0;
    pvstp->totalNumberOfMadeViews = 0;
    pvstp->checksum = 0;
-   annotate_init_();
+
    roi_begin_();
 #ifdef _OPENMP
    adcpp->nTasks=omp_get_max_threads();
@@ -203,8 +207,6 @@ int32 DC(ADC_VIEW_PARS *adcpp) {
 #pragma omp parallel shared(pvstp) private(itsk)
 #endif
   {
-   thread_init_();
-   region_begin_("parallel-calculation");
    double tm0=0;
    int itimer=0;
    ADC_VIEW_CNTL *adccntlp;
@@ -255,7 +257,6 @@ int32 DC(ADC_VIEW_PARS *adcpp) {
      PutErrMsg("ParRun.CloseAdcView: is failed");
      adccntlp->verificationFailed = 1;
    }
-   region_end_("parallel-calculation");
  } /* omp parallel */
    roi_end_();
    t_total=pvstp->tm_max;

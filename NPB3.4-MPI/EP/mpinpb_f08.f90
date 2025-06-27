@@ -8,11 +8,11 @@
 
 module mpinpb
 
-   use mpi_f08
+  use mpi_f08
 
-   integer node, no_nodes, root
-   type(MPI_Comm) :: comm_solve
-   type(MPI_Datatype) :: dp_type
+  integer node, no_nodes, root
+  type(MPI_Comm) :: comm_solve
+  type(MPI_Datatype) :: dp_type
 
 end module mpinpb
 

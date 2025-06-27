@@ -6,16 +6,16 @@
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-      module ft_data
+module ft_data
 
-      include 'npbparams.h'
+include 'npbparams.h'
 
 ! total number of grid points with padding
-      integer(kind2) nxp, ntotalp
-      parameter (nxp=nx+1)
-      parameter (ntotalp=nxp*ny*nz)
-      double precision ntotal_f
-      parameter (ntotal_f=dble(nx)*ny*nz)
+integer(kind2) nxp, ntotalp
+parameter (nxp=nx+1)
+parameter (ntotalp=nxp*ny*nz)
+double precision ntotal_f
+parameter (ntotal_f=dble(nx)*ny*nz)
 
 
 ! If processor array is 1x1 -> 0D grid decomposition
@@ -32,11 +32,11 @@
 !  dimension of the problem: 128 for class A, 256 for class B and
 !  512 for class C.
 
-      include 'blk_par.h'
+include 'blk_par.h'
 !      integer fftblock_default, fftblockpad_default
 !      parameter (fftblock_default=32, fftblockpad_default=34)
-      
-      integer fftblock, fftblockpad
+
+integer fftblock, fftblockpad
 
 ! we need a bunch of logic to keep track of how
 ! arrays are laid out. 
@@ -66,52 +66,52 @@
 ! 1:        xyz       xyz       xyz
 
 ! the array dimensions are stored in dims(coord, phase)
-      integer dims(3)
+integer dims(3)
 
-      integer T_total, T_setup, T_fft, T_evolve, T_checksum,  &
-     &        T_fftx, T_ffty,  &
-     &        T_fftz, T_max
-      parameter (T_total = 1, T_setup = 2, T_fft = 3,  &
-     &           T_evolve = 4, T_checksum = 5,  &
-     &           T_fftx = 6,  &
-     &           T_ffty = 7,  &
-     &           T_fftz = 8, T_max = 8)
-
-
-
-      logical timers_enabled
+integer T_total, T_setup, T_fft, T_evolve, T_checksum,  &
+&        T_fftx, T_ffty,  &
+&        T_fftz, T_max
+parameter (T_total = 1, T_setup = 2, T_fft = 3,  &
+&           T_evolve = 4, T_checksum = 5,  &
+&           T_fftx = 6,  &
+&           T_ffty = 7,  &
+&           T_fftz = 8, T_max = 8)
 
 
-      external timer_read
-      double precision timer_read
-      external ilog2
-      integer ilog2
 
-      external randlc
-      double precision randlc
+logical timers_enabled
+
+
+external timer_read
+double precision timer_read
+external ilog2
+integer ilog2
+
+external randlc
+double precision randlc
 
 
 ! other stuff
-      logical debug, debugsynch
+logical debug, debugsynch
 
-      double precision seed, a, pi, alpha
-      parameter (seed = 314159265.d0, a = 1220703125.d0,  &
-     &  pi = 3.141592653589793238d0, alpha=1.0d-6)
+double precision seed, a, pi, alpha
+parameter (seed = 314159265.d0, a = 1220703125.d0,  &
+&  pi = 3.141592653589793238d0, alpha=1.0d-6)
 
 
 ! roots of unity array
 ! relies on x being largest dimension?
-      double complex u(nxp)
+double complex u(nxp)
 
 
 ! for checksum data
-      double complex sums(0:niter_default)
+double complex sums(0:niter_default)
 
 ! number of iterations
-      integer niter
+integer niter
 
 
-      end module ft_data
+end module ft_data
 
 
 !---------------------------------------------------------------------
@@ -122,7 +122,7 @@
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-      module ft_fields
+module ft_fields
 
 !---------------------------------------------------------------------
 ! u0, u1, u2 are the main arrays in the problem. 
@@ -135,11 +135,11 @@
 !  - twiddle contains exponents for the time evolution operator. 
 !---------------------------------------------------------------------
 
-      double complex, allocatable ::  &
-     &                 u0(:), pad1(:),  &
-     &                 u1(:), pad2(:)
+double complex, allocatable ::  &
+&                 u0(:), pad1(:),  &
+&                 u1(:), pad2(:)
 !     >                 u2(:)
-      double precision, allocatable :: twiddle(:)
+double precision, allocatable :: twiddle(:)
 !---------------------------------------------------------------------
 ! Large arrays are in module so that they are allocated on the
 ! heap rather than the stack. This module is not
@@ -148,13 +148,13 @@
 !---------------------------------------------------------------------
 
 
-      end module ft_fields
+end module ft_fields
 
 
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
 
-      subroutine alloc_space
+subroutine alloc_space
 
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
@@ -163,27 +163,27 @@
 ! allocate space dynamically for data arrays
 !---------------------------------------------------------------------
 
-      use ft_data, only : ntotalp
-      use ft_fields
+use ft_data, only : ntotalp
+use ft_fields
 
-      implicit none
+implicit none
 
-      integer ios
+integer ios
 
 
-      allocate (  &
-     &          u0(ntotalp), pad1(3),  &
-     &          u1(ntotalp), pad2(3),  &
+allocate (  &
+&          u0(ntotalp), pad1(3),  &
+&          u1(ntotalp), pad2(3),  &
 !     >          u2(ntotalp),
-     &          twiddle(ntotalp),  &
-     &          stat = ios)
+&          twiddle(ntotalp),  &
+&          stat = ios)
 
-      if (ios .ne. 0) then
-         write(*,*) 'Error encountered in allocating space'
-         stop
-      endif
+if (ios .ne. 0) then
+write(*,*) 'Error encountered in allocating space'
+stop
+endif
 
-      return
-      end
+return
+end
 
 
