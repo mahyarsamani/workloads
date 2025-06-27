@@ -28,24 +28,36 @@ mkdir build
 cd build
 cmake ../src -DCMAKE_BUILD_TYPE=Release -DCMAKE_ANNOTATE_TYPE=gem5fs
 make
-cd ../..
+cd ..
+cd ..
 
 cd UME
 mkdir build
 cd build
-cmake .. -DUSE_CATCH2=off -DUSE_MPI=true -DCMAKE_ANNOTATE_TYPE=gem5fs
+cmake ../ -DUSE_CATCH2=off -DUSE_MPI=true -DCMAKE_ANNOTATE_TYPE=gem5fs -DCMAKE_ROI_TYPE=sync
 make
 cd ..
 cd inputs
+cd blake
 ./remake_partitioned_files.sh
-tar -xJvf pipe_3d.tar.xz
-rm pipe_3d.tar.xz
-rm pipe_3d.tar.xz.part.000
-rm pipe_3d.tar.xz.part.001
-rm pipe_3d.tar.xz.part.002
-mkdir blake
-tar -xzvf ume1r.tar.gz -C blake
-cd ../..
+./delete_partitions.sh
+./extract_files.sh
+./delete_compressed_files.sh
+cd ..
+cd pipe_3d
+./remake_partitioned_files.sh
+./delete_partitions.sh
+./extract_files.sh
+./delete_compressed_files.sh
+cd ..
+cd tgv
+./remake_partitioned_files.sh
+./delete_partitions.sh
+./extract_files.sh
+./delete_compressed_files.sh
+cd ..
+cd ..
+cd ..
 
 cd hpcg
 ./configure Linux_MPI_gem5fs
@@ -72,7 +84,8 @@ cd ..
 cd spatter
 make gem5fs
 make gem5fs EXTENSION=sve
-cd ../..
+cd ..
+cd ..
 cd spatter-traces
 ./remake_partitioned_files.sh
 cd ..
@@ -80,4 +93,5 @@ cd ..
 cd simple-vector-bench/stream
 make gem5fs
 make gem5fs EXTENSION=sve
-cd ../..
+cd ..
+cd ..

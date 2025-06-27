@@ -62,14 +62,16 @@ class ExitEventHandlerWrapper:
         self,
         sample_stats: bool,
         sample_period: str,
+        num_regions_to_skip: int,
         take_checkpoint: bool,
-        continue_after_checkpoint: bool,
-        checkpoint_path: Optional[Union[Path, None]],
+        checkpoint_path: Union[Path, None],
     ):
         self._sample_stats = sample_stats
         self._sample_period = sample_period
+        self._num_regions_to_skip = num_regions_to_skip
+        self._num_regions_skipped = 0
+        self._reacted_yet = False
         self._take_checkpoint = take_checkpoint
-        self._continue_after_checkpoint = continue_after_checkpoint
         self._checkpoint_path = checkpoint_path
 
     def _validate_options(self, board: AbstractBoard):
@@ -80,8 +82,6 @@ class ExitEventHandlerWrapper:
                 raise ValueError(
                     "Checkpointing is not supported with SwitchableProcessor."
                 )
-        if self._continue_after_checkpoint:
-            inform("Continuing after checkpointing is enabled.")
         if self._sample_period != "none":
             if not self._sample_stats:
                 raise ValueError(
@@ -99,6 +99,9 @@ class ExitEventHandlerWrapper:
                 yield SimStep.REMAINING_TIME
 
         def handle_max_tick():
+            while not self._reacted_yet:
+                inform("Received a `max_tick` before reacting to the ROI.")
+                yield SimStep.REMAINING_TIME
             not_done = True
             while not_done:
                 inform("Received a max_tick.")
@@ -115,27 +118,52 @@ class ExitEventHandlerWrapper:
         def handle_work_begin(processor):
             can_switch = isinstance(processor, SwitchableProcessor)
             assert can_switch != self._take_checkpoint
-            inform("Received a work_begin.")
+            while self._num_regions_skipped < self._num_regions_to_skip:
+                inform("Received a work_begin.")
+                inform(
+                    f"Have skipped {self._num_regions_skipped} regions so far."
+                )
+                yield SimStep.REMAINING_TIME
+            inform(
+                "Received a work_begin after having "
+                f"skipped {self._num_regions_skipped} regions.\n"
+                f"Needed to skip: {self._num_regions_to_skip}."
+            )
             reset_stats()
             inform("Reset sim stats.")
             if self._take_checkpoint:
                 take_checkpoint(self._checkpoint_path)
                 inform(f"Took a checkpoint in {self._checkpoint_path}.")
-                if self._continue_after_checkpoint:
-                    inform("Continuing after checkpointing.")
-                yield (
-                    SimStep.REMAINTIN_TIME
-                    if self._continue_after_checkpoint
-                    else SimStep.STOP
+                self._reacted_yet = True
+                inform(
+                    "Set `_reacted_yet` to True although "
+                    "it's probably not going to be used."
                 )
+                yield SimStep.STOP
             if can_switch:
                 processor.switch()
                 inform("Switched to the next processor.")
-                yield SimStep.REMAINING_TIME
+                self._reacted_yet = True
+                yield (
+                    SimStep.REMAINING_TIME
+                    if not self._sample_stats
+                    else self._sample_period
+                )
             raise RuntimeError("Did not expect a work_begin.")
 
         def handle_work_end():
-            inform("Received a work_end.")
+            while self._num_regions_skipped < self._num_regions_to_skip:
+                inform("Received a work_end.")
+                inform(
+                    f"Have skipped {self._num_regions_skipped} regions so far."
+                )
+                self._num_regions_skipped += 1
+                yield SimStep.REMAINING_TIME
+            inform(
+                "Received a work_end after having "
+                f"skipped {self._num_regions_skipped} regions.\n"
+                f"Needed to skip: {self._num_regions_to_skip}."
+            )
             dump_stats()
             inform("Dumped sim stats.")
             yield SimStep.STOP
@@ -149,55 +177,21 @@ class ExitEventHandlerWrapper:
         }
 
 
-class BootExitEventHandlerWrapper(ExitEventHandlerWrapper):
-    def __init__(self):
-        super().__init__(
-            sample_stats=False,
-            sample_period="none",
-            take_checkpoint=False,
-            continue_after_checkpoint=False,
-            checkpoint_path=None,
-        )
-
-    def _get_exit_event_handler(self, board):
-        def handle_exit():
-            num_exits_received = 0
-            can_swith = isinstance(board.get_processor(), SwitchableProcessor)
-            while True:
-                inform("Received an exit.")
-                num_exits_received += 1
-                if num_exits_received == 1:
-                    inform("It's from after_boot.sh.")
-                    inform("Continuing simulation past after_boot.sh.")
-                    yield SimStep.REMAINING_TIME
-                if num_exits_received == 2:
-                    inform("It's from gem5_init.sh.")
-                    if can_swith:
-                        board.get_processor().switch()
-                        inform("Switched to the next processor.")
-                    inform("Continuing simulation past gem5_init.sh.")
-                    yield SimStep.REMAINING_TIME
-
-        return {
-            ExitEvent.EXIT: handle_exit(),
-        }
-
-
 class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
     def __init__(
         self,
         num_processes: int,
         sample_stats: bool,
         sample_period: str,
+        num_regions_to_skip: int,
         take_checkpoint: bool,
-        continue_after_checkpoint: bool,
         checkpoint_base_path: Optional[Union[str, Path]],
     ):
         super().__init__(
             sample_stats,
             sample_period,
+            num_regions_to_skip,
             take_checkpoint,
-            continue_after_checkpoint,
             checkpoint_base_path,
         )
         self._num_processes = num_processes
@@ -209,6 +203,9 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                 yield SimStep.REMAINING_TIME
 
         def handle_max_tick():
+            while not self._reacted_yet:
+                inform("Received a `max_tick` before reacting to the ROI.")
+                yield SimStep.REMAINING_TIME
             not_done = True
             while not_done:
                 inform("Received a max_tick.")
@@ -223,71 +220,104 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
             raise RuntimeError("Did not expect a max_tick.")
 
         def handle_work_begin(processor):
-            class Reaction(Enum):
-                NO_REACTION = 0
-                SWITCH = 1
-                CHECKPOINT = 2
-
             can_switch = isinstance(processor, SwitchableProcessor)
             assert can_switch != self._take_checkpoint
             assert processor.get_num_cores() >= self._num_processes
-            last_reaction = Reaction.NO_REACTION
-            num_received_work_begins = 0
-            num_expected_work_begins = self._num_processes
 
-            while last_reaction == Reaction.NO_REACTION:
+            num_work_begin_received = 0
+            while self._num_regions_skipped < self._num_regions_to_skip:
                 inform("Received a work_begin.")
-                num_received_work_begins += 1
+                num_work_begin_received += 1
                 inform(
-                    f"Received {num_received_work_begins} work_begins so far."
+                    f"Received {num_work_begin_received} work_begins so far."
                 )
-                if num_received_work_begins == num_expected_work_begins:
+                inform(
+                    f"Have skipped {self._num_regions_skipped} regions so far."
+                )
+                yield SimStep.REMAINING_TIME
+
+            inform("Entered the desired region.")
+            inform("Resetting the count of received work_begins.")
+            num_work_begin_received = 0
+            not_reacted_yet = True
+            while not_reacted_yet:
+                inform("Received a work_begin.")
+                num_work_begin_received += 1
+                inform(
+                    f"Received {num_work_begin_received} work_begins so far."
+                )
+                if num_work_begin_received == self._num_processes:
                     reset_stats()
                     inform("Reset sim stats.")
                     if self._take_checkpoint:
                         take_checkpoint(self._checkpoint_path)
+                        inform("Took a checkpoint.")
+                        not_reacted_yet = False
+                        self._reacted_yet = True
                         inform(
-                            f"Took a checkpoint in {self._checkpoint_path}."
+                            "Set `_reacted_yet` to True although "
+                            "it's probably not going to be used."
                         )
-                        last_reaction = Reaction.CHECKPOINT
+                        yield SimStep.STOP
                     if can_switch:
                         processor.switch()
                         inform("Switched to the next processor.")
-                        last_reaction = Reaction.SWITCH
-                if last_reaction == Reaction.NO_REACTION:
+                        not_reacted_yet = False
+                        self._reacted_yet = True
+                        yield (
+                            SimStep.REMAINING_TIME
+                            if not self._sample_stats
+                            else self._sample_period
+                        )
+                else:
                     yield SimStep.REMAINING_TIME
-                if last_reaction == Reaction.SWITCH:
-                    yield SimStep.REMAINING_TIME
-                if last_reaction == Reaction.CHECKPOINT:
-                    if self._continue_after_checkpoint:
-                        yield SimStep.REMAINING_TIME
-                    else:
-                        yield SimStep.STOP
-
             raise RuntimeError(
                 "Did not expect a work_begin. "
-                f"Have already received {num_received_work_begins}."
+                f"Have already received {num_work_begin_received} "
+                "from the desired region."
             )
 
         def handle_work_end(processor):
             assert processor.get_num_cores() >= self._num_processes
-            not_dumped_yet = True
-            num_received_work_ends = 0
-            num_expected_work_ends = self._num_processes
+            num_work_end_received = 0
 
-            while not_dumped_yet:
+            while self._num_regions_skipped < self._num_regions_to_skip:
                 inform("Received a work_end.")
-                num_received_work_ends += 1
-                inform(f"Received {num_received_work_ends} work_ends so far.")
-                if num_received_work_ends == num_expected_work_ends:
-                    dump_stats()
-                    not_dumped_yet = False
-                    yield SimStep.STOP
+                num_work_end_received += 1
+                inform(f"Received {num_work_end_received} work_ends so far.")
+                inform(
+                    f"Have skipped {self._num_regions_skipped} regions so far."
+                )
+                if num_work_end_received % self._num_processes == 0:
+                    inform(
+                        "This work_end marks the end of the this current region."
+                    )
+                    self._num_regions_skipped += 1
                 yield SimStep.REMAINING_TIME
 
+            inform("Inside the desired region.")
+            inform("Resetting the count of received work_ends.")
+            num_work_end_received = 0
+            not_dumped_yet = True
+            while not_dumped_yet:
+                inform("Received a work_end.")
+                num_work_end_received += 1
+                inform(f"Received {num_work_end_received} work_ends so far.")
+                if num_work_end_received == self._num_processes:
+                    dump_stats()
+                    inform("Dumped sim stats.")
+                    not_dumped_yet = False
+                    yield SimStep.STOP
+                else:
+                    yield (
+                        SimStep.REMAINING_TIME
+                        if not self._sample_stats
+                        else self._sample_period
+                    )
             raise RuntimeError(
                 "Did not expect a work_end. "
-                f"Have already received {num_received_work_ends}."
+                f"Have already received {num_work_end_received} "
+                "after entering the desired region."
             )
 
         return {
@@ -303,13 +333,67 @@ class FSCommandWrapper:
     def parse_args(args):
         raise NotImplementedError
 
-    def __init__(self, cwd: str, binary_name: str):
+    def __init__(
+        self,
+        cwd: str,
+        binary_name: str,
+        num_processes,
+        num_regions_to_skip: int = 0,
+    ):
         self._cwd = cwd
         self._binary_name = binary_name
+        self._num_processes = num_processes
+        self._num_regions_to_skip = num_regions_to_skip
         self._exit_handler = None
 
     def generate_cmdline(self):
-        return f"#!/bin/bash\ncd {self._cwd};\n{self._generate_cmdline()};\n"
+        return (
+            "#! /bin/bash\n\n"
+            "# Disabling ASLR.\n"
+            'echo "12345" | sudo -S sysctl -w kernel.randomize_va_space=0\n\n'
+            "# Changing directory to the right cwd.\n"
+            f"cd {self._cwd}\n\n"
+            "# Dumping the object file to a text file.\n"
+            "echo \"objdump\" >> process_info.txt\n"
+            f"objdump -S {self._binary_name} >> process_info.txt\n\n"
+            "# Creating the directory for mmap_done.\n"
+            f"mkdir -p {self._cwd}/mmap_done\n"
+            "# Writing 0 to the mmap_done.txt file to indicate that mmap is not done yet.\n"
+            f"echo 0 > {self._cwd}/mmap_done/mmap_done.txt\n\n"
+            "# Exporting MMAP_DONE_PATH.\n"
+            f"export MMAP_DONE_PATH={self._cwd}/mmap_done/mmap_done.txt\n"
+            "# Exporting PID_DUMP_PATH.\n"
+            f"export PID_DUMP_PATH={self._cwd}/pids\n\n"
+            "# Running the command to launch workload.\n"
+            f"{self._generate_cmdline()} &\n\n"
+            f"# Storing process mmap to host.\n"
+            "# Waiting for the PID_DUMP_PATH to be created.\n"
+            "while true; do\n"
+            "\tif [[ -d $PID_DUMP_PATH ]]; then\n"
+            "\t\tnum_files=$(find $PID_DUMP_PATH -maxdepth 1 -name 'pid_*' | wc -l)\n"
+            f"\t\tif [[ $num_files -eq {self._num_processes} ]]; then\n"
+            "\t\t\tbreak\n"
+            "\t\tfi\n"
+            "\tfi\n"
+            "\tsleep 0.0625\n"
+            "done\n\n"
+            "# Detecting all pids of the workload.\n"
+            "RANK_PIDS=()\n"
+            "for file in $PID_DUMP_PATH/pid_*; do\n"
+            "\tpid=${file##*/pid_}\n"
+            "\tRANK_PIDS+=($pid)\n"
+            "done\n\n"
+            "# Writing of the mmap of each pid to a text file on guest.\n"
+            "for pid in ${RANK_PIDS[@]}; do\n"
+            "\techo \"PID: $pid\" >> process_info.txt\n"
+            '\techo "12345" | sudo -S cat /proc/$pid/maps >> process_info.txt\n'
+            "done\n"
+            "gem5-bridge --addr=0x10010000 writefile process_info.txt\n\n"
+            "# Writing 1 to the mmap_done.txt file to indicate that mmap is done.\n"
+            "echo 1 > $MMAP_DONE_PATH\n"
+            "# Waiting for the workload to finish.\n"
+            "wait\n"
+        )
 
     def _generate_cmdline(self):
         raise NotImplementedError
@@ -329,14 +413,12 @@ class FSCommandWrapper:
         sample_stats: bool,
         sample_period: str,
         take_checkpoint: bool,
-        continue_after_checkpoint: bool,
         checkpoint_path: Optional[Union[str, Path]],
     ):
         self._create_exit_event_handler(
             sample_stats,
             sample_period,
             take_checkpoint,
-            continue_after_checkpoint,
             checkpoint_path,
         )
         if self._exit_handler is None:
@@ -348,67 +430,109 @@ class FSCommandWrapper:
         sample_stats: bool,
         sample_period: str,
         take_checkpoint: bool,
-        continue_after_checkpoint: bool,
         checkpoint_path: Optional[Union[str, Path]],
     ):
         self._exit_handler = ExitEventHandlerWrapper(
             sample_stats,
             sample_period,
+            self._num_regions_to_skip,
             take_checkpoint,
-            continue_after_checkpoint,
             checkpoint_path,
         )
 
 
 class FSMPICommandWrapper(FSCommandWrapper):
-    def __init__(self, cwd: str, binary_name: str, num_processes: int):
-        super().__init__(cwd, binary_name)
-        self._num_processes = int(num_processes)
+    def __init__(
+        self,
+        cwd: str,
+        binary_name: str,
+        num_processes: int,
+        num_regions_to_skip: int = 0,
+    ):
+        super().__init__(cwd, binary_name, num_processes, num_regions_to_skip)
 
     def _create_exit_event_handler(
         self,
         sample_stats: bool,
         sample_period: str,
         take_checkpoint: bool,
-        continue_after_checkpoint: bool,
         checkpoint_path: Optional[Union[str, Path]],
     ):
         self._exit_handler = MPIExitEventHandlerWrapper(
             self._num_processes,
             sample_stats,
             sample_period,
+            self._num_regions_to_skip,
             take_checkpoint,
-            continue_after_checkpoint,
             checkpoint_path,
         )
 
 
 class BootCommandWrapper(FSCommandWrapper):
+    class BootExitEventHandlerWrapper(ExitEventHandlerWrapper):
+        def __init__(self):
+            super().__init__(
+                sample_stats=False,
+                sample_period="none",
+                take_checkpoint=False,
+                num_regions_to_skip=0,
+                checkpoint_path=None,
+            )
+
+        def _get_exit_event_handler(self, board):
+            def handle_exit():
+                num_exits_received = 0
+                can_switch = isinstance(
+                    board.get_processor(), SwitchableProcessor
+                )
+                while True:
+                    inform("Received an exit.")
+                    num_exits_received += 1
+                    if num_exits_received == 1:
+                        inform("It's from gem5_init.sh.")
+                        inform("Continuing simulation past gem5_init.sh.")
+                    if num_exits_received == 2:
+                        inform("It's from after_boot.sh.")
+                        inform("Continuing simulation past after_boot.sh.")
+                    yield SimStep.REMAINING_TIME
+
+            return {
+                ExitEvent.EXIT: handle_exit(),
+            }
+
     @staticmethod
     def parse_args(args):
         inform("BootCommandWrapper does not accept any arguments.")
         return []
 
     def __init__(self):
-        super().__init__("/home/gem5", "")
+        super().__init__("/home/gem5", "", 1)
+
+    def generate_cmdline(self):
+        return (
+            "#! /bin/bash\n\n"
+            f'# Disabling ASLR.\necho "12345" | sudo -S sysctl -w kernel.randomize_va_space=0\n\n'
+            f"# Changing directory to the right cwd.\ncd {self._cwd}\n"
+        )
 
     def _generate_cmdline(self):
-        return ""
+        raise NotImplementedError
+
+    def get_write_mmap_cmd(self):
+        raise NotImplementedError
 
     def _create_exit_event_handler(
         self,
         sample_stats,
         sample_period,
         take_checkpoint,
-        continue_after_checkpoint,
         checkpoint_path,
     ):
         inform(
             "BootCommandWrapper ignores all of `sample_stats`, "
-            "`sample_period`, `take_checkpoint`, "
-            "`continue_after_checkpoint`, `checkpoint_path`."
+            "`sample_period`, `take_checkpoint`, `checkpoint_path`."
         )
-        self._exit_handler = BootExitEventHandlerWrapper()
+        self._exit_handler = BootCommandWrapper.BootExitEventHandlerWrapper()
 
     def generate_id_dict(self):
         return {"name": "boot"}
@@ -419,23 +543,14 @@ class MPIBenchCommandWrapper(FSMPICommandWrapper):
     def parse_args(args):
         parser = argparse.ArgumentParser()
         parser.add_argument("--num-processes", type=int, required=True)
-        parser.add_argument("--num-elements", type=int, required=True)
-        parser.add_argument("--seed", type=int, required=True)
         parser.add_argument("--use-sve", type=str, required=True)
 
         parsed_args = parser.parse_args(args)
-        return [
-            parsed_args.num_processes,
-            parsed_args.num_elements,
-            parsed_args.seed,
-            parsed_args.use_sve,
-        ]
+        return [parsed_args.num_processes, parsed_args.use_sve]
 
     def __init__(
         self,
         num_processes: int,
-        num_elements: int,
-        seed: int,
         use_sve: Union[bool, int, str],
     ):
         binary_name = (
@@ -446,8 +561,6 @@ class MPIBenchCommandWrapper(FSMPICommandWrapper):
         super().__init__(
             "/home/gem5/workloads/mpi_bench", binary_name, num_processes
         )
-        self._num_elements = num_elements
-        self._seed = seed
         self._use_sve = try_convert_bool(use_sve)
 
     def _generate_cmdline(self):
@@ -461,8 +574,6 @@ class MPIBenchCommandWrapper(FSMPICommandWrapper):
             "name": "mpi-bench",
             "use-sve": self._use_sve,
             "num-processes": self._num_processes,
-            "num-elements": self._num_elements,
-            "seed": self._seed,
         }
 
 
@@ -579,9 +690,11 @@ class HPCGCommandWrapper(FSMPICommandWrapper):
 class UMECommandWrapper(FSMPICommandWrapper):
     _base_input_path = "/home/gem5/workloads/UME/inputs"
     _input_translator = {
-        "blake": ("blake/blake", 1),
-        "pipe_3d": ("pipe_3d/pipe_3d_00001", 8),
+        "blake": ("blake/blake/blake", 1),
+        "pipe_3d": ("pipe_3d/pipe_3d/pipe_3d_00001", 8),
+        "tgv": ("tgv/tgv/tgv_large_00001", 8),
     }
+    _region_translator = {"gradzatz": 0, "gradzatz_invert": 1, "face_area": 2}
 
     @staticmethod
     def parse_args(args):
@@ -592,22 +705,33 @@ class UMECommandWrapper(FSMPICommandWrapper):
             required=True,
             choices=UMECommandWrapper._input_translator.keys(),
         )
+        parser.add_argument(
+            "--region",
+            type=str,
+            required=True,
+            choices=list(UMECommandWrapper._region_translator.keys()),
+        )
 
         parsed_args = parser.parse_args(args)
-        return [parsed_args.input_name]
+        return [parsed_args.input_name, parsed_args.region]
 
     def __init__(
         self,
         input_name: str,
+        region: str,
     ):
         input_file, num_processes = UMECommandWrapper._input_translator[
             input_name
         ]
         super().__init__(
-            "/home/gem5/workloads/UME/build/src", "ume_mpi", num_processes
+            "/home/gem5/workloads/UME/build/src",
+            "ume_mpi",
+            num_processes,
+            UMECommandWrapper._region_translator[region],
         )
         self._input_name = input_name
         self._input_file = input_file
+        self._region_name = region
 
     def _generate_cmdline(self):
         workload_cmd = (
@@ -623,6 +747,7 @@ class UMECommandWrapper(FSMPICommandWrapper):
             "name": "ume",
             "num-processes": self._num_processes,
             "input": self._input_name,
+            "region": self._region_name,
         }
 
 

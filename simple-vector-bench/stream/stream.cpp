@@ -64,6 +64,7 @@ int main(int argc, char* argv[])
         std::cout << "Usage: " << argv[0] << " <array_size>" << std::endl;
         return 1;
     }
+    annotate_init_();
 
     size_t num_threads = get_num_omp_threads();
 
@@ -80,11 +81,17 @@ int main(int argc, char* argv[])
     triad(a, b, c, scale_factor);
 
     // 1 iteration
-    annotate_init_();
+
     roi_begin_();
     t_copy = copy(c, a);
+    roi_end_();
+    roi_begin_();
     t_scale = scale(b, c, scale_factor);
+    roi_end_();
+    roi_begin_();
     t_add = add(c, a, b);
+    roi_end_();
+    roi_begin_();
     t_triad = triad(a, b, c, scale_factor);
     roi_end_();
 

@@ -120,7 +120,7 @@ void executeKernels(const char* filename) {
     double t_total = 0;
     std::vector<double> elapsed_time_per_kernel(num_kernels, 0.0);
 
-    annotate_init_();
+
     roi_begin_();
     size_t kernelIdx = 0;
     for (auto const& k: kernels) {
@@ -156,9 +156,11 @@ int main(int argc, char* argv[]) {
         std::cout << "Usage: " << argv[0] << " <path_to_json_file>" << std::endl;
         return 1;
     }
+    annotate_init_();
     const size_t num_threads = get_num_omp_threads();
     std::cout << "Number of threads: " << num_threads << std::endl;
     executeKernels(argv[1]);
+    annotate_term_();
     return 0;
 }
 

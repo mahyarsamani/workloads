@@ -80,13 +80,74 @@ void thread_init_()
 #elif defined(GEM5FS)
 #include "gem5/m5ops.h"
 #include "gem5/m5_mmap.h"
+
+#include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 void annotate_init_()
 {
     map_m5_mem();
+
+    pid_t pid = getpid();
+    const char *dir = getenv("PID_DUMP_PATH");
+    if (!dir || !*dir) {
+        fprintf(
+            stderr, "[pid-dump] env var PID_DUMP_PATH is not set — skipping dump\n"
+        );
+        return;
+    }
+
+    if (mkdir(dir, 0755) == -1 && errno != EEXIST) {
+        fprintf(
+            stderr, "[pid-dump] cannot create directory '%s': %s\n",
+            dir, strerror(errno)
+        );
+        return;
+    }
+
+    char path[PATH_MAX];
+    int n = snprintf(path, sizeof(path), "%s/pid_%d", dir, (int) pid);
+    if (n < 0 || n >= (int) sizeof(path)) {
+        fprintf(stderr, "[pid-dump] resulting path is too long\n");
+        return;
+    }
+
+    FILE *fp = fopen(path, "w");
+    if (!fp) {
+        fprintf(stderr,
+                "[pid-dump] cannot open '%s' for writing: %s\n",
+                path, strerror(errno));
+        return;
+    }
+    fclose(fp);
+
+    fprintf(stderr, "[pid-dump] wrote %s\n", path);
+
+    const char *done_file = getenv("MMAP_DONE_PATH");
+    if (!done_file) {
+        return;
+    }
+
+    char val[8] = {0};
+
+    while (1) {
+        fp = fopen(done_file, "r");
+        if (fp) {
+            if (fgets(val, sizeof(val), fp)) {
+                if (strncmp(val, "1", 1) == 0) {
+                    fclose(fp);
+                    break;
+                }
+            }
+            fclose(fp);
+        }
+        usleep(62500);
+    }
 }
 
 void annotate_term_()

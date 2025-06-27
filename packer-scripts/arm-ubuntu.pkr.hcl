@@ -91,7 +91,7 @@ source "qemu" "initialize" {
                       "<wait>"
                       ]
   cpus             = "32"
-  disk_size        = "21600"
+  disk_size        = "64000"
   format           = "raw"
   headless         = "true"
   http_directory   = local.iso_data[var.ubuntu_version].http_directory
@@ -217,7 +217,7 @@ build {
 
   provisioner "shell" {
     execute_command = "echo '${var.ssh_password}' | {{ .Vars }} sudo -E -S bash '{{ .Path }}'"
-    scripts         = ["scripts/install-gem5-init.sh", "scripts/disable-network.sh"]
+    scripts         = ["scripts/install-gem5-init.sh", "scripts/disable-services.sh"]
     expect_disconnect = true
   }
 

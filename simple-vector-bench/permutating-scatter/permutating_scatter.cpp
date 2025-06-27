@@ -54,6 +54,8 @@ int main(int argc, char* argv[])
         std::cout << "If seed and mod are not supplied, the default seed is 17 and the default mod is 100000007." << std::endl;
         return 1;
     }
+    annotate_init_();
+
     const int SEED = (argc == 1) ? 17 : atoi(argv[1]);
     const int MOD = (argc == 1) ? 100'000'007 : atoi(argv[2]);
     const int SIZE = MOD - 1;
@@ -81,7 +83,7 @@ int main(int argc, char* argv[])
 
 
     const auto t_start = std::chrono::steady_clock::now();
-    annotate_init_();
+
     roi_begin_();
 
     // Performing indexed-stores
@@ -106,6 +108,7 @@ int main(int argc, char* argv[])
     for (TIndex i = 0; i < N_INDEX; i++)
         assert(dst[rng.next()-1] == i);
 
+    annotate_term_();
     return 0;
 }
 

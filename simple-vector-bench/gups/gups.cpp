@@ -22,6 +22,7 @@ int main(int argc, char* argv[])
         std::cout << "Usage: " << argv[0] << " <number_of_elements_in_table> <number_of_updates_per_burst>" << std::endl;
         return 1;
     }
+    annotate_init_();
 
     TIndex numTableElements = atoi(argv[1]);
     TIndex numUpdatesPerBurst = atoi(argv[2]);
@@ -31,7 +32,6 @@ int main(int argc, char* argv[])
     TIndex numUpdates = numTableElements*4;
 
     const auto t_start = std::chrono::steady_clock::now();
-    annotate_init_();
     roi_begin_();
 
     doRandomAccess(table.data(), numTableElements, numUpdates, numUpdatesPerBurst);
@@ -44,6 +44,7 @@ int main(int argc, char* argv[])
 
     report(numThreads, numTableElements, numUpdates, delta_t.count());
 
+    annotate_term_();
     return 0;
 }
 
