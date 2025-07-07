@@ -34,7 +34,7 @@ cd ..
 cd UME
 mkdir build
 cd build
-cmake ../ -DUSE_CATCH2=off -DUSE_MPI=true -DCMAKE_ANNOTATE_TYPE=gem5fs -DCMAKE_ROI_TYPE=sync
+cmake ../ -DCMAKE_BUILD_TYPE=Release -DUSE_CATCH2=off -DUSE_MPI=true -DCMAKE_ANNOTATE_TYPE=gem5fs -DCMAKE_ROI_TYPE=sync
 make
 cd ..
 cd inputs

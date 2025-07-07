@@ -64,13 +64,19 @@ class ExitEventHandlerWrapper:
         sample_period: str,
         num_regions_to_skip: int,
         take_checkpoint: bool,
+        restore_checkpoint: bool,
         checkpoint_path: Union[Path, None],
     ):
+        if take_checkpoint and restore_checkpoint:
+            raise ValueError(
+                "Both `take_checkpoint` and `restore_checkpoint` "
+                "can not be True at the same time."
+            )
         self._sample_stats = sample_stats
         self._sample_period = sample_period
         self._num_regions_to_skip = num_regions_to_skip
         self._num_regions_skipped = 0
-        self._reacted_yet = False
+        self._reacted_yet = restore_checkpoint
         self._take_checkpoint = take_checkpoint
         self._checkpoint_path = checkpoint_path
 
@@ -185,6 +191,7 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
         sample_period: str,
         num_regions_to_skip: int,
         take_checkpoint: bool,
+        restore_checkpoint: bool,
         checkpoint_base_path: Optional[Union[str, Path]],
     ):
         super().__init__(
@@ -192,6 +199,7 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
             sample_period,
             num_regions_to_skip,
             take_checkpoint,
+            restore_checkpoint,
             checkpoint_base_path,
         )
         self._num_processes = num_processes
@@ -239,8 +247,7 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
             inform("Entered the desired region.")
             inform("Resetting the count of received work_begins.")
             num_work_begin_received = 0
-            not_reacted_yet = True
-            while not_reacted_yet:
+            while not self._reacted_yet:
                 inform("Received a work_begin.")
                 num_work_begin_received += 1
                 inform(
@@ -252,7 +259,6 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                     if self._take_checkpoint:
                         take_checkpoint(self._checkpoint_path)
                         inform("Took a checkpoint.")
-                        not_reacted_yet = False
                         self._reacted_yet = True
                         inform(
                             "Set `_reacted_yet` to True although "
@@ -262,7 +268,6 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                     if can_switch:
                         processor.switch()
                         inform("Switched to the next processor.")
-                        not_reacted_yet = False
                         self._reacted_yet = True
                         yield (
                             SimStep.REMAINING_TIME
@@ -354,7 +359,7 @@ class FSCommandWrapper:
             "# Changing directory to the right cwd.\n"
             f"cd {self._cwd}\n\n"
             "# Dumping the object file to a text file.\n"
-            "echo \"objdump\" >> process_info.txt\n"
+            'echo "objdump" >> process_info.txt\n'
             f"objdump -S {self._binary_name} >> process_info.txt\n\n"
             "# Creating the directory for mmap_done.\n"
             f"mkdir -p {self._cwd}/mmap_done\n"
@@ -385,7 +390,7 @@ class FSCommandWrapper:
             "done\n\n"
             "# Writing of the mmap of each pid to a text file on guest.\n"
             "for pid in ${RANK_PIDS[@]}; do\n"
-            "\techo \"PID: $pid\" >> process_info.txt\n"
+            '\techo "PID: $pid" >> process_info.txt\n'
             '\techo "12345" | sudo -S cat /proc/$pid/maps >> process_info.txt\n'
             "done\n"
             "gem5-bridge --addr=0x10010000 writefile process_info.txt\n\n"
@@ -413,12 +418,14 @@ class FSCommandWrapper:
         sample_stats: bool,
         sample_period: str,
         take_checkpoint: bool,
+        restore_checkpoint: bool,
         checkpoint_path: Optional[Union[str, Path]],
     ):
         self._create_exit_event_handler(
             sample_stats,
             sample_period,
             take_checkpoint,
+            restore_checkpoint,
             checkpoint_path,
         )
         if self._exit_handler is None:
@@ -430,6 +437,7 @@ class FSCommandWrapper:
         sample_stats: bool,
         sample_period: str,
         take_checkpoint: bool,
+        restore_checkpoint: bool,
         checkpoint_path: Optional[Union[str, Path]],
     ):
         self._exit_handler = ExitEventHandlerWrapper(
@@ -437,6 +445,7 @@ class FSCommandWrapper:
             sample_period,
             self._num_regions_to_skip,
             take_checkpoint,
+            restore_checkpoint,
             checkpoint_path,
         )
 
@@ -456,6 +465,7 @@ class FSMPICommandWrapper(FSCommandWrapper):
         sample_stats: bool,
         sample_period: str,
         take_checkpoint: bool,
+        restore_checkpoint: bool,
         checkpoint_path: Optional[Union[str, Path]],
     ):
         self._exit_handler = MPIExitEventHandlerWrapper(
@@ -464,6 +474,7 @@ class FSMPICommandWrapper(FSCommandWrapper):
             sample_period,
             self._num_regions_to_skip,
             take_checkpoint,
+            restore_checkpoint,
             checkpoint_path,
         )
 
@@ -475,6 +486,7 @@ class BootCommandWrapper(FSCommandWrapper):
                 sample_stats=False,
                 sample_period="none",
                 take_checkpoint=False,
+                restore_checkpoint=False,
                 num_regions_to_skip=0,
                 checkpoint_path=None,
             )
@@ -526,6 +538,7 @@ class BootCommandWrapper(FSCommandWrapper):
         sample_stats,
         sample_period,
         take_checkpoint,
+        restore_checkpoint,
         checkpoint_path,
     ):
         inform(
@@ -665,9 +678,7 @@ class HPCGCommandWrapper(FSMPICommandWrapper):
         self._y = dim_y
         self._z = dim_z
         self._secs = seconds
-        self._dat_content = (
-            f"\n\n{self._x} {self._y} {self._z}\n{self._secs}\n"
-        )
+        self._dat_content = f'"{self._x} {self._y} {self._z}\\n{self._secs}"'
         self._write_dat = f"echo {self._dat_content} > hpcg.dat"
 
     def _generate_cmdline(self):
