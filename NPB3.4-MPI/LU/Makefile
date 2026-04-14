@@ -12,12 +12,13 @@ OBJS = lu.o lu_data$(VEC).o init_comm.o read_input.o bcast_inputs.o \
        exchange_4.o exchange_5.o exchange_6.o rhs.o l2norm.o \
        jacld$(VEC).o blts$(VEC).o jacu$(VEC).o buts$(VEC).o mpinpb.o \
        error.o pintgr.o verify.o ${COMMON}/get_active_nprocs.o \
-       ${COMMON}/print_results.o ${COMMON}/timers.o
+       ${COMMON}/print_results.o ${COMMON}/timers.o ${COMMON}/annotate_iface.o
 
 include ../sys/make.common
 FMPI_LIB += $(ROI_LIB)
 FMPI_LIB += $(ROI_OBJ)
 FMPI_INC += $(ROI_INC)
+FMPI_INC += -I${COMMON}
 
 # npbparams.h is included by lu_data module (via lu_data.o)
 
@@ -36,7 +37,7 @@ exec: $(OBJS)
 .f90.o :
 	${FCOMPILE} $<
 
-lu.o:		lu.f90 lu_data.o mpinpb.o
+lu.o:		${COMMON}/annotate_iface.o lu.f90 lu_data.o mpinpb.o
 bcast_inputs.o:	bcast_inputs.f90 lu_data.o mpinpb.o
 blts$(VEC).o:	blts$(VEC).f90 lu_data.o
 buts$(VEC).o:	buts$(VEC).f90 lu_data.o
@@ -48,7 +49,7 @@ exchange_3.o:	exchange_3.f90 lu_data.o mpinpb.o
 exchange_4.o:	exchange_4.f90 lu_data.o mpinpb.o
 exchange_5.o:	exchange_5.f90 lu_data.o mpinpb.o
 exchange_6.o:	exchange_6.f90 lu_data.o mpinpb.o
-init_comm.o:	init_comm.f90 lu_data.o mpinpb.o 
+init_comm.o:	init_comm.f90 lu_data.o mpinpb.o
 jacld$(VEC).o:	jacld$(VEC).f90 lu_data.o
 jacu$(VEC).o:	jacu$(VEC).f90 lu_data.o
 l2norm.o:	l2norm.f90 lu_data.o mpinpb.o

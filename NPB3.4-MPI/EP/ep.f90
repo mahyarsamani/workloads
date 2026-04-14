@@ -46,6 +46,7 @@ program EMBAR
 
   use ep_data
   use mpinpb
+  use annotate_iface
 
   implicit none
 
@@ -159,6 +160,7 @@ program EMBAR
     call timer_start(1)
 
     call roi_begin
+    call annotate_synchronize(1_c_int64_t)
 
     t1 = a
     call vranlc(0, t1, a, x)
@@ -258,6 +260,8 @@ program EMBAR
 160             continue
 
                 call roi_end
+                call annotate_synchronize(2_c_int64_t)
+
                 call timer_stop(1)
                 tm = timer_read(1)
 

@@ -723,6 +723,8 @@ int main(int argc,char **argv ){
     // CHECK
 
     roi_begin_();
+    annotate_synchronize_(1);
+
     verified=ProcessNodes(dg,my_rank);
 
     featnum=NUM_SAMPLES*fielddim;
@@ -730,6 +732,7 @@ int main(int argc,char **argv ){
     bytes_sent/=1048576;
 
     roi_end_();
+    annotate_synchronize_(2);
 
     if(my_rank==0){
       timer_stop(0);

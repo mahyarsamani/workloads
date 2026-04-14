@@ -48,6 +48,7 @@ program cg
 
   use cg_data
   use mpinpb
+  use annotate_iface
   use timing
 
   implicit none
@@ -295,6 +296,8 @@ program cg
   call timer_start(1)
 
   call roi_begin
+  call annotate_synchronize(1_c_int64_t)
+
 !---------------------------------------------------------------------
 !---->
 !  Main Iteration for inverse power method
@@ -365,6 +368,8 @@ program cg
   end do                              ! end of main iter inv pow meth
 
   call roi_end
+  call annotate_synchronize(2_c_int64_t)
+
   call timer_stop(1)
 
 !---------------------------------------------------------------------

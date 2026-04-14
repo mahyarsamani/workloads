@@ -50,6 +50,7 @@ use, intrinsic :: ieee_arithmetic, only : ieee_is_nan
 use mg_data
 use mg_fields
 use mpinpb
+use annotate_iface
 
 implicit none
 
@@ -272,7 +273,7 @@ call mpi_barrier(comm_work,ierr)
 call timer_start(T_bench)
 
 call roi_begin
-
+call annotate_synchronize(1_c_int64_t)
 call resid(u,v,r,n1,n2,n3,a,k)
 call norm2u3(r,n1,n2,n3,rnm2,rnmu,nx(lt),ny(lt),nz(lt))
 old2 = rnm2
@@ -291,6 +292,8 @@ enddo
 call norm2u3(r,n1,n2,n3,rnm2,rnmu,nx(lt),ny(lt),nz(lt))
 
 call roi_end
+call annotate_synchronize(2_c_int64_t)
+
 call timer_stop(T_bench)
 
 t0 = timer_read(T_bench)

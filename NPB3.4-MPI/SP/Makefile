@@ -11,12 +11,13 @@ OBJS = sp.o sp_data.o make_set.o initialize.o exact_solution.o \
        rhs.o lhsx.o lhsy.o lhsz.o x_solve.o ninvr.o y_solve.o pinvr.o \
        z_solve.o tzetar.o add.o txinvr.o error.o verify.o setup_mpi.o \
        mpinpb.o ${COMMON}/get_active_nprocs.o \
-       ${COMMON}/print_results.o ${COMMON}/timers.o
+       ${COMMON}/print_results.o ${COMMON}/timers.o ${COMMON}/annotate_iface.o
 
 include ../sys/make.common
 FMPI_LIB += $(ROI_LIB)
 FMPI_LIB += $(ROI_OBJ)
 FMPI_INC += $(ROI_INC)
+FMPI_INC += -I${COMMON}
 # npbparams.h is included by sp_data module (via sp_data.o)
 
 ${PROGRAM}: config ${OBJS}
@@ -25,7 +26,7 @@ ${PROGRAM}: config ${OBJS}
 .f90.o:
 	${FCOMPILE} $<
 
-sp.o:             sp.f90  sp_data.o mpinpb.o
+sp.o:             ${COMMON}/annotate_iface.o sp.f90  sp_data.o mpinpb.o
 make_set.o:       make_set.f90  sp_data.o mpinpb.o
 initialize.o:     initialize.f90  sp_data.o
 exact_solution.o: exact_solution.f90  sp_data.o

@@ -80,6 +80,7 @@ program ft
   use ft_data
   use ft_fields
   use mpinpb
+  use annotate_iface
 
   implicit none
 
@@ -130,6 +131,8 @@ program ft
   call timer_start(T_total)
 
   call roi_begin
+  call annotate_synchronize(1_c_int64_t)
+
   if (timers_enabled) call timer_start(T_setup)
 
   call compute_indexmap(twiddle, dims(1, 3), dims(2, 3), dims(3, 3))
@@ -160,6 +163,8 @@ program ft
 
   call verify(niter, verified, class)
   call roi_end
+  call annotate_synchronize(2_c_int64_t)
+
   call timer_stop(t_total)
 !!      if (np .ne. np_min) verified = .false.
   total_time = timer_read(t_total)

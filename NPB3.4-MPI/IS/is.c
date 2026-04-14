@@ -1103,6 +1103,7 @@ int main( int argc, char **argv )
     timer_start( 0 );
 
     roi_begin_();
+    annotate_synchronize_(1);
 /*  This is the main iteration */
     for( iteration=1; iteration<=MAX_ITERATIONS; iteration++ )
     {
@@ -1113,6 +1114,7 @@ int main( int argc, char **argv )
 
 /*  Stop timer, obtain time for processors */
     roi_end_();
+    annotate_synchronize_(2);
     timer_stop( 0 );
 
     timecounter = timer_read( 0 );

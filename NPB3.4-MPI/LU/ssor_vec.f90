@@ -13,6 +13,7 @@ subroutine ssor(niter)
 
   use lu_data
   use mpinpb
+  use annotate_iface
   use timing
 
   implicit none
@@ -75,6 +76,7 @@ subroutine ssor(niter)
   call timer_start(1)
 
   call roi_begin
+  call annotate_synchronize(1_c_int64_t)
 
 !---------------------------------------------------------------------
 !   the timestep loop
@@ -204,6 +206,8 @@ subroutine ssor(niter)
 900 continue
 
   call roi_end
+  call annotate_synchronize(2_c_int64_t)
+
   call timer_stop(1)
   wtime = timer_read(1)
 

@@ -41,6 +41,7 @@ program MPSP
 
   use sp_data
   use mpinpb
+  use annotate_iface
 
   implicit none
 
@@ -166,6 +167,7 @@ program MPSP
   call timer_start(1)
 
   call roi_begin
+  call annotate_synchronize(1_c_int64_t)
 
   do step = 1, niter
 
@@ -182,6 +184,8 @@ program MPSP
   end do
 
   call roi_end
+  call annotate_synchronize(2_c_int64_t)
+
   call timer_stop(1)
   t = timer_read(1)
 

@@ -9,17 +9,18 @@ include ../sys/make.common
 FMPI_LIB += $(ROI_LIB)
 FMPI_LIB += $(ROI_OBJ)
 FMPI_INC += $(ROI_INC)
+FMPI_INC += -I${COMMON}
 
 OBJS = ft.o ft_data.o mpinpb.o ${COMMON}/get_active_nprocs.o \
-	${COMMON}/${RAND}.o ${COMMON}/print_results.o ${COMMON}/timers.o
+	${COMMON}/${RAND}.o ${COMMON}/print_results.o ${COMMON}/timers.o ${COMMON}/annotate_iface.o
 
 ${PROGRAM}: config ${OBJS}
-	${FLINK} ${FLINKFLAGS} -o ${PROGRAM} ${OBJS} ${ROI_BIN} ${FMPI_LIB} 
+	${FLINK} ${FLINKFLAGS} -o ${PROGRAM} ${OBJS} ${ROI_BIN} ${FMPI_LIB}
 
 .f90.o:
 	${FCOMPILE} $<
 
-ft.o:		ft.f90  ft_data.o mpinpb.o
+ft.o:		${COMMON}/annotate_iface.o ft.f90  ft_data.o mpinpb.o
 ft_data.o:	ft_data.f90  mpinpb.o npbparams.h
 mpinpb.o:	mpinpb.f90
 mpinpb.f90:     mpinpb_$(F08).f90
