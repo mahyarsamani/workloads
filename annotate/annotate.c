@@ -16,6 +16,9 @@ void annotate_init_()
 void annotate_term_()
 {}
 
+void annotate_synchronize_(uint64_t expected)
+{}
+
 void region_begin_(const char* region)
 {
     int retval = PAPI_hl_region_begin(region);
@@ -53,11 +56,20 @@ void thread_init_()
 #include <stdlib.h>
 #include <unistd.h>
 
+// "mss-flag"
+#define MSS_FLAG 0x67616c662d73736d
+
 void annotate_init_()
 {}
 
 void annotate_term_()
 {}
+
+void annotate_synchronize_(uint64_t expected)
+{
+    while (m5_init_param(MSS_FLAG, 0) != expected);
+    printf("Passing beyond MSS_FLAG!\n");
+}
 
 void region_begin_(const char* region)
 {}
@@ -88,6 +100,9 @@ void thread_init_()
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+// "mss-flag"
+#define MSS_FLAG 0x67616c662d73736d
 
 void annotate_init_()
 {
@@ -155,6 +170,12 @@ void annotate_term_()
     unmap_m5_mem();
 }
 
+void annotate_synchronize_(uint64_t expected)
+{
+    while (m5_init_param_addr(MSS_FLAG, 0) != expected);
+    printf("Passing beyond MSS_FLAG!\n");
+}
+
 void region_begin_(const char* region)
 {}
 
@@ -181,6 +202,9 @@ void annotate_init_()
 {}
 
 void annotate_term_()
+{}
+
+void annotate_synchronize_(uint64_t expected)
 {}
 
 void region_begin_(const char* region)

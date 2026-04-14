@@ -1,16 +1,23 @@
-import argparse
+from .workload_insights import process_snippet
 
-from enum import Enum
+import argparse
+import os
+import re
+
 from pathlib import Path
 from typing import Optional, Union
 
+from m5 import options as m5_options
 from m5.simulate import checkpoint
 from m5.stats import reset as reset_stats
-from m5.stats import dump as dump_stats
-from m5.util import inform
+from m5.stats import dump as m5_dump_stats
+from m5.util import inform, warn
 
 from gem5.components.boards.abstract_board import AbstractBoard
-from gem5.components.processors.switchable_processor import SwitchableProcessor
+
+from gem5.components.processors.multi_fidelity_processor import (
+    MultiFidelityProcessor as SwitchableProcessor,
+)
 from gem5.simulate.exit_event import ExitEvent
 from gem5.simulate.exit_event_generators import SimStep
 
@@ -21,8 +28,52 @@ _mpirun_command_template = (
 )
 
 
+def get_outdir():
+    return Path(m5_options.outdir)
+
+
+def copy_file(file_name: str, src_dir: Path, dst_dir: Path):
+    src_path = src_dir / file_name
+    dst_path = dst_dir / file_name
+    if src_path.exists():
+        dst_path.write_text(src_path.read_text())
+
+
 def take_checkpoint(checkpoint_path: Path):
     checkpoint(str(checkpoint_path))
+
+
+def dump_stats():
+    outdir = get_outdir()
+    stats_file = outdir / "stats.txt"
+
+    try:
+        old_size = os.path.getsize(stats_file)
+    except OSError:
+        old_size = 0
+
+    m5_dump_stats()
+
+    new_data = None
+    with open(f"{outdir}/stats.txt", "rb") as stats_file:
+        stats_file.seek(old_size)
+        new_data = stats_file.read()
+
+    if new_data:
+        dump_name_pattern = re.compile(r"^stats_dump_(\d+)\.txt$")
+        all_dumps = [
+            f for f in outdir.iterdir() if dump_name_pattern.fullmatch(f.name)
+        ]
+        if all_dumps:
+            dump_version = (
+                max([int(f.stem.split("_")[-1]) for f in all_dumps]) + 1
+            )
+        else:
+            dump_version = 0
+        with open(
+            outdir / f"stats_dump_{dump_version}.txt", "wb"
+        ) as dump_file:
+            dump_file.write(new_data)
 
 
 def try_convert_bool(bool_like):
@@ -74,7 +125,9 @@ class ExitEventHandlerWrapper:
             )
         self._sample_stats = sample_stats
         self._sample_period = sample_period
-        self._num_regions_to_skip = num_regions_to_skip
+        self._num_regions_to_skip = (
+            num_regions_to_skip if not restore_checkpoint else 0
+        )
         self._num_regions_skipped = 0
         self._reacted_yet = restore_checkpoint
         self._take_checkpoint = take_checkpoint
@@ -100,8 +153,19 @@ class ExitEventHandlerWrapper:
 
     def _get_exit_event_handler(self, board: AbstractBoard):
         def handle_exit():
+            num_exits_received = 0
             while True:
-                inform("Received an exit. Continuing simulation.")
+                inform("Received an exit.")
+                num_exits_received += 1
+                if num_exits_received == 1:
+                    inform("It's from gem5_init.sh.")
+                    inform("Continuing simulation past gem5_init.sh.")
+                elif num_exits_received == 2:
+                    inform("It's from after_boot.sh.")
+                    inform("Continuing simulation past after_boot.sh.")
+                else:
+                    warn("Received an unexpected exit.")
+                    yield SimStep.STOP
                 yield SimStep.REMAINING_TIME
 
         def handle_max_tick():
@@ -121,7 +185,8 @@ class ExitEventHandlerWrapper:
                     yield SimStep.STOP
             raise RuntimeError("Did not expect a max_tick.")
 
-        def handle_work_begin(processor):
+        def handle_work_begin(board):
+            processor = board.get_processor()
             can_switch = isinstance(processor, SwitchableProcessor)
             assert can_switch != self._take_checkpoint
             while self._num_regions_skipped < self._num_regions_to_skip:
@@ -140,6 +205,15 @@ class ExitEventHandlerWrapper:
             if self._take_checkpoint:
                 take_checkpoint(self._checkpoint_path)
                 inform(f"Took a checkpoint in {self._checkpoint_path}.")
+                inform(
+                    "Copying process_info.txt from m5.outdir "
+                    "to checkpoint path if it exists."
+                )
+                copy_file(
+                    "process_info.txt",
+                    get_outdir(),
+                    self._checkpoint_path,
+                )
                 self._reacted_yet = True
                 inform(
                     "Set `_reacted_yet` to True although "
@@ -178,7 +252,7 @@ class ExitEventHandlerWrapper:
         return {
             ExitEvent.EXIT: handle_exit(),
             ExitEvent.MAX_TICK: handle_max_tick(),
-            ExitEvent.WORKBEGIN: handle_work_begin(board.get_processor()),
+            ExitEvent.WORKBEGIN: handle_work_begin(board),
             ExitEvent.WORKEND: handle_work_end(),
         }
 
@@ -202,12 +276,24 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
             restore_checkpoint,
             checkpoint_base_path,
         )
+        self._mss_flag = 0
         self._num_processes = num_processes
 
     def _get_exit_event_handler(self, board: AbstractBoard):
         def handle_exit():
+            num_exits_received = 0
             while True:
-                inform("Received an exit. Continuing simulation.")
+                inform("Received an exit.")
+                num_exits_received += 1
+                if num_exits_received == 1:
+                    inform("It's from gem5_init.sh.")
+                    inform("Continuing simulation past gem5_init.sh.")
+                elif num_exits_received == 2:
+                    inform("It's from after_boot.sh.")
+                    inform("Continuing simulation past after_boot.sh.")
+                else:
+                    warn("Received an unexpected exit.")
+                    yield SimStep.Stop
                 yield SimStep.REMAINING_TIME
 
         def handle_max_tick():
@@ -227,7 +313,8 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                     yield SimStep.STOP
             raise RuntimeError("Did not expect a max_tick.")
 
-        def handle_work_begin(processor):
+        def handle_work_begin(board):
+            processor = board.get_processor()
             can_switch = isinstance(processor, SwitchableProcessor)
             assert can_switch != self._take_checkpoint
             assert processor.get_num_cores() >= self._num_processes
@@ -242,6 +329,9 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                 inform(
                     f"Have skipped {self._num_regions_skipped} regions so far."
                 )
+                if num_work_begin_received % self._num_processes == 0:
+                    self._mss_flag += 1
+                    board.setMSSFlag(self._mss_flag)
                 yield SimStep.REMAINING_TIME
 
             inform("Entered the desired region.")
@@ -258,7 +348,18 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                     inform("Reset sim stats.")
                     if self._take_checkpoint:
                         take_checkpoint(self._checkpoint_path)
-                        inform("Took a checkpoint.")
+                        inform(
+                            f"Took a checkpoint in {self._checkpoint_path}."
+                        )
+                        inform(
+                            "Copying process_info.txt from m5.outdir "
+                            "to checkpoint path if it exists."
+                        )
+                        copy_file(
+                            "process_info.txt",
+                            get_outdir(),
+                            self._checkpoint_path,
+                        )
                         self._reacted_yet = True
                         inform(
                             "Set `_reacted_yet` to True although "
@@ -269,6 +370,8 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                         processor.switch()
                         inform("Switched to the next processor.")
                         self._reacted_yet = True
+                        self._mss_flag += 1
+                        board.setMSSFlag(self._mss_flag)
                         yield (
                             SimStep.REMAINING_TIME
                             if not self._sample_stats
@@ -282,7 +385,8 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                 "from the desired region."
             )
 
-        def handle_work_end(processor):
+        def handle_work_end(board):
+            processor = board.get_processor()
             assert processor.get_num_cores() >= self._num_processes
             num_work_end_received = 0
 
@@ -298,6 +402,8 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                         "This work_end marks the end of the this current region."
                     )
                     self._num_regions_skipped += 1
+                    self._mss_flag += 1
+                    board.setMSSFlag(self._mss_flag)
                 yield SimStep.REMAINING_TIME
 
             inform("Inside the desired region.")
@@ -312,6 +418,8 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                     dump_stats()
                     inform("Dumped sim stats.")
                     not_dumped_yet = False
+                    self._mss_flag += 1
+                    board.setMSSFlag(self._mss_flag)
                     yield SimStep.STOP
                 else:
                     yield (
@@ -328,12 +436,12 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
         return {
             ExitEvent.EXIT: handle_exit(),
             ExitEvent.MAX_TICK: handle_max_tick(),
-            ExitEvent.WORKBEGIN: handle_work_begin(board.get_processor()),
-            ExitEvent.WORKEND: handle_work_end(board.get_processor()),
+            ExitEvent.WORKBEGIN: handle_work_begin(board),
+            ExitEvent.WORKEND: handle_work_end(board),
         }
 
 
-class FSCommandWrapper:
+class FSWorkloadWrapper:
     @staticmethod
     def parse_args(args):
         raise NotImplementedError
@@ -351,11 +459,19 @@ class FSCommandWrapper:
         self._num_regions_to_skip = num_regions_to_skip
         self._exit_handler = None
 
+    def get_mss_flag(self):
+        return 1
+
     def generate_cmdline(self):
         return (
             "#! /bin/bash\n\n"
             "# Disabling ASLR.\n"
             'echo "12345" | sudo -S sysctl -w kernel.randomize_va_space=0\n\n'
+            "# Waiting for 10 minutes to make sure all services have started.\n"
+            "# This will reduce interference with the workload.\n"
+            'echo "Waiting for 120 seconds for services to start."\n'
+            "sleep 120\n"
+            'echo "Wait is over."\n\n'
             "# Changing directory to the right cwd.\n"
             f"cd {self._cwd}\n\n"
             "# Dumping the object file to a text file.\n"
@@ -412,6 +528,23 @@ class FSCommandWrapper:
             ret_id += f"{key.upper()}.{value}-"
         return ret_id[:-1]
 
+    def _create_exit_event_handler(
+        self,
+        sample_stats: bool,
+        sample_period: str,
+        take_checkpoint: bool,
+        restore_checkpoint: bool,
+        checkpoint_path: Optional[Union[str, Path]],
+    ):
+        self._exit_handler = ExitEventHandlerWrapper(
+            sample_stats,
+            sample_period,
+            self._num_regions_to_skip,
+            take_checkpoint,
+            restore_checkpoint,
+            checkpoint_path,
+        )
+
     def get_exit_event_handler(
         self,
         board: AbstractBoard,
@@ -432,25 +565,11 @@ class FSCommandWrapper:
             raise RuntimeError("Failed to create an exit event handler.")
         return self._exit_handler.get_exit_event_handler(board)
 
-    def _create_exit_event_handler(
-        self,
-        sample_stats: bool,
-        sample_period: str,
-        take_checkpoint: bool,
-        restore_checkpoint: bool,
-        checkpoint_path: Optional[Union[str, Path]],
-    ):
-        self._exit_handler = ExitEventHandlerWrapper(
-            sample_stats,
-            sample_period,
-            self._num_regions_to_skip,
-            take_checkpoint,
-            restore_checkpoint,
-            checkpoint_path,
-        )
+    def add_workload_insights(self, board: AbstractBoard) -> None:
+        pass
 
 
-class FSMPICommandWrapper(FSCommandWrapper):
+class FSMPIWorkloadWrapper(FSWorkloadWrapper):
     def __init__(
         self,
         cwd: str,
@@ -479,7 +598,7 @@ class FSMPICommandWrapper(FSCommandWrapper):
         )
 
 
-class BootCommandWrapper(FSCommandWrapper):
+class BootWrapper(FSWorkloadWrapper):
     class BootExitEventHandlerWrapper(ExitEventHandlerWrapper):
         def __init__(self):
             super().__init__(
@@ -494,18 +613,18 @@ class BootCommandWrapper(FSCommandWrapper):
         def _get_exit_event_handler(self, board):
             def handle_exit():
                 num_exits_received = 0
-                can_switch = isinstance(
-                    board.get_processor(), SwitchableProcessor
-                )
                 while True:
                     inform("Received an exit.")
                     num_exits_received += 1
                     if num_exits_received == 1:
                         inform("It's from gem5_init.sh.")
                         inform("Continuing simulation past gem5_init.sh.")
-                    if num_exits_received == 2:
+                    elif num_exits_received == 2:
                         inform("It's from after_boot.sh.")
                         inform("Continuing simulation past after_boot.sh.")
+                    else:
+                        warn("Received an unexpected exit.")
+                        yield SimStep.STOP
                     yield SimStep.REMAINING_TIME
 
             return {
@@ -545,13 +664,13 @@ class BootCommandWrapper(FSCommandWrapper):
             "BootCommandWrapper ignores all of `sample_stats`, "
             "`sample_period`, `take_checkpoint`, `checkpoint_path`."
         )
-        self._exit_handler = BootCommandWrapper.BootExitEventHandlerWrapper()
+        self._exit_handler = BootWrapper.BootExitEventHandlerWrapper()
 
     def generate_id_dict(self):
         return {"name": "boot"}
 
 
-class MPIBenchCommandWrapper(FSMPICommandWrapper):
+class MPIBenchWrapper(FSMPIWorkloadWrapper):
     @staticmethod
     def parse_args(args):
         parser = argparse.ArgumentParser()
@@ -590,7 +709,7 @@ class MPIBenchCommandWrapper(FSMPICommandWrapper):
         }
 
 
-class BransonCommandWrapper(FSMPICommandWrapper):
+class BransonWrapper(FSMPIWorkloadWrapper):
     _base_input_path = "/home/gem5/workloads/branson/inputs"
     _input_translator = {
         "hohlraum_single": "3D_hohlraum_single_node.xml",
@@ -600,6 +719,24 @@ class BransonCommandWrapper(FSMPICommandWrapper):
         "cube_decomp": "cube_decomp_test.xml",
     }
 
+    snippet = """
+offset: aaaaaaaa0000
+func transport_photon:
+    e404:   ldp@0       w20, w3, [x27]      label:  phtn                main
+    e410:   sub         w5, w20, w4
+    e424:   umaddl      x20, w5, w1, x2
+    e470:   ldr         d12, [x20, #152]    label:  cell                main
+
+    e584: ldr  x3, [sp, #176]               label:  phtn                main
+    e590: lsl  x5, x3, #4
+    e594: add  x6, x28, x5
+    e5ac: ldr  d6,  [x6,  #8]               label: cell_tallies         main
+ret e658
+
+func main
+ret b17c
+"""
+
     @staticmethod
     def parse_args(args):
         parser = argparse.ArgumentParser()
@@ -608,7 +745,7 @@ class BransonCommandWrapper(FSMPICommandWrapper):
             "--input-name",
             type=str,
             required=True,
-            choices=BransonCommandWrapper._input_translator.keys(),
+            choices=BransonWrapper._input_translator.keys(),
         )
 
         parsed_args = parser.parse_args(args)
@@ -625,9 +762,12 @@ class BransonCommandWrapper(FSMPICommandWrapper):
         super().__init__(
             "/home/gem5/workloads/branson/build", "BRANSON", num_processes
         )
-        self._input_name = BransonCommandWrapper._input_translator[input_name]
+        self._input_name = BransonWrapper._input_translator[input_name]
         self._input_path = (
-            f"{BransonCommandWrapper._base_input_path}/{self._input_name}"
+            f"{BransonWrapper._base_input_path}/{self._input_name}"
+        )
+        self._access_sites, self._indirect_chains = process_snippet(
+            BransonWrapper.snippet
         )
 
     def _generate_cmdline(self):
@@ -643,8 +783,62 @@ class BransonCommandWrapper(FSMPICommandWrapper):
             "input": self._input_name,
         }
 
+    def add_workload_insights(self, board: AbstractBoard) -> None:
+        processor = board.get_processor()
+        for func_name, info in self._access_sites.items():
+            labels = [site.label() for site in info["access_sites"]]
+            pcs = [site.pc() for site in info["access_sites"]]
+            processor.add_function_info(
+                func_name,
+                info["ret"],
+                labels,
+                pcs,
+            )
 
-class HPCGCommandWrapper(FSMPICommandWrapper):
+        for indirect_chain in self._indirect_chains:
+            name = f"{indirect_chain[-1].label()}[{indirect_chain[0].label()}]{indirect_chain[-1].label_version()}"
+            processor.add_indirect_chain(
+                name, [inst.pc() for inst in indirect_chain]
+            )
+
+            for override in [
+                inst.override()
+                for inst in indirect_chain
+                if inst.has_override()
+            ]:
+                processor.add_reg_index_override(override)
+
+
+class HPCGWrapper(FSMPIWorkloadWrapper):
+    snippet = """
+offset: aaaaaaaa0000
+func ComputeSPMV_ref
+    21880:  ldrsw   x1, [x4, x0, lsl #2]        label:  cur_inds        main
+    2188c:  ldr     d1, [x5, x1, lsl #3]        label:  xv              main
+ret 218bc
+
+func ComputeSYMGS_ref
+    21990:  ldrsw x2, [x7, x0, lsl #2]          label:  currColInd      main
+    2199c:  ldr   d1, [x1, x2, lsl #3]          label:  xv@0            main
+
+    219f0:  ldrsw x2, [x6, x0, lsl #2]          label:  currColInd      main
+    219fc:  ldr   d1, [x1, x2, lsl #3]          label:  xv@1            main
+ret 21a34
+
+func ComputeRestriction_ref
+    21f20:  ldrsw x1, [x6, x0, lsl #2]          label:  f2c             main
+    21f24:  ldr   d0, [x4, x1, lsl #3]          label:  rf              main
+
+    21f20:  ldrsw x1, [x6, x0, lsl #2]          label:  f2c             main
+    21f28:  ldr   d1, [x3, x1, lsl #3]          label:  Axf             main
+ret 21f44
+
+func ComputeProlongation_ref
+    21ec8:  ldrsw x1, [x5, x0, lsl #2]          label:  f2c             main
+    21ed4:  ldr   d0, [x2, x1, lsl #3]          label:  xfv             main
+ret 21eec
+"""
+
     @staticmethod
     def parse_args(args):
         parser = argparse.ArgumentParser()
@@ -698,14 +892,108 @@ class HPCGCommandWrapper(FSMPICommandWrapper):
         }
 
 
-class UMECommandWrapper(FSMPICommandWrapper):
+class UMEWrapper(FSMPIWorkloadWrapper):
     _base_input_path = "/home/gem5/workloads/UME/inputs"
     _input_translator = {
         "blake": ("blake/blake/blake", 1),
+        "blakex128": ("blake/blake/blake.00128", 1),
         "pipe_3d": ("pipe_3d/pipe_3d/pipe_3d_00001", 8),
+        "pipe_3dx2": ("pipe_3d/pipe_3d/pipe_3d_00001.00002", 8),
+        "pipe_3dx4": ("pipe_3d/pipe_3d/pipe_3d_00001.00004", 8),
         "tgv": ("tgv/tgv/tgv_large_00001", 8),
     }
     _region_translator = {"gradzatz": 0, "gradzatz_invert": 1, "face_area": 2}
+
+    gradzatz = """
+offset: aaaaaaaa0000
+func gradzatp:
+    2d4bc:  ldr     w1, [x1, x0, lsl #2]    label:  c_to_p_map          main
+    2d4c4:  sxtw    x6, w1
+    2d4d4:  ldr     d0, [x7, x6, lsl #3]    label:  point_volume        gradzatp
+
+    2d4bc:  ldr     w1, [x1, x0, lsl #2]    label:  c_to_p_map          main
+    2d4d0:  smull   x1, w1, w12
+    2d4f8:  ldr     q0, [x3, x1]            label:  point_gradient@0    main
+
+    2d4bc:  ldr     w1, [x1, x0, lsl #2]    label:  c_to_p_map          main
+    2d4d0:  smull   x1, w1, w12
+    2d4ec:  add     x4, x3, x1
+    2d50c:  ldr     d0, [x4, #16]           label:  point_gradient@1    main
+
+    2d4e4:  ldr     w11, [x4, x0, lsl #2]   label:  c_to_z_map          main
+    2d4fc:  ldr     d1, [x10, w11, sxtw #3] label:  zone_field          main
+ret 2d628
+
+func gradzatz:
+    2dbac:  ldrsw   x1, [x1, x0, lsl #2]    label:  c_to_z_map          main
+    2dbb4:  ldr     d0, [x20, x1, lsl #3]   label:  zone_volume@0       gradzatz
+
+    2dd1c:  ldr     w1, [x1, x0, lsl #2]    label:  c_to_z_map          main
+    2dd28:  ldr     d1, [x20, w1, sxtw #3]  label:  zone_volume@1       gradzatz
+
+    2dd1c:  ldr     w1, [x1, x0, lsl #2]    label:  c_to_z_map          main
+    2dd2c:  smull   x1, w1, w6
+    2dd44:  ldr     q1, [x3, x1]            label:  zone_gradient@0     main
+
+    2dd1c:  ldr     w1, [x1, x0, lsl #2]    label:  c_to_z_map          main
+    2dd2c:  smull   x1, w1, w6
+    2dd4c:  add	    x4, x3, x1
+    2dd60:  ldr	    d1, [x4, #16]           label:  zone_gradient@1     main
+
+    2dfd8:  ldr 	w2, [x2, x0, lsl #2]    label:  c_to_p_map          main
+    2dfe8:  smull   x2, w2, w6
+    2dff8:  ldr 	q3, [x5, x2]            label:  point_gradient@0    main
+
+    2dd30:  ldr 	w2, [x2, x0, lsl #2]    label:  c_to_p_map          main
+    2dd40:  smull   x2, w2, w6
+    2dd48:  add	    x8, x5, x2
+    2dd54:  ldr	    d2, [x8, #16]           label:  point_gradient@1    main
+ret 2dea0
+
+func main:
+ret c134
+"""
+
+    gradzatz_invert = """
+offset: aaaaaaaa0000
+func gradzatp_invert:
+    2c5f0:  ldr	    w3, [x17, x3, lsl #2]   label: c_to_z_map           main
+    2c5fc:  ldr	    d2, [x9, w3, sxtw #3]   label: zone_field           main
+ret 2c734
+
+func gradzatz_invert:
+    2ce00:  ldr 	w1, [x13, x1, lsl #2]   label:  c_to_p_map          main
+    2ce08:  smull   x1, w1, w9
+    2ce10:	ldr     q4, [x5, x1]            label:  point_gradient@0    main
+
+    2ce00:  ldr 	w1, [x13, x1, lsl #2]   label:  c_to_p_map          main
+    2ce08:  smull   x1, w1, w9
+    2ce0c:  add 	x7, x5, x1
+    2ce14:  ldr 	d5, [x7, #16]           label:  point_gradient@1    main
+ret 2ce74
+
+func main:
+ret c134
+"""
+
+    face_area = """
+offset: aaaaaaaa0000
+func face_area:
+    2bfa0:  ldrsw   x4, [x4, x2, lsl #2]    label:  s_to_f_map          main
+    2bfd0:  ldr	    d3, [x0, x4, lsl #3]    label:  face_area           main
+
+    2bfd4:  ldrsw   x6, [x8, x6]            label:  s_to_s2_map         main
+    2bff0:  str     w9, [x20, x6, lsl #2]   label:  side_tag            face_area
+ret 2c098
+
+func main:
+ret c134
+"""
+    snippet_translator = {
+        "gradzatz": gradzatz,
+        "gradzatz_invert": gradzatz_invert,
+        "face_area": face_area,
+    }
 
     @staticmethod
     def parse_args(args):
@@ -714,13 +1002,13 @@ class UMECommandWrapper(FSMPICommandWrapper):
             "--input-name",
             type=str,
             required=True,
-            choices=UMECommandWrapper._input_translator.keys(),
+            choices=UMEWrapper._input_translator.keys(),
         )
         parser.add_argument(
             "--region",
             type=str,
             required=True,
-            choices=list(UMECommandWrapper._region_translator.keys()),
+            choices=list(UMEWrapper._region_translator.keys()),
         )
 
         parsed_args = parser.parse_args(args)
@@ -731,23 +1019,32 @@ class UMECommandWrapper(FSMPICommandWrapper):
         input_name: str,
         region: str,
     ):
-        input_file, num_processes = UMECommandWrapper._input_translator[
-            input_name
-        ]
+        input_file, num_processes = UMEWrapper._input_translator[input_name]
         super().__init__(
             "/home/gem5/workloads/UME/build/src",
             "ume_mpi",
             num_processes,
-            UMECommandWrapper._region_translator[region],
+            UMEWrapper._region_translator[region],
         )
         self._input_name = input_name
         self._input_file = input_file
         self._region_name = region
+        self._access_sites, self._indirect_chains = process_snippet(
+            UMEWrapper.snippet_translator[region]
+        )
+
+    def get_mss_flag(self):
+        if self._region_name == "gradzatz":
+            return 1
+        elif self._region_name == "gradzatz_invert":
+            return 3
+        elif self._region_name == "face_area":
+            return 5
 
     def _generate_cmdline(self):
         workload_cmd = (
             f"./{self._binary_name} "
-            f"{UMECommandWrapper._base_input_path}/{self._input_file}"
+            f"{UMEWrapper._base_input_path}/{self._input_file}"
         )
         return _mpirun_command_template.format(
             num_processes=self._num_processes, workload_cmd=workload_cmd
@@ -761,8 +1058,33 @@ class UMECommandWrapper(FSMPICommandWrapper):
             "region": self._region_name,
         }
 
+    def add_workload_insights(self, board: AbstractBoard) -> None:
+        processor = board.get_processor()
+        for func_name, info in self._access_sites.items():
+            labels = [site.label() for site in info["access_sites"]]
+            pcs = [site.pc() for site in info["access_sites"]]
+            processor.add_function_info(
+                func_name,
+                info["ret"],
+                labels,
+                pcs,
+            )
 
-class NPBCommandWrapper(FSCommandWrapper):
+        for indirect_chain in self._indirect_chains:
+            name = f"{indirect_chain[-1].label()}[{indirect_chain[0].label()}]{indirect_chain[-1].label_version()}"
+            processor.add_indirect_chain(
+                name, [inst.pc() for inst in indirect_chain]
+            )
+
+            for override in [
+                inst.override()
+                for inst in indirect_chain
+                if inst.has_override()
+            ]:
+                processor.add_reg_index_override(override)
+
+
+class NPBWrapper(FSWorkloadWrapper):
 
     @staticmethod
     def parse_args(args):
@@ -778,11 +1100,11 @@ class NPBCommandWrapper(FSCommandWrapper):
         workload: str,
         size: str,
     ):
-        binary_name = f"{workload}.{size.upper()}.x"
+        binary_name = f"{workload.lower()}.{size.upper()}.x"
         super().__init__(
             f"/home/gem5/workloads/NPB3.4-OMP/bin", f"{binary_name}"
         )
-        self._workload = workload
+        self._workload = workload.lower()
         self._size = size.upper()
 
     def _generate_cmdline(self):
@@ -792,7 +1114,7 @@ class NPBCommandWrapper(FSCommandWrapper):
         return {"name": "npb", "workload": self._workload, "size": self._size}
 
 
-class NPBMPICommandWrapper(FSMPICommandWrapper):
+class MPINPBWrapper(FSMPIWorkloadWrapper):
     @staticmethod
     def parse_args(args):
         parser = argparse.ArgumentParser()
@@ -808,12 +1130,12 @@ class NPBMPICommandWrapper(FSMPICommandWrapper):
         ]
 
     def __init__(self, num_processes: int, workload: str, size: str):
-        binary_name = f"{workload}.{size.upper()}.x"
+        binary_name = f"{workload.lower()}.{size.upper()}.x"
         super().__init__(
             "/home/gem5/workloads/NPB3.4-MPI/bin", binary_name, num_processes
         )
         self._num_processes = num_processes
-        self._workload = workload
+        self._workload = workload.lower()
         self._size = size.upper()
 
     def _generate_cmdline(self):
@@ -831,7 +1153,7 @@ class NPBMPICommandWrapper(FSMPICommandWrapper):
         }
 
 
-class SimpleVectorWrapper(FSCommandWrapper):
+class SimpleVectorWrapper(FSWorkloadWrapper):
     def __init__(
         self,
         cwd: str,
@@ -845,7 +1167,7 @@ class SimpleVectorWrapper(FSCommandWrapper):
         super().__init__(cwd, binary_name + suffix)
 
 
-class GUPSCommandWrapper(SimpleVectorWrapper):
+class GUPSWrapper(SimpleVectorWrapper):
     @staticmethod
     def parse_args(args):
         parser = argparse.ArgumentParser()
@@ -890,7 +1212,7 @@ class GUPSCommandWrapper(SimpleVectorWrapper):
         }
 
 
-class PermutatingGatherCommandWrapper(SimpleVectorWrapper):
+class PermutatingGatherWrapper(SimpleVectorWrapper):
     @staticmethod
     def parse_args(args):
         parser = argparse.ArgumentParser()
@@ -928,7 +1250,7 @@ class PermutatingGatherCommandWrapper(SimpleVectorWrapper):
         }
 
 
-class PermutatingScatterCommandWrapper(SimpleVectorWrapper):
+class PermutatingScatterWrapper(SimpleVectorWrapper):
     @staticmethod
     def parse_args(args):
         parser = argparse.ArgumentParser()
@@ -966,7 +1288,7 @@ class PermutatingScatterCommandWrapper(SimpleVectorWrapper):
         }
 
 
-class SpatterCommandWrapper(SimpleVectorWrapper):
+class SpatterWrapper(SimpleVectorWrapper):
     _base_input_path = (
         "/home/gem5/workloads/simple-vector-bench/spatter-patterns"
     )
@@ -1002,8 +1324,8 @@ class SpatterCommandWrapper(SimpleVectorWrapper):
         )
         self._pattern_name = pattern_name
         self._json_file_path = (
-            f"{SpatterCommandWrapper._base_input_path}/"
-            f"{SpatterCommandWrapper._input_translator[self._pattern_name]}"
+            f"{SpatterWrapper._base_input_path}/"
+            f"{SpatterWrapper._input_translator[self._pattern_name]}"
         )
 
     def _generate_cmdline(self):
@@ -1017,7 +1339,7 @@ class SpatterCommandWrapper(SimpleVectorWrapper):
         }
 
 
-class StreamCommandWrapper(SimpleVectorWrapper):
+class StreamWrapper(SimpleVectorWrapper):
     @staticmethod
     def parse_args(args):
         parser = argparse.ArgumentParser()
