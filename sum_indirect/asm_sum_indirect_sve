@@ -1,0 +1,2686 @@
+	.arch armv8.6-a+crc+sve
+	.file	"sum_indirect.cc"
+// GNU C++17 (Ubuntu 13.3.0-6ubuntu2~24.04) version 13.3.0 (aarch64-linux-gnu)
+//	compiled by GNU C version 13.3.0, GMP version 6.3.0, MPFR version 4.2.1, MPC version 1.3.1, isl version isl-0.26-GMP
+
+// GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+// options passed: -march=armv8.6-a+sve -msve-vector-bits=512 -mlittle-endian -mabi=lp64 -O3 -std=c++17 -fasynchronous-unwind-tables -fstack-protector-strong -fstack-clash-protection
+	.text
+#APP
+	.globl _ZSt21ios_base_library_initv
+#NO_APP
+	.section	.text._ZNKSt5ctypeIcE8do_widenEc,"axG",@progbits,_ZNKSt5ctypeIcE8do_widenEc,comdat
+	.align	2
+	.p2align 4,,11
+	.weak	_ZNKSt5ctypeIcE8do_widenEc
+	.type	_ZNKSt5ctypeIcE8do_widenEc, %function
+_ZNKSt5ctypeIcE8do_widenEc:
+.LFB1803:
+	.cfi_startproc
+// /usr/aarch64-linux-gnu/include/c++/13/bits/locale_facets.h:1093:       { return __c; }
+	mov	w0, w1	//, __c
+	ret	
+	.cfi_endproc
+.LFE1803:
+	.size	_ZNKSt5ctypeIcE8do_widenEc, .-_ZNKSt5ctypeIcE8do_widenEc
+	.text
+	.align	2
+	.p2align 4,,11
+	.type	_ZSt4endlIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_.isra.0, %function
+_ZSt4endlIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_.isra.0:
+.LFB3368:
+	.cfi_startproc
+	stp	x29, x30, [sp, -32]!	//,,,
+	.cfi_def_cfa_offset 32
+	.cfi_offset 29, -32
+	.cfi_offset 30, -24
+	mov	x29, sp	//,
+	stp	x19, x20, [sp, 16]	//,,
+	.cfi_offset 19, -16
+	.cfi_offset 20, -8
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:735:     endl(basic_ostream<_CharT, _Traits>& __os)
+	mov	x19, x0	// __os, tmp112
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:736:     { return flush(__os.put(__os.widen('\n'))); }
+	ldr	x0, [x0]	// __os_1(D)->_vptr.basic_ostream, __os_1(D)->_vptr.basic_ostream
+	ldr	x0, [x0, -24]	// MEM[(long int *)_2 + -24B], MEM[(long int *)_2 + -24B]
+	add	x0, x19, x0	// tmp106, __os, MEM[(long int *)_2 + -24B]
+	ldr	x20, [x0, 240]	// _13, MEM[(const struct __ctype_type * *)_5 + 240B]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:49:       if (!__f)
+	cbz	x20, .L9	// _13,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/locale_facets.h:882: 	if (_M_widen_ok)
+	ldrb	w0, [x20, 56]	// MEM[(const struct ctype *)_13]._M_widen_ok, MEM[(const struct ctype *)_13]._M_widen_ok
+	cbz	w0, .L5	// MEM[(const struct ctype *)_13]._M_widen_ok,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/locale_facets.h:883: 	  return _M_widen[static_cast<unsigned char>(__c)];
+	ldrb	w1, [x20, 67]	// _19, MEM[(const struct ctype *)_13]._M_widen[10]
+.L6:
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:736:     { return flush(__os.put(__os.widen('\n'))); }
+	mov	x0, x19	//, __os
+	bl	_ZNSo3putEc		//
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:736:     { return flush(__os.put(__os.widen('\n'))); }
+	ldp	x19, x20, [sp, 16]	//,,
+	ldp	x29, x30, [sp], 32	//,,,
+	.cfi_remember_state
+	.cfi_restore 30
+	.cfi_restore 29
+	.cfi_restore 19
+	.cfi_restore 20
+	.cfi_def_cfa_offset 0
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:758:     { return __os.flush(); }
+	b	_ZNSo5flushEv		//
+.L5:
+	.cfi_restore_state
+// /usr/aarch64-linux-gnu/include/c++/13/bits/locale_facets.h:884: 	this->_M_widen_init();
+	mov	x0, x20	//, _13
+	bl	_ZNKSt5ctypeIcE13_M_widen_initEv		//
+// /usr/aarch64-linux-gnu/include/c++/13/bits/locale_facets.h:885: 	return this->do_widen(__c);
+	ldr	x1, [x20]	// MEM[(const struct ctype *)_13].D.44983._vptr.facet, MEM[(const struct ctype *)_13].D.44983._vptr.facet
+	adrp	x0, _ZNKSt5ctypeIcE8do_widenEc	// tmp110,
+	add	x0, x0, :lo12:_ZNKSt5ctypeIcE8do_widenEc	// tmp109, tmp110,
+	ldr	x2, [x1, 48]	// _21, MEM[(int (*) () *)_20 + 48B]
+	cmp	x2, x0	// _21, tmp109
+	bne	.L10		//,
+	mov	w1, 10	// _19,
+	b	.L6		//
+.L10:
+	mov	w1, 10	//,
+	mov	x0, x20	//, _13
+	blr	x2		// _21
+	and	w1, w0, 255	// _19, tmp113
+	b	.L6		//
+.L9:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:50: 	__throw_bad_cast();
+	bl	_ZSt16__throw_bad_castv		//
+	.cfi_endproc
+.LFE3368:
+	.size	_ZSt4endlIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_.isra.0, .-_ZSt4endlIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_.isra.0
+	.align	2
+	.p2align 4,,11
+	.global	_Z12sum_indirectPKmPKdi
+	.type	_Z12sum_indirectPKmPKdi, %function
+_Z12sum_indirectPKmPKdi:
+.LFB2605:
+	.cfi_startproc
+// sum_indirect.hh:43:     for (int i = 0; i < n; i += svcntd())
+	cmp	w2, 0	// n,
+	ble	.L14		//,
+// sum_indirect.hh:43:     for (int i = 0; i < n; i += svcntd())
+	mov	w3, 0	// i,
+// sum_indirect.hh:41:     svfloat64_t acc = svdup_f64(0.0);
+	mov	z0.d, #0	// acc
+	.p2align 3,,7
+.L13:
+// sum_indirect.hh:45:         svbool_t pg = svwhilelt_b64(i, n);    // lanes still active
+	whilelt	p0.d, w3, w2	// tmp106, i, n
+// sum_indirect.hh:46:         svuint64_t vidx = svld1(pg, &idx[i]); // 64‑bit indices
+	add	x4, x0, w3, sxtw 3	// tmp109, idx, i,
+	add	w3, w3, 8	// i, i,
+	ld1d	z1.d, p0/z, [x4]	// _17, tmp106, MEM <svuint64_t> [(long unsigned int *)_3]
+// sum_indirect.hh:47:         svfloat64_t v = svld1_gather_u64index_f64(pg, data, vidx);
+	ld1d	z1.d, p0/z, [x1, z1.d, lsl 3]	// v, tmp106, data, _17,
+// sum_indirect.hh:48:         acc = svadd_f64_m(pg, acc, v); // predicated FMA
+	fadd	z0.d, p0/m, z0.d, z1.d	// acc, tmp106, v
+// sum_indirect.hh:43:     for (int i = 0; i < n; i += svcntd())
+	cmp	w2, w3	// n, i
+	bgt	.L13		//,
+// sum_indirect.hh:50:     return svaddv_f64(svptrue_b64(), acc); // horizontal add
+	ptrue	p0.b, vl64	// tmp111
+// sum_indirect.hh:51: }
+	faddv	d0, p0, z0.d	//, tmp111, acc
+	ret	
+	.p2align 2,,3
+.L14:
+// sum_indirect.hh:50:     return svaddv_f64(svptrue_b64(), acc); // horizontal add
+	ptrue	p0.b, vl64	// tmp111
+// sum_indirect.hh:41:     svfloat64_t acc = svdup_f64(0.0);
+	mov	z0.d, #0	// acc
+// sum_indirect.hh:51: }
+	faddv	d0, p0, z0.d	//, tmp111, acc
+	ret	
+	.cfi_endproc
+.LFE2605:
+	.size	_Z12sum_indirectPKmPKdi, .-_Z12sum_indirectPKmPKdi
+	.section	.text._ZNSt6vectorImSaImEED2Ev,"axG",@progbits,_ZNSt6vectorImSaImEED5Ev,comdat
+	.align	2
+	.p2align 4,,11
+	.weak	_ZNSt6vectorImSaImEED2Ev
+	.type	_ZNSt6vectorImSaImEED2Ev, %function
+_ZNSt6vectorImSaImEED2Ev:
+.LFB2910:
+	.cfi_startproc
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:733:       ~vector() _GLIBCXX_NOEXCEPT
+	mov	x2, x0	// this, tmp99
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:369: 	_M_deallocate(_M_impl._M_start,
+	ldr	x0, [x0]	// _6, MEM[(struct _Vector_base *)this_4(D)]._M_impl.D.74902._M_start
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:389: 	if (__p)
+	cbz	x0, .L16	// _6,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:370: 		      _M_impl._M_end_of_storage - _M_impl._M_start);
+	ldr	x1, [x2, 16]	// MEM[(struct _Vector_base *)this_4(D)]._M_impl.D.74902._M_end_of_storage, MEM[(struct _Vector_base *)this_4(D)]._M_impl.D.74902._M_end_of_storage
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:172: 	_GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n));
+	sub	x1, x1, x0	//, MEM[(struct _Vector_base *)this_4(D)]._M_impl.D.74902._M_end_of_storage, _6
+	b	_ZdlPvm		//
+	.p2align 2,,3
+.L16:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:738:       }
+	ret	
+	.cfi_endproc
+.LFE2910:
+	.size	_ZNSt6vectorImSaImEED2Ev, .-_ZNSt6vectorImSaImEED2Ev
+	.weak	_ZNSt6vectorImSaImEED1Ev
+	.set	_ZNSt6vectorImSaImEED1Ev,_ZNSt6vectorImSaImEED2Ev
+	.section	.text._ZNSt6vectorIdSaIdEED2Ev,"axG",@progbits,_ZNSt6vectorIdSaIdEED5Ev,comdat
+	.align	2
+	.p2align 4,,11
+	.weak	_ZNSt6vectorIdSaIdEED2Ev
+	.type	_ZNSt6vectorIdSaIdEED2Ev, %function
+_ZNSt6vectorIdSaIdEED2Ev:
+.LFB2922:
+	.cfi_startproc
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:733:       ~vector() _GLIBCXX_NOEXCEPT
+	mov	x2, x0	// this, tmp99
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:369: 	_M_deallocate(_M_impl._M_start,
+	ldr	x0, [x0]	// _6, MEM[(struct _Vector_base *)this_4(D)]._M_impl.D.76048._M_start
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:389: 	if (__p)
+	cbz	x0, .L18	// _6,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:370: 		      _M_impl._M_end_of_storage - _M_impl._M_start);
+	ldr	x1, [x2, 16]	// MEM[(struct _Vector_base *)this_4(D)]._M_impl.D.76048._M_end_of_storage, MEM[(struct _Vector_base *)this_4(D)]._M_impl.D.76048._M_end_of_storage
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:172: 	_GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n));
+	sub	x1, x1, x0	//, MEM[(struct _Vector_base *)this_4(D)]._M_impl.D.76048._M_end_of_storage, _6
+	b	_ZdlPvm		//
+	.p2align 2,,3
+.L18:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:738:       }
+	ret	
+	.cfi_endproc
+.LFE2922:
+	.size	_ZNSt6vectorIdSaIdEED2Ev, .-_ZNSt6vectorIdSaIdEED2Ev
+	.weak	_ZNSt6vectorIdSaIdEED1Ev
+	.set	_ZNSt6vectorIdSaIdEED1Ev,_ZNSt6vectorIdSaIdEED2Ev
+	.section	.rodata._ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_.str1.8,"aMS",@progbits,1
+	.align	3
+.LC0:
+	.string	"basic_string: construction from null is not valid"
+	.section	.text._ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_,"axG",@progbits,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC5IS3_EEPKcRKS3_,comdat
+	.align	2
+	.p2align 4,,11
+	.weak	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_
+	.type	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_, %function
+_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_:
+.LFB2925:
+	.cfi_startproc
+	sub	sp, sp, #64	//,,
+	.cfi_def_cfa_offset 64
+	adrp	x2, :got:__stack_chk_guard	// tmp100,
+	ldr	x2, [x2, :got_lo12:__stack_chk_guard]	// tmp100,
+	stp	x29, x30, [sp, 16]	//,,
+	.cfi_offset 29, -48
+	.cfi_offset 30, -40
+	add	x29, sp, 16	//,,
+	stp	x19, x20, [sp, 32]	//,,
+	.cfi_offset 19, -32
+	.cfi_offset 20, -24
+	mov	x20, x0	// this, tmp113
+	stp	x21, x22, [sp, 48]	//,,
+	.cfi_offset 21, -16
+	.cfi_offset 22, -8
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:230: 	return std::pointer_traits<pointer>::pointer_to(*_M_local_buf);
+	add	x22, x0, 16	// _7, this,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:641:       basic_string(const _CharT* __s, const _Alloc& __a = _Alloc())
+	ldr	x0, [x2]	// tmp117,
+	str	x0, [sp, 8]	// tmp117, D.84041
+	mov	x0, 0	// tmp117
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:189: 	: allocator_type(__a), _M_p(__dat) { }
+	str	x22, [x20]	// _7, MEM[(struct _Alloc_hider *)this_2(D)]._M_p
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:645: 	if (__s == 0)
+	cbz	x1, .L33	// __s,
+	mov	x21, x1	// __s, tmp114
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:399: 	return __builtin_strlen(__s);
+	mov	x0, x1	//, __s
+	bl	strlen		//
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.tcc:225: 	size_type __dnew = static_cast<size_type>(std::distance(__beg, __end));
+	str	x0, [sp]	// _4, __dnew
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:399: 	return __builtin_strlen(__s);
+	mov	x19, x0	// _4, tmp115
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.tcc:227: 	if (__dnew > size_type(_S_local_capacity))
+	cmp	x0, 15	// _4,
+	bhi	.L34		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:427: 	if (__n == 1)
+	cmp	x0, 1	// _4,
+	bne	.L25		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:358: 	__c1 = __c2;
+	ldrb	w0, [x21]	//, MEM[(const char_type &)__s_6(D)]
+	strb	w0, [x20, 16]	// MEM[(const char_type &)__s_6(D)], MEM[(char_type &)this_2(D) + 16]
+.L26:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:650:       }
+	adrp	x0, :got:__stack_chk_guard	// tmp112,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp112,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:218:       { _M_string_length = __length; }
+	str	x19, [x20, 8]	// _4, *this_2(D)._M_string_length
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:358: 	__c1 = __c2;
+	strb	wzr, [x22, x19]	//, MEM[(char_type &)_21]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:650:       }
+	ldr	x2, [sp, 8]	// tmp120, D.84041
+	ldr	x1, [x0]	// tmp121,
+	subs	x2, x2, x1	// tmp120, tmp121
+	mov	x1, 0	// tmp121
+	bne	.L32		//,
+	ldp	x29, x30, [sp, 16]	//,,
+	ldp	x19, x20, [sp, 32]	//,,
+	ldp	x21, x22, [sp, 48]	//,,
+	add	sp, sp, 64	//,,
+	.cfi_remember_state
+	.cfi_restore 29
+	.cfi_restore 30
+	.cfi_restore 21
+	.cfi_restore 22
+	.cfi_restore 19
+	.cfi_restore 20
+	.cfi_def_cfa_offset 0
+	ret	
+	.p2align 2,,3
+.L25:
+	.cfi_restore_state
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:429: 	if (__n == 0)
+	cbz	x0, .L26	// _4,
+	b	.L24		//
+	.p2align 2,,3
+.L34:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.tcc:229: 	    _M_data(_M_create(__dnew, size_type(0)));
+	mov	x1, sp	//,
+	mov	x0, x20	//, this
+	mov	x2, 0	//,
+	bl	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE9_M_createERmm		//
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:250:       { _M_allocated_capacity = __capacity; }
+	ldr	x1, [sp]	// __dnew, __dnew
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.tcc:229: 	    _M_data(_M_create(__dnew, size_type(0)));
+	mov	x22, x0	// _7, tmp116
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:213:       { _M_dataplus._M_p = __p; }
+	str	x0, [x20]	// _7, *this_2(D)._M_dataplus._M_p
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:250:       { _M_allocated_capacity = __capacity; }
+	str	x1, [x20, 16]	// __dnew, *this_2(D).D.29594._M_allocated_capacity
+.L24:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:435: 	return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n));
+	mov	x2, x19	//, _4
+	mov	x0, x22	//, _7
+	mov	x1, x21	//, __s
+	bl	memcpy		//
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:223:       { return _M_dataplus._M_p; }
+	ldr	x22, [x20]	// _7, MEM[(const struct basic_string *)this_2(D)]._M_dataplus._M_p
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.tcc:251: 	_M_set_length(__dnew);
+	ldr	x19, [sp]	// _4, __dnew
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:435: 	return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n));
+	b	.L26		//
+.L32:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:650:       }
+	bl	__stack_chk_fail		//
+.L33:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:646: 	  std::__throw_logic_error(__N("basic_string: "
+	adrp	x0, :got:__stack_chk_guard	// tmp101,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp101,
+	ldr	x2, [sp, 8]	// tmp118, D.84041
+	ldr	x1, [x0]	// tmp119,
+	subs	x2, x2, x1	// tmp118, tmp119
+	mov	x1, 0	// tmp119
+	bne	.L32		//,
+	adrp	x0, .LC0	// tmp103,
+	add	x0, x0, :lo12:.LC0	//, tmp103,
+	bl	_ZSt19__throw_logic_errorPKc		//
+	.cfi_endproc
+.LFE2925:
+	.size	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_, .-_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_
+	.weak	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC1IS3_EEPKcRKS3_
+	.set	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC1IS3_EEPKcRKS3_,_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2IS3_EEPKcRKS3_
+	.section	.rodata._ZNSt6vectorImSaImEE17_M_realloc_insertIJRKmEEEvN9__gnu_cxx17__normal_iteratorIPmS1_EEDpOT_.str1.8,"aMS",@progbits,1
+	.align	3
+.LC1:
+	.string	"vector::_M_realloc_insert"
+	.section	.text._ZNSt6vectorImSaImEE17_M_realloc_insertIJRKmEEEvN9__gnu_cxx17__normal_iteratorIPmS1_EEDpOT_,"axG",@progbits,_ZNSt6vectorImSaImEE17_M_realloc_insertIJRKmEEEvN9__gnu_cxx17__normal_iteratorIPmS1_EEDpOT_,comdat
+	.align	2
+	.p2align 4,,11
+	.weak	_ZNSt6vectorImSaImEE17_M_realloc_insertIJRKmEEEvN9__gnu_cxx17__normal_iteratorIPmS1_EEDpOT_
+	.type	_ZNSt6vectorImSaImEE17_M_realloc_insertIJRKmEEEvN9__gnu_cxx17__normal_iteratorIPmS1_EEDpOT_, %function
+_ZNSt6vectorImSaImEE17_M_realloc_insertIJRKmEEEvN9__gnu_cxx17__normal_iteratorIPmS1_EEDpOT_:
+.LFB3206:
+	.cfi_startproc
+	stp	x29, x30, [sp, -96]!	//,,,
+	.cfi_def_cfa_offset 96
+	.cfi_offset 29, -96
+	.cfi_offset 30, -88
+	mov	x29, sp	//,
+	stp	x19, x20, [sp, 16]	//,,
+	.cfi_offset 19, -80
+	.cfi_offset 20, -72
+	mov	x20, x0	// this, tmp157
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1898: 	if (max_size() - size() < __n)
+	mov	x0, 1152921504606846975	// tmp133,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:445:       vector<_Tp, _Alloc>::
+	stp	x21, x22, [sp, 32]	//,,
+	stp	x23, x24, [sp, 48]	//,,
+	.cfi_offset 21, -64
+	.cfi_offset 22, -56
+	.cfi_offset 23, -48
+	.cfi_offset 24, -40
+	ldp	x23, x21, [x20]	// _48, _49, MEM[(long unsigned int * *)this_18(D)]
+	stp	x25, x26, [sp, 64]	//,,
+	str	x27, [sp, 80]	//,
+	.cfi_offset 25, -32
+	.cfi_offset 26, -24
+	.cfi_offset 27, -16
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:993:       { return size_type(this->_M_impl._M_finish - this->_M_impl._M_start); }
+	sub	x3, x21, x23	// tmp131, _49, _48
+	asr	x3, x3, 3	// tmp132, tmp131,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1898: 	if (max_size() - size() < __n)
+	cmp	x3, x0	// tmp132, tmp133
+	beq	.L57		//,
+	mov	x25, x1	// __position, tmp158
+	mov	x22, x2	// __args#0, tmp159
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_iterator.h:1337:     { return __lhs.base() - __rhs.base(); }
+	sub	x26, x1, x23	// _98, __position, _48
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_algobase.h:262:       if (__a < __b)
+	cmp	x23, x21	// _48, _49
+	beq	.L58		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1901: 	const size_type __len = size() + (std::max)(size(), __n);
+	lsl	x1, x3, 1	// __len, tmp132,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1902: 	return (__len < size() || __len > max_size()) ? max_size() : __len;
+	cmp	x3, x1	// tmp132, __len
+	bhi	.L50		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:381: 	return __n != 0 ? _Tr::allocate(_M_impl, __n) : pointer();
+	cbnz	x1, .L59	// __len,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:381: 	return __n != 0 ? _Tr::allocate(_M_impl, __n) : pointer();
+	mov	x24, 0	// iftmp.14_24,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1118:       ptrdiff_t __count = __last - __first;
+	sub	x21, x21, x25	// _93, _49, __position
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:191: 	{ ::new((void *)__p) _Up(std::forward<_Args>(__args)...); }
+	ldr	x0, [x22]	// MEM[(const type &)__args#0_25(D)], MEM[(const type &)__args#0_25(D)]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:483: 	      ++__new_finish;
+	add	x22, x26, 8	// tmp146, _98,
+	add	x22, x24, x22	// _92, iftmp.14_24, tmp146
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:191: 	{ ::new((void *)__p) _Up(std::forward<_Args>(__args)...); }
+	str	x0, [x24, x26]	// MEM[(const type &)__args#0_25(D)], *_2
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1133:       return __result + __count;
+	add	x27, x22, x21	// _95, _92, _93
+	mov	x19, 0	// _83,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1119:       if (__count > 0)
+	cmp	x26, 0	// _98,
+	bgt	.L60		//,
+.L42:
+	cmp	x21, 0	// _93,
+	bgt	.L46		//,
+.L45:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:389: 	if (__p)
+	cbnz	x23, .L44	// _48,
+.L47:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:524:     }
+	ldp	x21, x22, [sp, 32]	//,,
+	ldp	x25, x26, [sp, 64]	//,,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:522:       this->_M_impl._M_finish = __new_finish;
+	stp	x24, x27, [x20]	// iftmp.14_24, _95, this_18(D)->D.75590._M_impl.D.74902._M_start
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:523:       this->_M_impl._M_end_of_storage = __new_start + __len;
+	str	x19, [x20, 16]	// _83, this_18(D)->D.75590._M_impl.D.74902._M_end_of_storage
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:524:     }
+	ldp	x19, x20, [sp, 16]	//,,
+	ldp	x23, x24, [sp, 48]	//,,
+	ldr	x27, [sp, 80]	//,
+	ldp	x29, x30, [sp], 96	//,,,
+	.cfi_remember_state
+	.cfi_restore 30
+	.cfi_restore 29
+	.cfi_restore 27
+	.cfi_restore 25
+	.cfi_restore 26
+	.cfi_restore 23
+	.cfi_restore 24
+	.cfi_restore 21
+	.cfi_restore 22
+	.cfi_restore 19
+	.cfi_restore 20
+	.cfi_def_cfa_offset 0
+	ret	
+	.p2align 2,,3
+.L50:
+	.cfi_restore_state
+	mov	x19, 9223372036854775800	// _80,
+.L40:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:151: 	return static_cast<_Tp*>(_GLIBCXX_OPERATOR_NEW(__n * sizeof(_Tp)));
+	mov	x0, x19	//, _80
+	bl	_Znwm		//
+	mov	x24, x0	// iftmp.14_24, tmp160
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:523:       this->_M_impl._M_end_of_storage = __new_start + __len;
+	add	x19, x0, x19	// _83, iftmp.14_24, _80
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:191: 	{ ::new((void *)__p) _Up(std::forward<_Args>(__args)...); }
+	ldr	x0, [x22]	// MEM[(const type &)__args#0_25(D)], MEM[(const type &)__args#0_25(D)]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:483: 	      ++__new_finish;
+	add	x22, x26, 8	// tmp146, _98,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1118:       ptrdiff_t __count = __last - __first;
+	sub	x21, x21, x25	// _93, _49, __position
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:483: 	      ++__new_finish;
+	add	x22, x24, x22	// _92, iftmp.14_24, tmp146
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:191: 	{ ::new((void *)__p) _Up(std::forward<_Args>(__args)...); }
+	str	x0, [x24, x26]	// MEM[(const type &)__args#0_25(D)], *_2
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1133:       return __result + __count;
+	add	x27, x22, x21	// _95, _92, _93
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1119:       if (__count > 0)
+	cmp	x26, 0	// _98,
+	ble	.L42		//,
+.L60:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1131: 	  __builtin_memmove(__result, __first, __count * sizeof(_Tp));
+	mov	x2, x26	//, _98
+	mov	x1, x23	//, _48
+	mov	x0, x24	//, iftmp.14_24
+	bl	memmove		//
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1119:       if (__count > 0)
+	cmp	x21, 0	// _93,
+	bgt	.L61		//,
+.L44:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:520: 		    this->_M_impl._M_end_of_storage - __old_start);
+	ldr	x1, [x20, 16]	// this_18(D)->D.75590._M_impl.D.74902._M_end_of_storage, this_18(D)->D.75590._M_impl.D.74902._M_end_of_storage
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:172: 	_GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n));
+	mov	x0, x23	//, _48
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:520: 		    this->_M_impl._M_end_of_storage - __old_start);
+	sub	x1, x1, x23	// _12, this_18(D)->D.75590._M_impl.D.74902._M_end_of_storage, _48
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:172: 	_GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n));
+	bl	_ZdlPvm		//
+	b	.L47		//
+	.p2align 2,,3
+.L46:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1131: 	  __builtin_memmove(__result, __first, __count * sizeof(_Tp));
+	mov	x2, x21	//, _93
+	mov	x1, x25	//, __position
+	mov	x0, x22	//, _92
+	bl	memcpy		//
+	b	.L45		//
+	.p2align 2,,3
+.L58:
+	adds	x3, x3, 1	// tmp136, tmp132,
+	bcs	.L50		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1902: 	return (__len < size() || __len > max_size()) ? max_size() : __len;
+	cmp	x3, x0	// tmp136, tmp133
+	csel	x19, x3, x0, ls	// tmp138, tmp136, tmp133,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:151: 	return static_cast<_Tp*>(_GLIBCXX_OPERATOR_NEW(__n * sizeof(_Tp)));
+	lsl	x19, x19, 3	// _80, tmp138,
+	b	.L40		//
+	.p2align 2,,3
+.L61:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1131: 	  __builtin_memmove(__result, __first, __count * sizeof(_Tp));
+	mov	x1, x25	//, __position
+	mov	x2, x21	//, _93
+	mov	x0, x22	//, _92
+	bl	memcpy		//
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:520: 		    this->_M_impl._M_end_of_storage - __old_start);
+	ldr	x1, [x20, 16]	// this_18(D)->D.75590._M_impl.D.74902._M_end_of_storage, this_18(D)->D.75590._M_impl.D.74902._M_end_of_storage
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:172: 	_GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n));
+	mov	x0, x23	//, _48
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:520: 		    this->_M_impl._M_end_of_storage - __old_start);
+	sub	x1, x1, x23	// _12, this_18(D)->D.75590._M_impl.D.74902._M_end_of_storage, _48
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:172: 	_GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n));
+	bl	_ZdlPvm		//
+	b	.L47		//
+.L59:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1902: 	return (__len < size() || __len > max_size()) ? max_size() : __len;
+	cmp	x1, x0	// __len, tmp133
+	csel	x1, x1, x0, ls	// tmp141, __len, tmp133,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:151: 	return static_cast<_Tp*>(_GLIBCXX_OPERATOR_NEW(__n * sizeof(_Tp)));
+	lsl	x19, x1, 3	// _80, tmp141,
+	b	.L40		//
+.L57:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1899: 	  __throw_length_error(__N(__s));
+	adrp	x0, .LC1	// tmp135,
+	add	x0, x0, :lo12:.LC1	//, tmp135,
+	bl	_ZSt20__throw_length_errorPKc		//
+	.cfi_endproc
+.LFE3206:
+	.size	_ZNSt6vectorImSaImEE17_M_realloc_insertIJRKmEEEvN9__gnu_cxx17__normal_iteratorIPmS1_EEDpOT_, .-_ZNSt6vectorImSaImEE17_M_realloc_insertIJRKmEEEvN9__gnu_cxx17__normal_iteratorIPmS1_EEDpOT_
+	.section	.text._Z20read_array_from_fileImEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE,"axG",@progbits,_Z20read_array_from_fileImEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE,comdat
+	.align	2
+	.p2align 4,,11
+	.weak	_Z20read_array_from_fileImEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE
+	.type	_Z20read_array_from_fileImEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE, %function
+_Z20read_array_from_fileImEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE:
+.LFB2927:
+	.cfi_startproc
+	.cfi_personality 0x9b,DW.ref.__gxx_personality_v0
+	.cfi_lsda 0x1b,.LLSDA2927
+	stp	x29, x30, [sp, -96]!	//,,,
+	.cfi_def_cfa_offset 96
+	.cfi_offset 29, -96
+	.cfi_offset 30, -88
+	mov	x29, sp	//,
+	stp	x19, x20, [sp, 16]	//,,
+	stp	x21, x22, [sp, 32]	//,,
+	stp	x23, x24, [sp, 48]	//,,
+	stp	x25, x26, [sp, 64]	//,,
+	stp	x27, x28, [sp, 80]	//,,
+	sub	sp, sp, #1104	//,,
+	.cfi_def_cfa_offset 1200
+	.cfi_offset 19, -80
+	.cfi_offset 20, -72
+	.cfi_offset 21, -64
+	.cfi_offset 22, -56
+	.cfi_offset 23, -48
+	.cfi_offset 24, -40
+	.cfi_offset 25, -32
+	.cfi_offset 26, -24
+	.cfi_offset 27, -16
+	.cfi_offset 28, -8
+	str	xzr, [sp, 1024]	//,
+	adrp	x2, :got:__stack_chk_guard	// tmp178,
+	ldr	x2, [x2, :got_lo12:__stack_chk_guard]	// tmp178,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	add	x21, sp, 824	// tmp413,,
+	str	x21, [sp, 88]	// tmp413, %sfp
+// sum_indirect.hh:23: void read_array_from_file(const std::string &path, std::vector<T> &data)
+	mov	x19, x0	// path, tmp425
+	mov	x23, x1	// data, tmp426
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	add	x28, sp, 560	// tmp402,,
+// sum_indirect.hh:23: void read_array_from_file(const std::string &path, std::vector<T> &data)
+	ldr	x0, [x2]	// tmp441,
+	str	x0, [sp, 1096]	// tmp441, D.84230
+	mov	x0, 0	// tmp441
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	mov	x0, x21	//, tmp413
+	bl	_ZNSt8ios_baseC2Ev		//
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	adrp	x1, :got:_ZTTSt14basic_ifstreamIcSt11char_traitsIcEE	// tmp190,
+	ldr	x1, [x1, :got_lo12:_ZTTSt14basic_ifstreamIcSt11char_traitsIcEE]	// tmp190,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	adrp	x2, .LC2	// tmp464,
+	add	x2, x2, :lo12:.LC2	// tmp464, tmp464,
+	add	x0, sp, 1056	// tmp188,,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:461:       : ios_base(), _M_tie(0), _M_fill(char_type()), _M_fill_init(false), 
+	strh	wzr, [sp, 1048]	//, MEM <unsigned short> [(void *)&file + 488B]
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	ldp	x3, x4, [x1, 8]	// _44, _48, MEM[(const void * *)&_ZTTSt14basic_ifstreamIcSt11char_traitsIcEE + 8B]
+// /usr/aarch64-linux-gnu/include/c++/13/istream:698:       { this->init(0); }
+	mov	x1, 0	//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	ld1	{v0.16b - v1.16b}, [x2]	// tmp189,
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	stp	x3, x4, [sp, 64]	// _44, _48, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	adrp	x2, :got:_ZTVSt9basic_iosIcSt11char_traitsIcEE	// tmp401,
+	ldr	x2, [x2, :got_lo12:_ZTVSt9basic_iosIcSt11char_traitsIcEE]	// tmp401,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	st1	{v0.16b - v1.16b}, [x0]	// tmp189, MEM <vector(4) long unsigned int> [(void *)&file + 496B]
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	ldr	x0, [x3, -24]	// MEM[(long int *)_44 + -24B], MEM[(long int *)_44 + -24B]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	str	x2, [sp]	// tmp401, %sfp
+	add	x2, x2, 16	// tmp183, tmp401,
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	str	x3, [sp, 560]	// _44, MEM[(struct basic_istream *)&file]._vptr.basic_istream
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	str	x2, [sp, 824]	// tmp183, MEM[(struct basic_ios *)&file + 264B].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:461:       : ios_base(), _M_tie(0), _M_fill(char_type()), _M_fill_init(false), 
+	str	xzr, [sp, 1040]	//, MEM[(struct basic_ios *)&file + 264B]._M_tie
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	str	x4, [x28, x0]	// _48, MEM[(struct basic_ios *)_47].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	str	xzr, [sp, 568]	//, MEM[(struct basic_istream *)&file]._M_gcount
+// /usr/aarch64-linux-gnu/include/c++/13/istream:698:       { this->init(0); }
+	ldr	x0, [x3, -24]	// MEM[(long int *)_44 + -24B], MEM[(long int *)_44 + -24B]
+	add	x0, x28, x0	//, tmp402, MEM[(long int *)_44 + -24B]
+.LEHB0:
+	bl	_ZNSt9basic_iosIcSt11char_traitsIcEE4initEPSt15basic_streambufIcS1_E		//
+.LEHE0:
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:571:       : __istream_type(), _M_filebuf()
+	adrp	x1, :got:_ZTVSt14basic_ifstreamIcSt11char_traitsIcEE	// tmp403,
+	ldr	x1, [x1, :got_lo12:_ZTVSt14basic_ifstreamIcSt11char_traitsIcEE]	// tmp403,
+	str	x1, [sp, 104]	// tmp403, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:571:       : __istream_type(), _M_filebuf()
+	add	x20, sp, 576	// tmp404,,
+	str	x20, [sp, 80]	// tmp404, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:571:       : __istream_type(), _M_filebuf()
+	add	x2, x1, 24	// tmp197, tmp403,
+	add	x1, x1, 64	// tmp199, tmp403,
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:571:       : __istream_type(), _M_filebuf()
+	mov	x0, x20	//, tmp404
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:571:       : __istream_type(), _M_filebuf()
+	str	x2, [sp, 560]	// tmp197, MEM[(struct basic_ifstream *)&file].D.55891._vptr.basic_istream
+	str	x1, [sp, 824]	// tmp199, MEM[(struct basic_ios *)&file + 264B].D.48536._vptr.ios_base
+.LEHB1:
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:571:       : __istream_type(), _M_filebuf()
+	bl	_ZNSt13basic_filebufIcSt11char_traitsIcEEC1Ev		//
+.LEHE1:
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:573: 	this->init(&_M_filebuf);
+	mov	x1, x20	//, tmp404
+	mov	x0, x21	//, tmp413
+.LEHB2:
+	bl	_ZNSt9basic_iosIcSt11char_traitsIcEE4initEPSt15basic_streambufIcS1_E		//
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:339:       { return open(__s.c_str(), __mode); }
+	ldr	x1, [x19]	//, MEM[(char * *)path_9(D)]
+	mov	x0, x20	//, tmp404
+	mov	w2, 8	//,
+	bl	_ZNSt13basic_filebufIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode		//
+	mov	x2, x0	// tmp427,
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:707: 	  this->setstate(ios_base::failbit);
+	ldr	x0, [sp, 560]	// file.D.55891._vptr.basic_istream, file.D.55891._vptr.basic_istream
+	ldr	x1, [x0, -24]	// MEM[(long int *)pretmp_52 + -24B], MEM[(long int *)pretmp_52 + -24B]
+	add	x0, x28, x1	// _59, tmp402, MEM[(long int *)pretmp_52 + -24B]
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:706: 	if (!_M_filebuf.open(__s, __mode | ios_base::in))
+	cbz	x2, .L125	// tmp427,
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:711: 	  this->clear();
+	mov	w1, 0	//,
+	bl	_ZNSt9basic_iosIcSt11char_traitsIcEE5clearESt12_Ios_Iostate		//
+.LEHE2:
+.L64:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1935: 	if (size_type __n = this->_M_impl._M_finish - __pos)
+	ldp	x0, x1, [x23]	// _26, data_11(D)->D.75590._M_impl.D.74902._M_finish, data_11(D)->D.75590._M_impl.D.74902._M_start
+	cmp	x0, x1	// _26, data_11(D)->D.75590._M_impl.D.74902._M_finish
+	beq	.L66		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1939: 	    this->_M_impl._M_finish = __pos;
+	str	x0, [x23, 8]	// _26, data_11(D)->D.75590._M_impl.D.74902._M_finish
+.L66:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:4074:     { return std::getline(__is, __str, __is.widen('\n')); }
+	ldr	x0, [sp, 560]	// file._vptr.basic_istream, file._vptr.basic_istream
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:193: 	: allocator_type(std::move(__a)), _M_p(__dat) { }
+	add	x1, sp, 160	// tmp398,,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:218:       { _M_string_length = __length; }
+	stp	x1, xzr, [sp, 144]	// tmp398,, MEM[(struct _Alloc_hider *)&line]._M_p
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:358: 	__c1 = __c2;
+	strb	wzr, [sp, 160]	//, MEM[(char_type &)&line + 16]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:193: 	: allocator_type(std::move(__a)), _M_p(__dat) { }
+	str	x1, [sp, 96]	// tmp398, %sfp
+	add	x1, sp, 144	// tmp412,,
+	ldr	x0, [x0, -24]	// MEM[(long int *)_92 + -24B], MEM[(long int *)_92 + -24B]
+	str	x1, [sp, 48]	// tmp412, %sfp
+	add	x0, x28, x0	// tmp236, tmp402, MEM[(long int *)_92 + -24B]
+	ldr	x19, [x0, 240]	// _42, MEM[(const struct __ctype_type * *)_161 + 240B]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:49:       if (!__f)
+	cbz	x19, .L91	// _42,
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:617:       : __istream_type(), _M_stringbuf(__str, __mode | ios_base::in)
+	adrp	x0, :got:_ZTVNSt7__cxx1119basic_istringstreamIcSt11char_traitsIcESaIcEEE	// tmp419,
+	ldr	x0, [x0, :got_lo12:_ZTVNSt7__cxx1119basic_istringstreamIcSt11char_traitsIcESaIcEEE]	// tmp419,
+	str	x0, [sp, 8]	// tmp419, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:473:       _M_buf_locale(locale())
+	adrp	x1, :got:_ZTVSt15basic_streambufIcSt11char_traitsIcEE	// tmp421,
+	ldr	x1, [x1, :got_lo12:_ZTVSt15basic_streambufIcSt11char_traitsIcEE]	// tmp421,
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:617:       : __istream_type(), _M_stringbuf(__str, __mode | ios_base::in)
+	add	x0, x0, 24	// tmp420, tmp419,
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:473:       _M_buf_locale(locale())
+	str	x1, [sp, 112]	// tmp421, %sfp
+	add	x1, x1, 16	// tmp422, tmp421,
+	stp	x0, x1, [sp, 16]	// tmp420, tmp422, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:149: 	_M_string(__str.data(), __str.size(), __str.get_allocator())
+	adrp	x0, :got:_ZTVNSt7__cxx1115basic_stringbufIcSt11char_traitsIcESaIcEEE	// tmp423,
+	ldr	x0, [x0, :got_lo12:_ZTVNSt7__cxx1115basic_stringbufIcSt11char_traitsIcESaIcEEE]	// tmp423,
+	str	x0, [sp, 120]	// tmp423, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	adrp	x1, :got:_ZTTNSt7__cxx1119basic_istringstreamIcSt11char_traitsIcESaIcEEE	// tmp418,
+	ldr	x1, [x1, :got_lo12:_ZTTNSt7__cxx1119basic_istringstreamIcSt11char_traitsIcESaIcEEE]	// tmp418,
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:149: 	_M_string(__str.data(), __str.size(), __str.get_allocator())
+	add	x0, x0, 16	// tmp424, tmp423,
+	str	x0, [sp, 32]	// tmp424, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	str	x1, [sp, 56]	// tmp418, %sfp
+	.p2align 3,,7
+.L71:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/locale_facets.h:882: 	if (_M_widen_ok)
+	ldrb	w0, [x19, 56]	// MEM[(const struct ctype *)_42]._M_widen_ok, MEM[(const struct ctype *)_42]._M_widen_ok
+	cbz	w0, .L92	// MEM[(const struct ctype *)_42]._M_widen_ok,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/locale_facets.h:883: 	  return _M_widen[static_cast<unsigned char>(__c)];
+	ldrb	w2, [x19, 67]	// _144, MEM[(const struct ctype *)_42]._M_widen[10]
+.L93:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:4074:     { return std::getline(__is, __str, __is.widen('\n')); }
+	ldr	x1, [sp, 48]	//, %sfp
+	adrp	x0, :got:__stack_chk_guard	// tmp414,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp414,
+	str	x0, [sp, 40]	// tmp414, %sfp
+	mov	x0, x28	//, tmp402
+.LEHB3:
+	bl	_ZSt7getlineIcSt11char_traitsIcESaIcEERSt13basic_istreamIT_T0_ES7_RNSt7__cxx1112basic_stringIS4_S5_T1_EES4_		//
+.LEHE3:
+// sum_indirect.hh:29:     while (std::getline(file, line))
+	ldr	x2, [x0]	// _139->_vptr.basic_istream, _139->_vptr.basic_istream
+// /usr/aarch64-linux-gnu/include/c++/13/bits/ios_base.h:167:   { return _Ios_Iostate(static_cast<int>(__a) & static_cast<int>(__b)); }
+	mov	w1, 5	// tmp363,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:138:       { return _M_streambuf_state; }
+	ldr	x2, [x2, -24]	// MEM[(long int *)_1 + -24B], MEM[(long int *)_1 + -24B]
+	add	x0, x0, x2	// tmp360, _139, MEM[(long int *)_1 + -24B]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/ios_base.h:167:   { return _Ios_Iostate(static_cast<int>(__a) & static_cast<int>(__b)); }
+	ldr	w0, [x0, 32]	//, MEM[(const struct basic_ios *)_4].D.48536._M_streambuf_state
+// sum_indirect.hh:29:     while (std::getline(file, line))
+	tst	w0, w1	// MEM[(const struct basic_ios *)_4].D.48536._M_streambuf_state, tmp363
+	bne	.L126		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	add	x22, sp, 296	// tmp410,,
+	add	x21, sp, 176	// tmp399,,
+	mov	x0, x22	//, tmp410
+	bl	_ZNSt8ios_baseC2Ev		//
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	ldr	x2, [sp, 56]	// tmp418, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	add	x1, sp, 528	// tmp245,,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:461:       : ios_base(), _M_tie(0), _M_fill(char_type()), _M_fill_init(false), 
+	strh	wzr, [sp, 520]	//, MEM <unsigned short> [(void *)&ss + 344B]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	ldr	x0, [sp]	// tmp401, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	ldp	x20, x26, [x2, 8]	// _75, _79, MEM[(const void * *)&_ZTTNSt7__cxx1119basic_istringstreamIcSt11char_traitsIcESaIcEEE + 8B]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	adrp	x2, .LC2	// tmp502,
+	add	x2, x2, :lo12:.LC2	// tmp502, tmp502,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	add	x0, x0, 16	// tmp240, tmp401,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	ld1	{v0.16b - v1.16b}, [x2]	// tmp501,
+	st1	{v0.16b - v1.16b}, [x1]	// tmp501, MEM <vector(4) long unsigned int> [(void *)&ss + 352B]
+// /usr/aarch64-linux-gnu/include/c++/13/istream:698:       { this->init(0); }
+	mov	x1, 0	//,
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	ldr	x2, [x20, -24]	// MEM[(long int *)_75 + -24B], MEM[(long int *)_75 + -24B]
+	str	x20, [sp, 176]	// _75, MEM[(struct basic_istream *)&ss]._vptr.basic_istream
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	str	x0, [sp, 296]	// tmp240, MEM[(struct basic_ios *)&ss + 120B].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:461:       : ios_base(), _M_tie(0), _M_fill(char_type()), _M_fill_init(false), 
+	str	xzr, [sp, 512]	//, MEM[(struct basic_ios *)&ss + 120B]._M_tie
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	str	x26, [x21, x2]	// _79, MEM[(struct basic_ios *)_78].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	str	xzr, [sp, 184]	//, MEM[(struct basic_istream *)&ss]._M_gcount
+// /usr/aarch64-linux-gnu/include/c++/13/istream:698:       { this->init(0); }
+	ldr	x0, [x20, -24]	// MEM[(long int *)_75 + -24B], MEM[(long int *)_75 + -24B]
+	add	x0, x21, x0	//, tmp399, MEM[(long int *)_75 + -24B]
+.LEHB4:
+	bl	_ZNSt9basic_iosIcSt11char_traitsIcEE4initEPSt15basic_streambufIcS1_E		//
+.LEHE4:
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:617:       : __istream_type(), _M_stringbuf(__str, __mode | ios_base::in)
+	ldp	x0, x2, [sp, 8]	// tmp419, tmp420, %sfp
+	str	x2, [sp, 176]	// tmp420, MEM[(struct basic_istringstream *)&ss].D.57949._vptr.basic_istream
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:473:       _M_buf_locale(locale())
+	ldr	x2, [sp, 24]	// tmp422, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:473:       _M_buf_locale(locale())
+	add	x25, sp, 248	// tmp405,,
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:473:       _M_buf_locale(locale())
+	str	x2, [sp, 192]	// tmp422, MEM[(struct basic_streambuf *)&ss + 16B]._vptr.basic_streambuf
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:189: 	: allocator_type(__a), _M_p(__dat) { }
+	add	x24, sp, 280	// tmp408,,
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:471:       : _M_in_beg(0), _M_in_cur(0), _M_in_end(0),
+	stp	xzr, xzr, [sp, 200]	//,, MEM[(struct basic_streambuf *)&ss + 16B]._M_in_beg
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:617:       : __istream_type(), _M_stringbuf(__str, __mode | ios_base::in)
+	add	x1, x0, 64	// tmp256, tmp419,
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:473:       _M_buf_locale(locale())
+	mov	x0, x25	//, tmp405
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:472:       _M_out_beg(0), _M_out_cur(0), _M_out_end(0),
+	stp	xzr, xzr, [sp, 216]	//,, MEM[(struct basic_streambuf *)&ss + 16B]._M_in_end
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:472:       _M_out_beg(0), _M_out_cur(0), _M_out_end(0),
+	stp	xzr, xzr, [sp, 232]	//,, MEM[(struct basic_streambuf *)&ss + 16B]._M_out_cur
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:617:       : __istream_type(), _M_stringbuf(__str, __mode | ios_base::in)
+	str	x1, [sp, 296]	// tmp256, MEM[(struct basic_ios *)&ss + 120B].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:473:       _M_buf_locale(locale())
+	bl	_ZNSt6localeC1Ev		//
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:1072:       { return _M_string_length; }
+	ldp	x27, x19, [sp, 144]	// _94, _95, MEM[(const struct basic_string *)&line]._M_dataplus._M_p
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:148:       : __streambuf_type(), _M_mode(),
+	str	wzr, [sp, 256]	//, MEM[(struct basic_stringbuf *)&ss + 16B]._M_mode
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:149: 	_M_string(__str.data(), __str.size(), __str.get_allocator())
+	ldr	x0, [sp, 32]	// tmp424, %sfp
+	str	x0, [sp, 192]	// tmp424, MEM[(struct basic_stringbuf *)&ss + 16B].D.57795._vptr.basic_streambuf
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:189: 	: allocator_type(__a), _M_p(__dat) { }
+	str	x24, [sp, 264]	// tmp408, MEM[(struct _Alloc_hider *)&ss + 88B]._M_p
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:624: 	if (__s == 0 && __n > 0)
+	cmp	x27, 0	// _94,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:624: 	if (__s == 0 && __n > 0)
+	ccmp	x19, 0, 4, eq	// _95,,,
+	bne	.L127		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.tcc:225: 	size_type __dnew = static_cast<size_type>(std::distance(__beg, __end));
+	str	x19, [sp, 136]	// _95, MEM[(long unsigned int *)_70]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.tcc:227: 	if (__dnew > size_type(_S_local_capacity))
+	cmp	x19, 15	// _95,
+	bhi	.L128		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:427: 	if (__n == 1)
+	cmp	x19, 1	// _95,
+	bne	.L77		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:358: 	__c1 = __c2;
+	ldrb	w0, [x27]	// _110, MEM[(const char_type &)_94]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:358: 	__c1 = __c2;
+	strb	w0, [sp, 280]	// _110, MEM[(char_type &)&ss + 104]
+.L79:
+	mov	x0, x24	// prephitmp_132, tmp408
+.L78:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:218:       { _M_string_length = __length; }
+	str	x19, [sp, 272]	// _95, MEM[(struct basic_string *)&ss + 88B]._M_string_length
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:338: 	_M_mode = __mode;
+	mov	w4, 8	// tmp282,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:358: 	__c1 = __c2;
+	strb	wzr, [x0, x19]	//, MEM[(char_type &)_113]
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:342: 	_M_sync(const_cast<char_type*>(_M_string.data()), 0, __len);
+	add	x19, sp, 192	// tmp400,,
+	mov	x0, x19	//, tmp400
+	mov	x3, 0	//,
+	ldr	x1, [sp, 264]	//, MEM[(const struct basic_string *)&ss + 88B]._M_dataplus._M_p
+	mov	x2, 0	//,
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:338: 	_M_mode = __mode;
+	str	w4, [sp, 256]	// tmp282, MEM[(struct basic_stringbuf *)&ss + 16B]._M_mode
+.LEHB5:
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:342: 	_M_sync(const_cast<char_type*>(_M_string.data()), 0, __len);
+	bl	_ZNSt7__cxx1115basic_stringbufIcSt11char_traitsIcESaIcEE7_M_syncEPcmm		//
+.LEHE5:
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:618:       { this->init(&_M_stringbuf); }
+	mov	x1, x19	//, tmp400
+	mov	x0, x22	//, tmp410
+.LEHB6:
+	bl	_ZNSt9basic_iosIcSt11char_traitsIcEE4initEPSt15basic_streambufIcS1_E		//
+.LEHE6:
+// /usr/aarch64-linux-gnu/include/c++/13/istream:193:       { return _M_extract(__n); }
+	add	x19, sp, 136	// tmp411,,
+	mov	x0, x21	//, tmp399
+	mov	x1, x19	//, tmp411
+.LEHB7:
+	bl	_ZNSi10_M_extractImEERSiRT_		//
+.LEHE7:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1283: 	if (this->_M_impl._M_finish != this->_M_impl._M_end_of_storage)
+	ldp	x1, x0, [x23, 8]	// _114, data_11(D)->D.75590._M_impl.D.74902._M_end_of_storage, data_11(D)->D.75590._M_impl.D.74902._M_finish
+	cmp	x1, x0	// _114, data_11(D)->D.75590._M_impl.D.74902._M_end_of_storage
+	beq	.L88		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:191: 	{ ::new((void *)__p) _Up(std::forward<_Args>(__args)...); }
+	ldr	x0, [sp, 136]	// _116, MEM[(long unsigned int *)_70]
+	str	x0, [x1], 8	// _116, *_114
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1288: 	    ++this->_M_impl._M_finish;
+	str	x1, [x23, 8]	// tmp325, data_11(D)->D.75590._M_impl.D.74902._M_finish
+.L89:
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:627:       { }
+	ldp	x1, x2, [sp, 8]	// tmp419, tmp420, %sfp
+	str	x2, [sp, 176]	// tmp420, ss.D.57949._vptr.basic_istream
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:223:       { return _M_dataplus._M_p; }
+	ldr	x0, [sp, 264]	// _127, MEM[(const struct basic_string *)&ss + 88B]._M_dataplus._M_p
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:79:     class basic_stringbuf : public basic_streambuf<_CharT, _Traits>
+	ldr	x2, [sp, 32]	// tmp424, %sfp
+	str	x2, [sp, 192]	// tmp424, MEM[(struct basic_stringbuf *)&ss + 16B].D.57795._vptr.basic_streambuf
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:627:       { }
+	add	x1, x1, 64	// tmp329, tmp419,
+	str	x1, [sp, 296]	// tmp329, MEM[(struct basic_ios *)&ss + 120B].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:264: 	if (_M_data() == _M_local_data())
+	cmp	x0, x24	// _127, tmp408
+	beq	.L90		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:289:       { _Alloc_traits::deallocate(_M_get_allocator(), _M_data(), __size + 1); }
+	ldr	x1, [sp, 280]	// MEM[(struct basic_string *)&ss + 88B].D.29594._M_allocated_capacity, MEM[(struct basic_string *)&ss + 88B].D.29594._M_allocated_capacity
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:172: 	_GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n));
+	add	x1, x1, 1	//, MEM[(struct basic_string *)&ss + 88B].D.29594._M_allocated_capacity,
+	bl	_ZdlPvm		//
+.L90:
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:205:       { }
+	ldr	x1, [sp, 24]	// tmp422, %sfp
+	mov	x0, x25	//, tmp405
+	str	x1, [sp, 192]	// tmp422, MEM[(struct basic_streambuf *)&ss + 16B]._vptr.basic_streambuf
+	bl	_ZNSt6localeD1Ev		//
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	ldr	x2, [x20, -24]	// MEM[(long int *)_75 + -24B], MEM[(long int *)_75 + -24B]
+	str	x20, [sp, 176]	// _75, MEM[(struct basic_istream *)&ss]._vptr.basic_istream
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:282:       ~basic_ios() { }
+	ldr	x1, [sp]	// tmp401, %sfp
+	mov	x0, x22	//, tmp410
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	str	x26, [x21, x2]	// _79, MEM[(struct basic_ios *)_124].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:282:       ~basic_ios() { }
+	add	x1, x1, 16	// tmp343, tmp401,
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	str	xzr, [sp, 184]	//, MEM[(struct basic_istream *)&ss]._M_gcount
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:282:       ~basic_ios() { }
+	str	x1, [sp, 296]	// tmp343, MEM[(struct basic_ios *)&ss + 120B].D.48536._vptr.ios_base
+	bl	_ZNSt8ios_baseD2Ev		//
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:4074:     { return std::getline(__is, __str, __is.widen('\n')); }
+	ldr	x0, [sp, 560]	// file._vptr.basic_istream, file._vptr.basic_istream
+	ldr	x0, [x0, -24]	// MEM[(long int *)_134 + -24B], MEM[(long int *)_134 + -24B]
+	add	x0, x28, x0	// tmp350, tmp402, MEM[(long int *)_134 + -24B]
+	ldr	x19, [x0, 240]	// _42, MEM[(const struct __ctype_type * *)_137 + 240B]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:49:       if (!__f)
+	cbnz	x19, .L71	// _42,
+.L91:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:50: 	__throw_bad_cast();
+	adrp	x0, :got:__stack_chk_guard	// tmp414,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp414,
+	str	x0, [sp, 40]	// tmp414, %sfp
+	mov	x2, x0	// tmp414, tmp414
+	ldr	x0, [sp, 1096]	// tmp444, D.84230
+	ldr	x1, [x2]	// tmp445,
+	subs	x0, x0, x1	// tmp444, tmp445
+	mov	x1, 0	// tmp445
+	bne	.L122		//,
+	add	x0, sp, 144	// tmp412,,
+	str	x0, [sp, 48]	// tmp412, %sfp
+.LEHB8:
+	bl	_ZSt16__throw_bad_castv		//
+	.p2align 2,,3
+.L92:
+	adrp	x0, :got:__stack_chk_guard	// tmp414,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp414,
+	str	x0, [sp, 40]	// tmp414, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/bits/locale_facets.h:884: 	this->_M_widen_init();
+	mov	x0, x19	//, _42
+	bl	_ZNKSt5ctypeIcE13_M_widen_initEv		//
+// /usr/aarch64-linux-gnu/include/c++/13/bits/locale_facets.h:885: 	return this->do_widen(__c);
+	ldr	x1, [x19]	// MEM[(const struct ctype *)_42].D.44983._vptr.facet, MEM[(const struct ctype *)_42].D.44983._vptr.facet
+	adrp	x0, _ZNKSt5ctypeIcE8do_widenEc	// tmp354,
+	add	x0, x0, :lo12:_ZNKSt5ctypeIcE8do_widenEc	// tmp353, tmp354,
+	mov	w2, 10	// _144,
+	ldr	x3, [x1, 48]	// _148, MEM[(int (*) () *)_147 + 48B]
+	cmp	x3, x0	// _148, tmp353
+	beq	.L93		//,
+	mov	w1, w2	//, _144
+	mov	x0, x19	//, _42
+	adrp	x2, :got:__stack_chk_guard	// tmp414,
+	ldr	x2, [x2, :got_lo12:__stack_chk_guard]	// tmp414,
+	str	x2, [sp, 40]	// tmp414, %sfp
+	blr	x3		// _148
+.LEHE8:
+	and	w2, w0, 255	// _144, tmp436
+// /usr/aarch64-linux-gnu/include/c++/13/bits/locale_facets.h:885: 	return this->do_widen(__c);
+	b	.L93		//
+	.p2align 2,,3
+.L77:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:429: 	if (__n == 0)
+	cbz	x19, .L79	// _95,
+	mov	x0, x24	// _43, tmp408
+	b	.L76		//
+	.p2align 2,,3
+.L128:
+	adrp	x0, :got:__stack_chk_guard	// tmp414,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp414,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.tcc:229: 	    _M_data(_M_create(__dnew, size_type(0)));
+	add	x1, sp, 136	//,,
+	mov	x2, 0	//,
+	str	x0, [sp, 40]	// tmp414, %sfp
+	add	x0, sp, 264	//,,
+.LEHB9:
+	bl	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE9_M_createERmm		//
+.LEHE9:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:250:       { _M_allocated_capacity = __capacity; }
+	ldr	x1, [sp, 136]	// MEM[(long unsigned int *)_70], MEM[(long unsigned int *)_70]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:213:       { _M_dataplus._M_p = __p; }
+	str	x0, [sp, 264]	// _43, MEM[(struct basic_string *)&ss + 88B]._M_dataplus._M_p
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:250:       { _M_allocated_capacity = __capacity; }
+	str	x1, [sp, 280]	// MEM[(long unsigned int *)_70], MEM[(struct basic_string *)&ss + 88B].D.29594._M_allocated_capacity
+.L76:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:435: 	return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n));
+	mov	x2, x19	//, _95
+	mov	x1, x27	//, _94
+	bl	memcpy		//
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.tcc:251: 	_M_set_length(__dnew);
+	ldr	x19, [sp, 136]	// _95, MEM[(long unsigned int *)_70]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:223:       { return _M_dataplus._M_p; }
+	ldr	x0, [sp, 264]	// prephitmp_132, MEM[(const struct basic_string *)&ss + 88B]._M_dataplus._M_p
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:435: 	return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n));
+	b	.L78		//
+	.p2align 2,,3
+.L88:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1292: 	  _M_realloc_insert(end(), __x);
+	mov	x2, x19	//, tmp411
+	mov	x0, x23	//, data
+.LEHB10:
+	bl	_ZNSt6vectorImSaImEE17_M_realloc_insertIJRKmEEEvN9__gnu_cxx17__normal_iteratorIPmS1_EEDpOT_		//
+.LEHE10:
+	b	.L89		//
+	.p2align 2,,3
+.L126:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:264: 	if (_M_data() == _M_local_data())
+	ldr	x1, [sp, 96]	// tmp398, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:223:       { return _M_dataplus._M_p; }
+	ldr	x0, [sp, 144]	// _163, line._M_dataplus._M_p
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:264: 	if (_M_data() == _M_local_data())
+	cmp	x0, x1	// _163, tmp398
+	beq	.L95		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:289:       { _Alloc_traits::deallocate(_M_get_allocator(), _M_data(), __size + 1); }
+	ldr	x1, [sp, 160]	// line.D.29594._M_allocated_capacity, line.D.29594._M_allocated_capacity
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:172: 	_GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n));
+	add	x1, x1, 1	//, line.D.29594._M_allocated_capacity,
+	bl	_ZdlPvm		//
+.L95:
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:607:       { }
+	ldr	x1, [sp, 104]	// tmp403, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:259:       }
+	adrp	x2, :got:_ZTVSt13basic_filebufIcSt11char_traitsIcEE	// tmp373,
+	ldr	x2, [x2, :got_lo12:_ZTVSt13basic_filebufIcSt11char_traitsIcEE]	// tmp373,
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:607:       { }
+	add	x3, x1, 24	// tmp368, tmp403,
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:256: 	  { this->close(); }
+	ldr	x0, [sp, 80]	//, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:259:       }
+	add	x2, x2, 16	// tmp372, tmp373,
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:607:       { }
+	add	x1, x1, 64	// tmp370, tmp403,
+	str	x3, [sp, 560]	// tmp368, file.D.55891._vptr.basic_istream
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:259:       }
+	str	x2, [sp, 576]	// tmp372, MEM[(struct basic_filebuf *)&file + 16B].D.55699._vptr.basic_streambuf
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:607:       { }
+	str	x1, [sp, 824]	// tmp370, MEM[(struct basic_ios *)&file + 264B].D.48536._vptr.ios_base
+.LEHB11:
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:256: 	  { this->close(); }
+	bl	_ZNSt13basic_filebufIcSt11char_traitsIcEE5closeEv		//
+.LEHE11:
+.L97:
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:259:       }
+	add	x0, sp, 688	//,,
+	bl	_ZNSt12__basic_fileIcED1Ev		//
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:205:       { }
+	adrp	x1, :got:_ZTVSt15basic_streambufIcSt11char_traitsIcEE	// tmp379,
+	ldr	x1, [x1, :got_lo12:_ZTVSt15basic_streambufIcSt11char_traitsIcEE]	// tmp379,
+	add	x0, sp, 632	//,,
+	add	x1, x1, 16	// tmp378, tmp379,
+	str	x1, [sp, 576]	// tmp378, MEM[(struct basic_streambuf *)&file + 16B]._vptr.basic_streambuf
+	bl	_ZNSt6localeD1Ev		//
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	ldp	x0, x3, [sp, 64]	// _44, _48, %sfp
+	ldr	x2, [x0, -24]	// MEM[(long int *)_44 + -24B], MEM[(long int *)_44 + -24B]
+	str	x0, [sp, 560]	// _44, MEM[(struct basic_istream *)&file]._vptr.basic_istream
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:282:       ~basic_ios() { }
+	ldr	x0, [sp]	// tmp401, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	str	x3, [x28, x2]	// _48, MEM[(struct basic_ios *)_160].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:282:       ~basic_ios() { }
+	add	x1, x0, 16	// tmp384, tmp401,
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	str	xzr, [sp, 568]	//, MEM[(struct basic_istream *)&file]._M_gcount
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:282:       ~basic_ios() { }
+	ldr	x0, [sp, 88]	//, %sfp
+	str	x1, [sp, 824]	// tmp384, MEM[(struct basic_ios *)&file + 264B].D.48536._vptr.ios_base
+	bl	_ZNSt8ios_baseD2Ev		//
+// sum_indirect.hh:36: }
+	adrp	x0, :got:__stack_chk_guard	// tmp397,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp397,
+	ldr	x2, [sp, 1096]	// tmp448, D.84230
+	ldr	x1, [x0]	// tmp449,
+	subs	x2, x2, x1	// tmp448, tmp449
+	mov	x1, 0	// tmp449
+	bne	.L122		//,
+	add	sp, sp, 1104	//,,
+	.cfi_remember_state
+	.cfi_def_cfa_offset 96
+	ldp	x19, x20, [sp, 16]	//,,
+	ldp	x21, x22, [sp, 32]	//,,
+	ldp	x23, x24, [sp, 48]	//,,
+	ldp	x25, x26, [sp, 64]	//,,
+	ldp	x27, x28, [sp, 80]	//,,
+	ldp	x29, x30, [sp], 96	//,,,
+	.cfi_restore 30
+	.cfi_restore 29
+	.cfi_restore 27
+	.cfi_restore 28
+	.cfi_restore 25
+	.cfi_restore 26
+	.cfi_restore 23
+	.cfi_restore 24
+	.cfi_restore 21
+	.cfi_restore 22
+	.cfi_restore 19
+	.cfi_restore 20
+	.cfi_def_cfa_offset 0
+	ret	
+	.p2align 2,,3
+.L125:
+	.cfi_restore_state
+// /usr/aarch64-linux-gnu/include/c++/13/bits/ios_base.h:171:   { return _Ios_Iostate(static_cast<int>(__a) | static_cast<int>(__b)); }
+	ldr	w1, [x0, 32]	//, MEM[(const struct basic_ios *)_59].D.48536._M_streambuf_state
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:158:       { this->clear(this->rdstate() | __state); }
+	orr	w1, w1, 4	//, MEM[(const struct basic_ios *)_59].D.48536._M_streambuf_state,
+.LEHB12:
+	bl	_ZNSt9basic_iosIcSt11char_traitsIcEE5clearESt12_Ios_Iostate		//
+.LEHE12:
+	b	.L64		//
+.L127:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:625: 	  std::__throw_logic_error(__N("basic_string: "
+	adrp	x0, :got:__stack_chk_guard	// tmp414,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp414,
+	str	x0, [sp, 40]	// tmp414, %sfp
+	mov	x2, x0	// tmp414, tmp414
+	ldr	x0, [sp, 1096]	// tmp446, D.84230
+	ldr	x1, [x2]	// tmp447,
+	subs	x0, x0, x1	// tmp446, tmp447
+	mov	x1, 0	// tmp447
+	bne	.L122		//,
+	adrp	x0, .LC0	// tmp272,
+	add	x0, x0, :lo12:.LC0	//, tmp272,
+.LEHB13:
+	bl	_ZSt19__throw_logic_errorPKc		//
+.LEHE13:
+.L103:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:804:       { _M_dispose(); }
+	mov	x19, x0	// tmp320, tmp439
+.L87:
+	ldr	x0, [sp, 48]	//, %sfp
+	bl	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE10_M_disposeEv		//
+// sum_indirect.hh:36: }
+	mov	x0, x28	//, tmp402
+	bl	_ZNSt14basic_ifstreamIcSt11char_traitsIcEED1Ev		//
+	ldr	x2, [sp, 40]	// tmp414, %sfp
+	ldr	x0, [sp, 1096]	// tmp450, D.84230
+	ldr	x1, [x2]	// tmp451,
+	subs	x0, x0, x1	// tmp450, tmp451
+	mov	x1, 0	// tmp451
+	beq	.L99		//,
+.L122:
+	bl	__stack_chk_fail		//
+.L104:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:282:       ~basic_ios() { }
+	mov	x19, x0	// tmp224, tmp430
+.L69:
+	ldr	x0, [sp]	// tmp401, %sfp
+	add	x1, x0, 16	// tmp226, tmp401,
+	str	x1, [sp, 824]	// tmp226, MEM[(struct basic_ios *)&file + 264B].D.48536._vptr.ios_base
+	ldr	x0, [sp, 88]	//, %sfp
+	bl	_ZNSt8ios_baseD2Ev		//
+	adrp	x0, :got:__stack_chk_guard	// tmp230,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp230,
+	ldr	x2, [sp, 1096]	// tmp442, D.84230
+	ldr	x1, [x0]	// tmp443,
+	subs	x2, x2, x1	// tmp442, tmp443
+	mov	x1, 0	// tmp443
+	bne	.L122		//,
+.L99:
+	mov	x0, x19	//, tmp320
+.LEHB14:
+	bl	_Unwind_Resume		//
+.LEHE14:
+.L111:
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:257: 	__catch(...)
+	bl	__cxa_begin_catch		//
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:257: 	__catch(...)
+	bl	__cxa_end_catch		//
+	b	.L97		//
+.L109:
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:205:       { }
+	mov	x19, x0	// tmp288, tmp433
+.L82:
+	ldr	x0, [sp, 112]	// tmp421, %sfp
+	add	x1, x0, 16	// tmp292, tmp421,
+	mov	x0, x25	//, tmp405
+	str	x1, [sp, 192]	// tmp292, MEM[(struct basic_streambuf *)&ss + 16B]._vptr.basic_streambuf
+	bl	_ZNSt6localeD1Ev		//
+.L83:
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	ldr	x0, [x20, -24]	// MEM[(long int *)_75 + -24B], MEM[(long int *)_75 + -24B]
+	str	x20, [sp, 176]	// _75, MEM[(struct basic_istream *)&ss]._vptr.basic_istream
+	str	x26, [x21, x0]	// _79, MEM[(struct basic_ios *)_91].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	str	xzr, [sp, 184]	//, MEM[(struct basic_istream *)&ss]._M_gcount
+.L86:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:282:       ~basic_ios() { }
+	ldr	x0, [sp]	// tmp401, %sfp
+	add	x1, x0, 16	// tmp316, tmp401,
+	mov	x0, x22	//, tmp410
+	str	x1, [sp, 296]	// tmp316, MEM[(struct basic_ios *)&ss + 120B].D.48536._vptr.ios_base
+	bl	_ZNSt8ios_baseD2Ev		//
+	b	.L87		//
+.L102:
+// sum_indirect.hh:29:     while (std::getline(file, line))
+	mov	x19, x0	// tmp438,
+	mov	x0, x21	//, tmp399
+	bl	_ZNSt7__cxx1119basic_istringstreamIcSt11char_traitsIcESaIcEED1Ev		//
+	adrp	x0, :got:__stack_chk_guard	// tmp414,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp414,
+	str	x0, [sp, 40]	// tmp414, %sfp
+	b	.L87		//
+.L108:
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:79:     class basic_stringbuf : public basic_streambuf<_CharT, _Traits>
+	ldr	x1, [sp, 120]	// tmp423, %sfp
+	mov	x19, x0	// tmp310, tmp434
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:804:       { _M_dispose(); }
+	add	x0, sp, 264	//,,
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:79:     class basic_stringbuf : public basic_streambuf<_CharT, _Traits>
+	add	x1, x1, 16	// tmp302, tmp423,
+	str	x1, [sp, 192]	// tmp302, MEM[(struct basic_stringbuf *)&ss + 16B].D.57795._vptr.basic_streambuf
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:804:       { _M_dispose(); }
+	bl	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE10_M_disposeEv		//
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:205:       { }
+	ldr	x0, [sp, 112]	// tmp421, %sfp
+	add	x1, x0, 16	// tmp306, tmp421,
+	mov	x0, x25	//, tmp405
+	str	x1, [sp, 192]	// tmp306, MEM[(struct basic_streambuf *)&ss + 16B]._vptr.basic_streambuf
+	bl	_ZNSt6localeD1Ev		//
+	adrp	x0, :got:__stack_chk_guard	// tmp414,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp414,
+	str	x0, [sp, 40]	// tmp414, %sfp
+	b	.L83		//
+.L106:
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:575:       }
+	mov	x19, x0	// tmp428,
+	ldr	x0, [sp, 80]	//, %sfp
+	bl	_ZNSt13basic_filebufIcSt11char_traitsIcEED1Ev		//
+.L68:
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	ldr	x1, [sp, 64]	// _44, %sfp
+	ldr	x0, [x1, -24]	// MEM[(long int *)_44 + -24B], MEM[(long int *)_44 + -24B]
+	str	x1, [sp, 560]	// _44, MEM[(struct basic_istream *)&file]._vptr.basic_istream
+	ldr	x1, [sp, 72]	// _48, %sfp
+	str	x1, [x28, x0]	// _48, MEM[(struct basic_ios *)_57].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	str	xzr, [sp, 568]	//, MEM[(struct basic_istream *)&file]._M_gcount
+	b	.L69		//
+.L107:
+	adrp	x1, :got:__stack_chk_guard	// tmp414,
+	ldr	x1, [x1, :got_lo12:__stack_chk_guard]	// tmp414,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:282:       ~basic_ios() { }
+	mov	x19, x0	// tmp314, tmp435
+	str	x1, [sp, 40]	// tmp414, %sfp
+	b	.L86		//
+.L105:
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	mov	x19, x0	// tmp218, tmp429
+	b	.L68		//
+.L110:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:804:       { _M_dispose(); }
+	mov	x19, x0	// tmp432,
+	add	x0, sp, 264	//,,
+	bl	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE10_M_disposeEv		//
+	adrp	x0, :got:__stack_chk_guard	// tmp414,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp414,
+	str	x0, [sp, 40]	// tmp414, %sfp
+	b	.L82		//
+	.cfi_endproc
+.LFE2927:
+	.global	__gxx_personality_v0
+	.section	.gcc_except_table._Z20read_array_from_fileImEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE,"aG",@progbits,_Z20read_array_from_fileImEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE,comdat
+	.align	2
+.LLSDA2927:
+	.byte	0xff
+	.byte	0x9b
+	.uleb128 .LLSDATT2927-.LLSDATTD2927
+.LLSDATTD2927:
+	.byte	0x1
+	.uleb128 .LLSDACSE2927-.LLSDACSB2927
+.LLSDACSB2927:
+	.uleb128 .LEHB0-.LFB2927
+	.uleb128 .LEHE0-.LEHB0
+	.uleb128 .L104-.LFB2927
+	.uleb128 0
+	.uleb128 .LEHB1-.LFB2927
+	.uleb128 .LEHE1-.LEHB1
+	.uleb128 .L105-.LFB2927
+	.uleb128 0
+	.uleb128 .LEHB2-.LFB2927
+	.uleb128 .LEHE2-.LEHB2
+	.uleb128 .L106-.LFB2927
+	.uleb128 0
+	.uleb128 .LEHB3-.LFB2927
+	.uleb128 .LEHE3-.LEHB3
+	.uleb128 .L103-.LFB2927
+	.uleb128 0
+	.uleb128 .LEHB4-.LFB2927
+	.uleb128 .LEHE4-.LEHB4
+	.uleb128 .L107-.LFB2927
+	.uleb128 0
+	.uleb128 .LEHB5-.LFB2927
+	.uleb128 .LEHE5-.LEHB5
+	.uleb128 .L110-.LFB2927
+	.uleb128 0
+	.uleb128 .LEHB6-.LFB2927
+	.uleb128 .LEHE6-.LEHB6
+	.uleb128 .L108-.LFB2927
+	.uleb128 0
+	.uleb128 .LEHB7-.LFB2927
+	.uleb128 .LEHE7-.LEHB7
+	.uleb128 .L102-.LFB2927
+	.uleb128 0
+	.uleb128 .LEHB8-.LFB2927
+	.uleb128 .LEHE8-.LEHB8
+	.uleb128 .L103-.LFB2927
+	.uleb128 0
+	.uleb128 .LEHB9-.LFB2927
+	.uleb128 .LEHE9-.LEHB9
+	.uleb128 .L109-.LFB2927
+	.uleb128 0
+	.uleb128 .LEHB10-.LFB2927
+	.uleb128 .LEHE10-.LEHB10
+	.uleb128 .L102-.LFB2927
+	.uleb128 0
+	.uleb128 .LEHB11-.LFB2927
+	.uleb128 .LEHE11-.LEHB11
+	.uleb128 .L111-.LFB2927
+	.uleb128 0x1
+	.uleb128 .LEHB12-.LFB2927
+	.uleb128 .LEHE12-.LEHB12
+	.uleb128 .L106-.LFB2927
+	.uleb128 0
+	.uleb128 .LEHB13-.LFB2927
+	.uleb128 .LEHE13-.LEHB13
+	.uleb128 .L109-.LFB2927
+	.uleb128 0
+	.uleb128 .LEHB14-.LFB2927
+	.uleb128 .LEHE14-.LEHB14
+	.uleb128 0
+	.uleb128 0
+.LLSDACSE2927:
+	.byte	0x1
+	.byte	0
+	.align	2
+	.4byte	0
+
+.LLSDATT2927:
+	.section	.text._Z20read_array_from_fileImEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE,"axG",@progbits,_Z20read_array_from_fileImEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE,comdat
+	.size	_Z20read_array_from_fileImEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE, .-_Z20read_array_from_fileImEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE
+	.section	.text._ZNSt6vectorIdSaIdEE17_M_realloc_insertIJRKdEEEvN9__gnu_cxx17__normal_iteratorIPdS1_EEDpOT_,"axG",@progbits,_ZNSt6vectorIdSaIdEE17_M_realloc_insertIJRKdEEEvN9__gnu_cxx17__normal_iteratorIPdS1_EEDpOT_,comdat
+	.align	2
+	.p2align 4,,11
+	.weak	_ZNSt6vectorIdSaIdEE17_M_realloc_insertIJRKdEEEvN9__gnu_cxx17__normal_iteratorIPdS1_EEDpOT_
+	.type	_ZNSt6vectorIdSaIdEE17_M_realloc_insertIJRKdEEEvN9__gnu_cxx17__normal_iteratorIPdS1_EEDpOT_, %function
+_ZNSt6vectorIdSaIdEE17_M_realloc_insertIJRKdEEEvN9__gnu_cxx17__normal_iteratorIPdS1_EEDpOT_:
+.LFB3213:
+	.cfi_startproc
+	stp	x29, x30, [sp, -96]!	//,,,
+	.cfi_def_cfa_offset 96
+	.cfi_offset 29, -96
+	.cfi_offset 30, -88
+	mov	x29, sp	//,
+	stp	x19, x20, [sp, 16]	//,,
+	.cfi_offset 19, -80
+	.cfi_offset 20, -72
+	mov	x20, x0	// this, tmp157
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1898: 	if (max_size() - size() < __n)
+	mov	x0, 1152921504606846975	// tmp133,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:445:       vector<_Tp, _Alloc>::
+	stp	x21, x22, [sp, 32]	//,,
+	stp	x23, x24, [sp, 48]	//,,
+	.cfi_offset 21, -64
+	.cfi_offset 22, -56
+	.cfi_offset 23, -48
+	.cfi_offset 24, -40
+	ldp	x23, x21, [x20]	// _48, _49, MEM[(double * *)this_18(D)]
+	stp	x25, x26, [sp, 64]	//,,
+	str	x27, [sp, 80]	//,
+	.cfi_offset 25, -32
+	.cfi_offset 26, -24
+	.cfi_offset 27, -16
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:993:       { return size_type(this->_M_impl._M_finish - this->_M_impl._M_start); }
+	sub	x3, x21, x23	// tmp131, _49, _48
+	asr	x3, x3, 3	// tmp132, tmp131,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1898: 	if (max_size() - size() < __n)
+	cmp	x3, x0	// tmp132, tmp133
+	beq	.L151		//,
+	mov	x25, x1	// __position, tmp158
+	mov	x22, x2	// __args#0, tmp159
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_iterator.h:1337:     { return __lhs.base() - __rhs.base(); }
+	sub	x26, x1, x23	// _98, __position, _48
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_algobase.h:262:       if (__a < __b)
+	cmp	x23, x21	// _48, _49
+	beq	.L152		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1901: 	const size_type __len = size() + (std::max)(size(), __n);
+	lsl	x1, x3, 1	// __len, tmp132,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1902: 	return (__len < size() || __len > max_size()) ? max_size() : __len;
+	cmp	x3, x1	// tmp132, __len
+	bhi	.L144		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:381: 	return __n != 0 ? _Tr::allocate(_M_impl, __n) : pointer();
+	cbnz	x1, .L153	// __len,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:191: 	{ ::new((void *)__p) _Up(std::forward<_Args>(__args)...); }
+	ldr	d0, [x22]	// MEM[(const type &)__args#0_25(D)], MEM[(const type &)__args#0_25(D)]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:381: 	return __n != 0 ? _Tr::allocate(_M_impl, __n) : pointer();
+	mov	x24, 0	// iftmp.22_24,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:483: 	      ++__new_finish;
+	add	x22, x26, 8	// tmp146, _98,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1118:       ptrdiff_t __count = __last - __first;
+	sub	x21, x21, x25	// _93, _49, __position
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:483: 	      ++__new_finish;
+	add	x22, x24, x22	// _92, iftmp.22_24, tmp146
+	mov	x19, 0	// _83,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:191: 	{ ::new((void *)__p) _Up(std::forward<_Args>(__args)...); }
+	str	d0, [x24, x26]	// MEM[(const type &)__args#0_25(D)], *_2
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1133:       return __result + __count;
+	add	x27, x22, x21	// _95, _92, _93
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1119:       if (__count > 0)
+	cmp	x26, 0	// _98,
+	bgt	.L154		//,
+.L136:
+	cmp	x21, 0	// _93,
+	bgt	.L140		//,
+.L139:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:389: 	if (__p)
+	cbnz	x23, .L138	// _48,
+.L141:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:524:     }
+	ldp	x21, x22, [sp, 32]	//,,
+	ldp	x25, x26, [sp, 64]	//,,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:522:       this->_M_impl._M_finish = __new_finish;
+	stp	x24, x27, [x20]	// iftmp.22_24, _95, this_18(D)->D.76709._M_impl.D.76048._M_start
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:523:       this->_M_impl._M_end_of_storage = __new_start + __len;
+	str	x19, [x20, 16]	// _83, this_18(D)->D.76709._M_impl.D.76048._M_end_of_storage
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:524:     }
+	ldp	x19, x20, [sp, 16]	//,,
+	ldp	x23, x24, [sp, 48]	//,,
+	ldr	x27, [sp, 80]	//,
+	ldp	x29, x30, [sp], 96	//,,,
+	.cfi_remember_state
+	.cfi_restore 30
+	.cfi_restore 29
+	.cfi_restore 27
+	.cfi_restore 25
+	.cfi_restore 26
+	.cfi_restore 23
+	.cfi_restore 24
+	.cfi_restore 21
+	.cfi_restore 22
+	.cfi_restore 19
+	.cfi_restore 20
+	.cfi_def_cfa_offset 0
+	ret	
+	.p2align 2,,3
+.L144:
+	.cfi_restore_state
+	mov	x19, 9223372036854775800	// _80,
+.L134:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:151: 	return static_cast<_Tp*>(_GLIBCXX_OPERATOR_NEW(__n * sizeof(_Tp)));
+	mov	x0, x19	//, _80
+	bl	_Znwm		//
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:191: 	{ ::new((void *)__p) _Up(std::forward<_Args>(__args)...); }
+	ldr	d0, [x22]	// MEM[(const type &)__args#0_25(D)], MEM[(const type &)__args#0_25(D)]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:151: 	return static_cast<_Tp*>(_GLIBCXX_OPERATOR_NEW(__n * sizeof(_Tp)));
+	mov	x24, x0	// iftmp.22_24, tmp160
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:483: 	      ++__new_finish;
+	add	x22, x26, 8	// tmp146, _98,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1118:       ptrdiff_t __count = __last - __first;
+	sub	x21, x21, x25	// _93, _49, __position
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:483: 	      ++__new_finish;
+	add	x22, x24, x22	// _92, iftmp.22_24, tmp146
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:523:       this->_M_impl._M_end_of_storage = __new_start + __len;
+	add	x19, x0, x19	// _83, iftmp.22_24, _80
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:191: 	{ ::new((void *)__p) _Up(std::forward<_Args>(__args)...); }
+	str	d0, [x24, x26]	// MEM[(const type &)__args#0_25(D)], *_2
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1133:       return __result + __count;
+	add	x27, x22, x21	// _95, _92, _93
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1119:       if (__count > 0)
+	cmp	x26, 0	// _98,
+	ble	.L136		//,
+.L154:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1131: 	  __builtin_memmove(__result, __first, __count * sizeof(_Tp));
+	mov	x2, x26	//, _98
+	mov	x1, x23	//, _48
+	mov	x0, x24	//, iftmp.22_24
+	bl	memmove		//
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1119:       if (__count > 0)
+	cmp	x21, 0	// _93,
+	bgt	.L155		//,
+.L138:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:520: 		    this->_M_impl._M_end_of_storage - __old_start);
+	ldr	x1, [x20, 16]	// this_18(D)->D.76709._M_impl.D.76048._M_end_of_storage, this_18(D)->D.76709._M_impl.D.76048._M_end_of_storage
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:172: 	_GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n));
+	mov	x0, x23	//, _48
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:520: 		    this->_M_impl._M_end_of_storage - __old_start);
+	sub	x1, x1, x23	// _12, this_18(D)->D.76709._M_impl.D.76048._M_end_of_storage, _48
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:172: 	_GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n));
+	bl	_ZdlPvm		//
+	b	.L141		//
+	.p2align 2,,3
+.L140:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1131: 	  __builtin_memmove(__result, __first, __count * sizeof(_Tp));
+	mov	x2, x21	//, _93
+	mov	x1, x25	//, __position
+	mov	x0, x22	//, _92
+	bl	memcpy		//
+	b	.L139		//
+	.p2align 2,,3
+.L152:
+	adds	x3, x3, 1	// tmp136, tmp132,
+	bcs	.L144		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1902: 	return (__len < size() || __len > max_size()) ? max_size() : __len;
+	cmp	x3, x0	// tmp136, tmp133
+	csel	x19, x3, x0, ls	// tmp138, tmp136, tmp133,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:151: 	return static_cast<_Tp*>(_GLIBCXX_OPERATOR_NEW(__n * sizeof(_Tp)));
+	lsl	x19, x19, 3	// _80, tmp138,
+	b	.L134		//
+	.p2align 2,,3
+.L155:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_uninitialized.h:1131: 	  __builtin_memmove(__result, __first, __count * sizeof(_Tp));
+	mov	x1, x25	//, __position
+	mov	x2, x21	//, _93
+	mov	x0, x22	//, _92
+	bl	memcpy		//
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:520: 		    this->_M_impl._M_end_of_storage - __old_start);
+	ldr	x1, [x20, 16]	// this_18(D)->D.76709._M_impl.D.76048._M_end_of_storage, this_18(D)->D.76709._M_impl.D.76048._M_end_of_storage
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:172: 	_GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n));
+	mov	x0, x23	//, _48
+// /usr/aarch64-linux-gnu/include/c++/13/bits/vector.tcc:520: 		    this->_M_impl._M_end_of_storage - __old_start);
+	sub	x1, x1, x23	// _12, this_18(D)->D.76709._M_impl.D.76048._M_end_of_storage, _48
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:172: 	_GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n));
+	bl	_ZdlPvm		//
+	b	.L141		//
+.L153:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1902: 	return (__len < size() || __len > max_size()) ? max_size() : __len;
+	cmp	x1, x0	// __len, tmp133
+	csel	x1, x1, x0, ls	// tmp141, __len, tmp133,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:151: 	return static_cast<_Tp*>(_GLIBCXX_OPERATOR_NEW(__n * sizeof(_Tp)));
+	lsl	x19, x1, 3	// _80, tmp141,
+	b	.L134		//
+.L151:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1899: 	  __throw_length_error(__N(__s));
+	adrp	x0, .LC1	// tmp135,
+	add	x0, x0, :lo12:.LC1	//, tmp135,
+	bl	_ZSt20__throw_length_errorPKc		//
+	.cfi_endproc
+.LFE3213:
+	.size	_ZNSt6vectorIdSaIdEE17_M_realloc_insertIJRKdEEEvN9__gnu_cxx17__normal_iteratorIPdS1_EEDpOT_, .-_ZNSt6vectorIdSaIdEE17_M_realloc_insertIJRKdEEEvN9__gnu_cxx17__normal_iteratorIPdS1_EEDpOT_
+	.section	.text._Z20read_array_from_fileIdEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE,"axG",@progbits,_Z20read_array_from_fileIdEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE,comdat
+	.align	2
+	.p2align 4,,11
+	.weak	_Z20read_array_from_fileIdEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE
+	.type	_Z20read_array_from_fileIdEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE, %function
+_Z20read_array_from_fileIdEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE:
+.LFB2929:
+	.cfi_startproc
+	.cfi_personality 0x9b,DW.ref.__gxx_personality_v0
+	.cfi_lsda 0x1b,.LLSDA2929
+	stp	x29, x30, [sp, -96]!	//,,,
+	.cfi_def_cfa_offset 96
+	.cfi_offset 29, -96
+	.cfi_offset 30, -88
+	mov	x29, sp	//,
+	stp	x19, x20, [sp, 16]	//,,
+	stp	x21, x22, [sp, 32]	//,,
+	stp	x23, x24, [sp, 48]	//,,
+	stp	x25, x26, [sp, 64]	//,,
+	stp	x27, x28, [sp, 80]	//,,
+	sub	sp, sp, #1104	//,,
+	.cfi_def_cfa_offset 1200
+	.cfi_offset 19, -80
+	.cfi_offset 20, -72
+	.cfi_offset 21, -64
+	.cfi_offset 22, -56
+	.cfi_offset 23, -48
+	.cfi_offset 24, -40
+	.cfi_offset 25, -32
+	.cfi_offset 26, -24
+	.cfi_offset 27, -16
+	.cfi_offset 28, -8
+	str	xzr, [sp, 1024]	//,
+	adrp	x2, :got:__stack_chk_guard	// tmp178,
+	ldr	x2, [x2, :got_lo12:__stack_chk_guard]	// tmp178,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	add	x21, sp, 824	// tmp413,,
+	str	x21, [sp, 88]	// tmp413, %sfp
+// sum_indirect.hh:23: void read_array_from_file(const std::string &path, std::vector<T> &data)
+	mov	x19, x0	// path, tmp425
+	mov	x23, x1	// data, tmp426
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	add	x28, sp, 560	// tmp402,,
+// sum_indirect.hh:23: void read_array_from_file(const std::string &path, std::vector<T> &data)
+	ldr	x0, [x2]	// tmp441,
+	str	x0, [sp, 1096]	// tmp441, D.84392
+	mov	x0, 0	// tmp441
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	mov	x0, x21	//, tmp413
+	bl	_ZNSt8ios_baseC2Ev		//
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	adrp	x1, :got:_ZTTSt14basic_ifstreamIcSt11char_traitsIcEE	// tmp190,
+	ldr	x1, [x1, :got_lo12:_ZTTSt14basic_ifstreamIcSt11char_traitsIcEE]	// tmp190,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	adrp	x2, .LC2	// tmp464,
+	add	x2, x2, :lo12:.LC2	// tmp464, tmp464,
+	add	x0, sp, 1056	// tmp188,,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:461:       : ios_base(), _M_tie(0), _M_fill(char_type()), _M_fill_init(false), 
+	strh	wzr, [sp, 1048]	//, MEM <unsigned short> [(void *)&file + 488B]
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	ldp	x3, x4, [x1, 8]	// _44, _48, MEM[(const void * *)&_ZTTSt14basic_ifstreamIcSt11char_traitsIcEE + 8B]
+// /usr/aarch64-linux-gnu/include/c++/13/istream:698:       { this->init(0); }
+	mov	x1, 0	//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	ld1	{v0.16b - v1.16b}, [x2]	// tmp189,
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	stp	x3, x4, [sp, 64]	// _44, _48, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	adrp	x2, :got:_ZTVSt9basic_iosIcSt11char_traitsIcEE	// tmp401,
+	ldr	x2, [x2, :got_lo12:_ZTVSt9basic_iosIcSt11char_traitsIcEE]	// tmp401,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	st1	{v0.16b - v1.16b}, [x0]	// tmp189, MEM <vector(4) long unsigned int> [(void *)&file + 496B]
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	ldr	x0, [x3, -24]	// MEM[(long int *)_44 + -24B], MEM[(long int *)_44 + -24B]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	str	x2, [sp]	// tmp401, %sfp
+	add	x2, x2, 16	// tmp183, tmp401,
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	str	x3, [sp, 560]	// _44, MEM[(struct basic_istream *)&file]._vptr.basic_istream
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	str	x2, [sp, 824]	// tmp183, MEM[(struct basic_ios *)&file + 264B].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:461:       : ios_base(), _M_tie(0), _M_fill(char_type()), _M_fill_init(false), 
+	str	xzr, [sp, 1040]	//, MEM[(struct basic_ios *)&file + 264B]._M_tie
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	str	x4, [x28, x0]	// _48, MEM[(struct basic_ios *)_47].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	str	xzr, [sp, 568]	//, MEM[(struct basic_istream *)&file]._M_gcount
+// /usr/aarch64-linux-gnu/include/c++/13/istream:698:       { this->init(0); }
+	ldr	x0, [x3, -24]	// MEM[(long int *)_44 + -24B], MEM[(long int *)_44 + -24B]
+	add	x0, x28, x0	//, tmp402, MEM[(long int *)_44 + -24B]
+.LEHB15:
+	bl	_ZNSt9basic_iosIcSt11char_traitsIcEE4initEPSt15basic_streambufIcS1_E		//
+.LEHE15:
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:571:       : __istream_type(), _M_filebuf()
+	adrp	x1, :got:_ZTVSt14basic_ifstreamIcSt11char_traitsIcEE	// tmp403,
+	ldr	x1, [x1, :got_lo12:_ZTVSt14basic_ifstreamIcSt11char_traitsIcEE]	// tmp403,
+	str	x1, [sp, 104]	// tmp403, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:571:       : __istream_type(), _M_filebuf()
+	add	x20, sp, 576	// tmp404,,
+	str	x20, [sp, 80]	// tmp404, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:571:       : __istream_type(), _M_filebuf()
+	add	x2, x1, 24	// tmp197, tmp403,
+	add	x1, x1, 64	// tmp199, tmp403,
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:571:       : __istream_type(), _M_filebuf()
+	mov	x0, x20	//, tmp404
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:571:       : __istream_type(), _M_filebuf()
+	str	x2, [sp, 560]	// tmp197, MEM[(struct basic_ifstream *)&file].D.55891._vptr.basic_istream
+	str	x1, [sp, 824]	// tmp199, MEM[(struct basic_ios *)&file + 264B].D.48536._vptr.ios_base
+.LEHB16:
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:571:       : __istream_type(), _M_filebuf()
+	bl	_ZNSt13basic_filebufIcSt11char_traitsIcEEC1Ev		//
+.LEHE16:
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:573: 	this->init(&_M_filebuf);
+	mov	x1, x20	//, tmp404
+	mov	x0, x21	//, tmp413
+.LEHB17:
+	bl	_ZNSt9basic_iosIcSt11char_traitsIcEE4initEPSt15basic_streambufIcS1_E		//
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:339:       { return open(__s.c_str(), __mode); }
+	ldr	x1, [x19]	//, MEM[(char * *)path_9(D)]
+	mov	x0, x20	//, tmp404
+	mov	w2, 8	//,
+	bl	_ZNSt13basic_filebufIcSt11char_traitsIcEE4openEPKcSt13_Ios_Openmode		//
+	mov	x2, x0	// tmp427,
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:707: 	  this->setstate(ios_base::failbit);
+	ldr	x0, [sp, 560]	// file.D.55891._vptr.basic_istream, file.D.55891._vptr.basic_istream
+	ldr	x1, [x0, -24]	// MEM[(long int *)pretmp_52 + -24B], MEM[(long int *)pretmp_52 + -24B]
+	add	x0, x28, x1	// _59, tmp402, MEM[(long int *)pretmp_52 + -24B]
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:706: 	if (!_M_filebuf.open(__s, __mode | ios_base::in))
+	cbz	x2, .L219	// tmp427,
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:711: 	  this->clear();
+	mov	w1, 0	//,
+	bl	_ZNSt9basic_iosIcSt11char_traitsIcEE5clearESt12_Ios_Iostate		//
+.LEHE17:
+.L158:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1935: 	if (size_type __n = this->_M_impl._M_finish - __pos)
+	ldp	x0, x1, [x23]	// _26, data_11(D)->D.76709._M_impl.D.76048._M_finish, data_11(D)->D.76709._M_impl.D.76048._M_start
+	cmp	x0, x1	// _26, data_11(D)->D.76709._M_impl.D.76048._M_finish
+	beq	.L160		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1939: 	    this->_M_impl._M_finish = __pos;
+	str	x0, [x23, 8]	// _26, data_11(D)->D.76709._M_impl.D.76048._M_finish
+.L160:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:4074:     { return std::getline(__is, __str, __is.widen('\n')); }
+	ldr	x0, [sp, 560]	// file._vptr.basic_istream, file._vptr.basic_istream
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:193: 	: allocator_type(std::move(__a)), _M_p(__dat) { }
+	add	x1, sp, 160	// tmp398,,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:218:       { _M_string_length = __length; }
+	stp	x1, xzr, [sp, 144]	// tmp398,, MEM[(struct _Alloc_hider *)&line]._M_p
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:358: 	__c1 = __c2;
+	strb	wzr, [sp, 160]	//, MEM[(char_type &)&line + 16]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:193: 	: allocator_type(std::move(__a)), _M_p(__dat) { }
+	str	x1, [sp, 96]	// tmp398, %sfp
+	add	x1, sp, 144	// tmp412,,
+	ldr	x0, [x0, -24]	// MEM[(long int *)_92 + -24B], MEM[(long int *)_92 + -24B]
+	str	x1, [sp, 48]	// tmp412, %sfp
+	add	x0, x28, x0	// tmp236, tmp402, MEM[(long int *)_92 + -24B]
+	ldr	x19, [x0, 240]	// _42, MEM[(const struct __ctype_type * *)_161 + 240B]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:49:       if (!__f)
+	cbz	x19, .L185	// _42,
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:617:       : __istream_type(), _M_stringbuf(__str, __mode | ios_base::in)
+	adrp	x0, :got:_ZTVNSt7__cxx1119basic_istringstreamIcSt11char_traitsIcESaIcEEE	// tmp419,
+	ldr	x0, [x0, :got_lo12:_ZTVNSt7__cxx1119basic_istringstreamIcSt11char_traitsIcESaIcEEE]	// tmp419,
+	str	x0, [sp, 8]	// tmp419, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:473:       _M_buf_locale(locale())
+	adrp	x1, :got:_ZTVSt15basic_streambufIcSt11char_traitsIcEE	// tmp421,
+	ldr	x1, [x1, :got_lo12:_ZTVSt15basic_streambufIcSt11char_traitsIcEE]	// tmp421,
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:617:       : __istream_type(), _M_stringbuf(__str, __mode | ios_base::in)
+	add	x0, x0, 24	// tmp420, tmp419,
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:473:       _M_buf_locale(locale())
+	str	x1, [sp, 112]	// tmp421, %sfp
+	add	x1, x1, 16	// tmp422, tmp421,
+	stp	x0, x1, [sp, 16]	// tmp420, tmp422, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:149: 	_M_string(__str.data(), __str.size(), __str.get_allocator())
+	adrp	x0, :got:_ZTVNSt7__cxx1115basic_stringbufIcSt11char_traitsIcESaIcEEE	// tmp423,
+	ldr	x0, [x0, :got_lo12:_ZTVNSt7__cxx1115basic_stringbufIcSt11char_traitsIcESaIcEEE]	// tmp423,
+	str	x0, [sp, 120]	// tmp423, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	adrp	x1, :got:_ZTTNSt7__cxx1119basic_istringstreamIcSt11char_traitsIcESaIcEEE	// tmp418,
+	ldr	x1, [x1, :got_lo12:_ZTTNSt7__cxx1119basic_istringstreamIcSt11char_traitsIcESaIcEEE]	// tmp418,
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:149: 	_M_string(__str.data(), __str.size(), __str.get_allocator())
+	add	x0, x0, 16	// tmp424, tmp423,
+	str	x0, [sp, 32]	// tmp424, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	str	x1, [sp, 56]	// tmp418, %sfp
+	.p2align 3,,7
+.L165:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/locale_facets.h:882: 	if (_M_widen_ok)
+	ldrb	w0, [x19, 56]	// MEM[(const struct ctype *)_42]._M_widen_ok, MEM[(const struct ctype *)_42]._M_widen_ok
+	cbz	w0, .L186	// MEM[(const struct ctype *)_42]._M_widen_ok,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/locale_facets.h:883: 	  return _M_widen[static_cast<unsigned char>(__c)];
+	ldrb	w2, [x19, 67]	// _144, MEM[(const struct ctype *)_42]._M_widen[10]
+.L187:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:4074:     { return std::getline(__is, __str, __is.widen('\n')); }
+	ldr	x1, [sp, 48]	//, %sfp
+	adrp	x0, :got:__stack_chk_guard	// tmp414,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp414,
+	str	x0, [sp, 40]	// tmp414, %sfp
+	mov	x0, x28	//, tmp402
+.LEHB18:
+	bl	_ZSt7getlineIcSt11char_traitsIcESaIcEERSt13basic_istreamIT_T0_ES7_RNSt7__cxx1112basic_stringIS4_S5_T1_EES4_		//
+.LEHE18:
+// sum_indirect.hh:29:     while (std::getline(file, line))
+	ldr	x2, [x0]	// _139->_vptr.basic_istream, _139->_vptr.basic_istream
+// /usr/aarch64-linux-gnu/include/c++/13/bits/ios_base.h:167:   { return _Ios_Iostate(static_cast<int>(__a) & static_cast<int>(__b)); }
+	mov	w1, 5	// tmp363,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:138:       { return _M_streambuf_state; }
+	ldr	x2, [x2, -24]	// MEM[(long int *)_1 + -24B], MEM[(long int *)_1 + -24B]
+	add	x0, x0, x2	// tmp360, _139, MEM[(long int *)_1 + -24B]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/ios_base.h:167:   { return _Ios_Iostate(static_cast<int>(__a) & static_cast<int>(__b)); }
+	ldr	w0, [x0, 32]	//, MEM[(const struct basic_ios *)_4].D.48536._M_streambuf_state
+// sum_indirect.hh:29:     while (std::getline(file, line))
+	tst	w0, w1	// MEM[(const struct basic_ios *)_4].D.48536._M_streambuf_state, tmp363
+	bne	.L220		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	add	x22, sp, 296	// tmp410,,
+	add	x21, sp, 176	// tmp399,,
+	mov	x0, x22	//, tmp410
+	bl	_ZNSt8ios_baseC2Ev		//
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	ldr	x2, [sp, 56]	// tmp418, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	add	x1, sp, 528	// tmp245,,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:461:       : ios_base(), _M_tie(0), _M_fill(char_type()), _M_fill_init(false), 
+	strh	wzr, [sp, 520]	//, MEM <unsigned short> [(void *)&ss + 344B]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	ldr	x0, [sp]	// tmp401, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	ldp	x20, x26, [x2, 8]	// _75, _79, MEM[(const void * *)&_ZTTNSt7__cxx1119basic_istringstreamIcSt11char_traitsIcESaIcEEE + 8B]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	adrp	x2, .LC2	// tmp502,
+	add	x2, x2, :lo12:.LC2	// tmp502, tmp502,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	add	x0, x0, 16	// tmp240, tmp401,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	ld1	{v0.16b - v1.16b}, [x2]	// tmp501,
+	st1	{v0.16b - v1.16b}, [x1]	// tmp501, MEM <vector(4) long unsigned int> [(void *)&ss + 352B]
+// /usr/aarch64-linux-gnu/include/c++/13/istream:698:       { this->init(0); }
+	mov	x1, 0	//,
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	ldr	x2, [x20, -24]	// MEM[(long int *)_75 + -24B], MEM[(long int *)_75 + -24B]
+	str	x20, [sp, 176]	// _75, MEM[(struct basic_istream *)&ss]._vptr.basic_istream
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:462: 	_M_streambuf(0), _M_ctype(0), _M_num_put(0), _M_num_get(0)
+	str	x0, [sp, 296]	// tmp240, MEM[(struct basic_ios *)&ss + 120B].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:461:       : ios_base(), _M_tie(0), _M_fill(char_type()), _M_fill_init(false), 
+	str	xzr, [sp, 512]	//, MEM[(struct basic_ios *)&ss + 120B]._M_tie
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	str	x26, [x21, x2]	// _79, MEM[(struct basic_ios *)_78].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/istream:697:       : _M_gcount(streamsize(0))
+	str	xzr, [sp, 184]	//, MEM[(struct basic_istream *)&ss]._M_gcount
+// /usr/aarch64-linux-gnu/include/c++/13/istream:698:       { this->init(0); }
+	ldr	x0, [x20, -24]	// MEM[(long int *)_75 + -24B], MEM[(long int *)_75 + -24B]
+	add	x0, x21, x0	//, tmp399, MEM[(long int *)_75 + -24B]
+.LEHB19:
+	bl	_ZNSt9basic_iosIcSt11char_traitsIcEE4initEPSt15basic_streambufIcS1_E		//
+.LEHE19:
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:617:       : __istream_type(), _M_stringbuf(__str, __mode | ios_base::in)
+	ldp	x0, x2, [sp, 8]	// tmp419, tmp420, %sfp
+	str	x2, [sp, 176]	// tmp420, MEM[(struct basic_istringstream *)&ss].D.57949._vptr.basic_istream
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:473:       _M_buf_locale(locale())
+	ldr	x2, [sp, 24]	// tmp422, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:473:       _M_buf_locale(locale())
+	add	x25, sp, 248	// tmp405,,
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:473:       _M_buf_locale(locale())
+	str	x2, [sp, 192]	// tmp422, MEM[(struct basic_streambuf *)&ss + 16B]._vptr.basic_streambuf
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:189: 	: allocator_type(__a), _M_p(__dat) { }
+	add	x24, sp, 280	// tmp408,,
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:471:       : _M_in_beg(0), _M_in_cur(0), _M_in_end(0),
+	stp	xzr, xzr, [sp, 200]	//,, MEM[(struct basic_streambuf *)&ss + 16B]._M_in_beg
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:617:       : __istream_type(), _M_stringbuf(__str, __mode | ios_base::in)
+	add	x1, x0, 64	// tmp256, tmp419,
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:473:       _M_buf_locale(locale())
+	mov	x0, x25	//, tmp405
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:472:       _M_out_beg(0), _M_out_cur(0), _M_out_end(0),
+	stp	xzr, xzr, [sp, 216]	//,, MEM[(struct basic_streambuf *)&ss + 16B]._M_in_end
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:472:       _M_out_beg(0), _M_out_cur(0), _M_out_end(0),
+	stp	xzr, xzr, [sp, 232]	//,, MEM[(struct basic_streambuf *)&ss + 16B]._M_out_cur
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:617:       : __istream_type(), _M_stringbuf(__str, __mode | ios_base::in)
+	str	x1, [sp, 296]	// tmp256, MEM[(struct basic_ios *)&ss + 120B].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:473:       _M_buf_locale(locale())
+	bl	_ZNSt6localeC1Ev		//
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:1072:       { return _M_string_length; }
+	ldp	x27, x19, [sp, 144]	// _94, _95, MEM[(const struct basic_string *)&line]._M_dataplus._M_p
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:148:       : __streambuf_type(), _M_mode(),
+	str	wzr, [sp, 256]	//, MEM[(struct basic_stringbuf *)&ss + 16B]._M_mode
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:149: 	_M_string(__str.data(), __str.size(), __str.get_allocator())
+	ldr	x0, [sp, 32]	// tmp424, %sfp
+	str	x0, [sp, 192]	// tmp424, MEM[(struct basic_stringbuf *)&ss + 16B].D.57795._vptr.basic_streambuf
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:189: 	: allocator_type(__a), _M_p(__dat) { }
+	str	x24, [sp, 264]	// tmp408, MEM[(struct _Alloc_hider *)&ss + 88B]._M_p
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:624: 	if (__s == 0 && __n > 0)
+	cmp	x27, 0	// _94,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:624: 	if (__s == 0 && __n > 0)
+	ccmp	x19, 0, 4, eq	// _95,,,
+	bne	.L221		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.tcc:225: 	size_type __dnew = static_cast<size_type>(std::distance(__beg, __end));
+	str	x19, [sp, 136]	// _95, MEM[(long unsigned int *)_70]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.tcc:227: 	if (__dnew > size_type(_S_local_capacity))
+	cmp	x19, 15	// _95,
+	bhi	.L222		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:427: 	if (__n == 1)
+	cmp	x19, 1	// _95,
+	bne	.L171		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:358: 	__c1 = __c2;
+	ldrb	w0, [x27]	// _110, MEM[(const char_type &)_94]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:358: 	__c1 = __c2;
+	strb	w0, [sp, 280]	// _110, MEM[(char_type &)&ss + 104]
+.L173:
+	mov	x0, x24	// prephitmp_132, tmp408
+.L172:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:218:       { _M_string_length = __length; }
+	str	x19, [sp, 272]	// _95, MEM[(struct basic_string *)&ss + 88B]._M_string_length
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:338: 	_M_mode = __mode;
+	mov	w4, 8	// tmp282,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:358: 	__c1 = __c2;
+	strb	wzr, [x0, x19]	//, MEM[(char_type &)_113]
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:342: 	_M_sync(const_cast<char_type*>(_M_string.data()), 0, __len);
+	add	x19, sp, 192	// tmp400,,
+	mov	x0, x19	//, tmp400
+	mov	x3, 0	//,
+	ldr	x1, [sp, 264]	//, MEM[(const struct basic_string *)&ss + 88B]._M_dataplus._M_p
+	mov	x2, 0	//,
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:338: 	_M_mode = __mode;
+	str	w4, [sp, 256]	// tmp282, MEM[(struct basic_stringbuf *)&ss + 16B]._M_mode
+.LEHB20:
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:342: 	_M_sync(const_cast<char_type*>(_M_string.data()), 0, __len);
+	bl	_ZNSt7__cxx1115basic_stringbufIcSt11char_traitsIcESaIcEE7_M_syncEPcmm		//
+.LEHE20:
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:618:       { this->init(&_M_stringbuf); }
+	mov	x1, x19	//, tmp400
+	mov	x0, x22	//, tmp410
+.LEHB21:
+	bl	_ZNSt9basic_iosIcSt11char_traitsIcEE4initEPSt15basic_streambufIcS1_E		//
+.LEHE21:
+// /usr/aarch64-linux-gnu/include/c++/13/istream:221:       { return _M_extract(__f); }
+	add	x19, sp, 136	// tmp411,,
+	mov	x0, x21	//, tmp399
+	mov	x1, x19	//, tmp411
+.LEHB22:
+	bl	_ZNSi10_M_extractIdEERSiRT_		//
+.LEHE22:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1283: 	if (this->_M_impl._M_finish != this->_M_impl._M_end_of_storage)
+	ldp	x1, x0, [x23, 8]	// _114, data_11(D)->D.76709._M_impl.D.76048._M_end_of_storage, data_11(D)->D.76709._M_impl.D.76048._M_finish
+	cmp	x1, x0	// _114, data_11(D)->D.76709._M_impl.D.76048._M_end_of_storage
+	beq	.L182		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:191: 	{ ::new((void *)__p) _Up(std::forward<_Args>(__args)...); }
+	ldr	d0, [sp, 136]	// _116, MEM[(double *)_70]
+	str	d0, [x1], 8	// _116, *_114
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1288: 	    ++this->_M_impl._M_finish;
+	str	x1, [x23, 8]	// tmp325, data_11(D)->D.76709._M_impl.D.76048._M_finish
+.L183:
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:627:       { }
+	ldp	x1, x2, [sp, 8]	// tmp419, tmp420, %sfp
+	str	x2, [sp, 176]	// tmp420, ss.D.57949._vptr.basic_istream
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:223:       { return _M_dataplus._M_p; }
+	ldr	x0, [sp, 264]	// _127, MEM[(const struct basic_string *)&ss + 88B]._M_dataplus._M_p
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:79:     class basic_stringbuf : public basic_streambuf<_CharT, _Traits>
+	ldr	x2, [sp, 32]	// tmp424, %sfp
+	str	x2, [sp, 192]	// tmp424, MEM[(struct basic_stringbuf *)&ss + 16B].D.57795._vptr.basic_streambuf
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:627:       { }
+	add	x1, x1, 64	// tmp329, tmp419,
+	str	x1, [sp, 296]	// tmp329, MEM[(struct basic_ios *)&ss + 120B].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:264: 	if (_M_data() == _M_local_data())
+	cmp	x0, x24	// _127, tmp408
+	beq	.L184		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:289:       { _Alloc_traits::deallocate(_M_get_allocator(), _M_data(), __size + 1); }
+	ldr	x1, [sp, 280]	// MEM[(struct basic_string *)&ss + 88B].D.29594._M_allocated_capacity, MEM[(struct basic_string *)&ss + 88B].D.29594._M_allocated_capacity
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:172: 	_GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n));
+	add	x1, x1, 1	//, MEM[(struct basic_string *)&ss + 88B].D.29594._M_allocated_capacity,
+	bl	_ZdlPvm		//
+.L184:
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:205:       { }
+	ldr	x1, [sp, 24]	// tmp422, %sfp
+	mov	x0, x25	//, tmp405
+	str	x1, [sp, 192]	// tmp422, MEM[(struct basic_streambuf *)&ss + 16B]._vptr.basic_streambuf
+	bl	_ZNSt6localeD1Ev		//
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	ldr	x2, [x20, -24]	// MEM[(long int *)_75 + -24B], MEM[(long int *)_75 + -24B]
+	str	x20, [sp, 176]	// _75, MEM[(struct basic_istream *)&ss]._vptr.basic_istream
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:282:       ~basic_ios() { }
+	ldr	x1, [sp]	// tmp401, %sfp
+	mov	x0, x22	//, tmp410
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	str	x26, [x21, x2]	// _79, MEM[(struct basic_ios *)_124].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:282:       ~basic_ios() { }
+	add	x1, x1, 16	// tmp343, tmp401,
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	str	xzr, [sp, 184]	//, MEM[(struct basic_istream *)&ss]._M_gcount
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:282:       ~basic_ios() { }
+	str	x1, [sp, 296]	// tmp343, MEM[(struct basic_ios *)&ss + 120B].D.48536._vptr.ios_base
+	bl	_ZNSt8ios_baseD2Ev		//
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:4074:     { return std::getline(__is, __str, __is.widen('\n')); }
+	ldr	x0, [sp, 560]	// file._vptr.basic_istream, file._vptr.basic_istream
+	ldr	x0, [x0, -24]	// MEM[(long int *)_134 + -24B], MEM[(long int *)_134 + -24B]
+	add	x0, x28, x0	// tmp350, tmp402, MEM[(long int *)_134 + -24B]
+	ldr	x19, [x0, 240]	// _42, MEM[(const struct __ctype_type * *)_137 + 240B]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:49:       if (!__f)
+	cbnz	x19, .L165	// _42,
+.L185:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:50: 	__throw_bad_cast();
+	adrp	x0, :got:__stack_chk_guard	// tmp414,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp414,
+	str	x0, [sp, 40]	// tmp414, %sfp
+	mov	x2, x0	// tmp414, tmp414
+	ldr	x0, [sp, 1096]	// tmp444, D.84392
+	ldr	x1, [x2]	// tmp445,
+	subs	x0, x0, x1	// tmp444, tmp445
+	mov	x1, 0	// tmp445
+	bne	.L216		//,
+	add	x0, sp, 144	// tmp412,,
+	str	x0, [sp, 48]	// tmp412, %sfp
+.LEHB23:
+	bl	_ZSt16__throw_bad_castv		//
+	.p2align 2,,3
+.L186:
+	adrp	x0, :got:__stack_chk_guard	// tmp414,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp414,
+	str	x0, [sp, 40]	// tmp414, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/bits/locale_facets.h:884: 	this->_M_widen_init();
+	mov	x0, x19	//, _42
+	bl	_ZNKSt5ctypeIcE13_M_widen_initEv		//
+// /usr/aarch64-linux-gnu/include/c++/13/bits/locale_facets.h:885: 	return this->do_widen(__c);
+	ldr	x1, [x19]	// MEM[(const struct ctype *)_42].D.44983._vptr.facet, MEM[(const struct ctype *)_42].D.44983._vptr.facet
+	adrp	x0, _ZNKSt5ctypeIcE8do_widenEc	// tmp354,
+	add	x0, x0, :lo12:_ZNKSt5ctypeIcE8do_widenEc	// tmp353, tmp354,
+	mov	w2, 10	// _144,
+	ldr	x3, [x1, 48]	// _148, MEM[(int (*) () *)_147 + 48B]
+	cmp	x3, x0	// _148, tmp353
+	beq	.L187		//,
+	mov	w1, w2	//, _144
+	mov	x0, x19	//, _42
+	adrp	x2, :got:__stack_chk_guard	// tmp414,
+	ldr	x2, [x2, :got_lo12:__stack_chk_guard]	// tmp414,
+	str	x2, [sp, 40]	// tmp414, %sfp
+	blr	x3		// _148
+.LEHE23:
+	and	w2, w0, 255	// _144, tmp436
+// /usr/aarch64-linux-gnu/include/c++/13/bits/locale_facets.h:885: 	return this->do_widen(__c);
+	b	.L187		//
+	.p2align 2,,3
+.L171:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:429: 	if (__n == 0)
+	cbz	x19, .L173	// _95,
+	mov	x0, x24	// _43, tmp408
+	b	.L170		//
+	.p2align 2,,3
+.L222:
+	adrp	x0, :got:__stack_chk_guard	// tmp414,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp414,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.tcc:229: 	    _M_data(_M_create(__dnew, size_type(0)));
+	add	x1, sp, 136	//,,
+	mov	x2, 0	//,
+	str	x0, [sp, 40]	// tmp414, %sfp
+	add	x0, sp, 264	//,,
+.LEHB24:
+	bl	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE9_M_createERmm		//
+.LEHE24:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:250:       { _M_allocated_capacity = __capacity; }
+	ldr	x1, [sp, 136]	// MEM[(long unsigned int *)_70], MEM[(long unsigned int *)_70]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:213:       { _M_dataplus._M_p = __p; }
+	str	x0, [sp, 264]	// _43, MEM[(struct basic_string *)&ss + 88B]._M_dataplus._M_p
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:250:       { _M_allocated_capacity = __capacity; }
+	str	x1, [sp, 280]	// MEM[(long unsigned int *)_70], MEM[(struct basic_string *)&ss + 88B].D.29594._M_allocated_capacity
+.L170:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:435: 	return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n));
+	mov	x2, x19	//, _95
+	mov	x1, x27	//, _94
+	bl	memcpy		//
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.tcc:251: 	_M_set_length(__dnew);
+	ldr	x19, [sp, 136]	// _95, MEM[(long unsigned int *)_70]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:223:       { return _M_dataplus._M_p; }
+	ldr	x0, [sp, 264]	// prephitmp_132, MEM[(const struct basic_string *)&ss + 88B]._M_dataplus._M_p
+// /usr/aarch64-linux-gnu/include/c++/13/bits/char_traits.h:435: 	return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n));
+	b	.L172		//
+	.p2align 2,,3
+.L182:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:1292: 	  _M_realloc_insert(end(), __x);
+	mov	x2, x19	//, tmp411
+	mov	x0, x23	//, data
+.LEHB25:
+	bl	_ZNSt6vectorIdSaIdEE17_M_realloc_insertIJRKdEEEvN9__gnu_cxx17__normal_iteratorIPdS1_EEDpOT_		//
+.LEHE25:
+	b	.L183		//
+	.p2align 2,,3
+.L220:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:264: 	if (_M_data() == _M_local_data())
+	ldr	x1, [sp, 96]	// tmp398, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:223:       { return _M_dataplus._M_p; }
+	ldr	x0, [sp, 144]	// _163, line._M_dataplus._M_p
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:264: 	if (_M_data() == _M_local_data())
+	cmp	x0, x1	// _163, tmp398
+	beq	.L189		//,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:289:       { _Alloc_traits::deallocate(_M_get_allocator(), _M_data(), __size + 1); }
+	ldr	x1, [sp, 160]	// line.D.29594._M_allocated_capacity, line.D.29594._M_allocated_capacity
+// /usr/aarch64-linux-gnu/include/c++/13/bits/new_allocator.h:172: 	_GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n));
+	add	x1, x1, 1	//, line.D.29594._M_allocated_capacity,
+	bl	_ZdlPvm		//
+.L189:
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:607:       { }
+	ldr	x1, [sp, 104]	// tmp403, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:259:       }
+	adrp	x2, :got:_ZTVSt13basic_filebufIcSt11char_traitsIcEE	// tmp373,
+	ldr	x2, [x2, :got_lo12:_ZTVSt13basic_filebufIcSt11char_traitsIcEE]	// tmp373,
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:607:       { }
+	add	x3, x1, 24	// tmp368, tmp403,
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:256: 	  { this->close(); }
+	ldr	x0, [sp, 80]	//, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:259:       }
+	add	x2, x2, 16	// tmp372, tmp373,
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:607:       { }
+	add	x1, x1, 64	// tmp370, tmp403,
+	str	x3, [sp, 560]	// tmp368, file.D.55891._vptr.basic_istream
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:259:       }
+	str	x2, [sp, 576]	// tmp372, MEM[(struct basic_filebuf *)&file + 16B].D.55699._vptr.basic_streambuf
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:607:       { }
+	str	x1, [sp, 824]	// tmp370, MEM[(struct basic_ios *)&file + 264B].D.48536._vptr.ios_base
+.LEHB26:
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:256: 	  { this->close(); }
+	bl	_ZNSt13basic_filebufIcSt11char_traitsIcEE5closeEv		//
+.LEHE26:
+.L191:
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:259:       }
+	add	x0, sp, 688	//,,
+	bl	_ZNSt12__basic_fileIcED1Ev		//
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:205:       { }
+	adrp	x1, :got:_ZTVSt15basic_streambufIcSt11char_traitsIcEE	// tmp379,
+	ldr	x1, [x1, :got_lo12:_ZTVSt15basic_streambufIcSt11char_traitsIcEE]	// tmp379,
+	add	x0, sp, 632	//,,
+	add	x1, x1, 16	// tmp378, tmp379,
+	str	x1, [sp, 576]	// tmp378, MEM[(struct basic_streambuf *)&file + 16B]._vptr.basic_streambuf
+	bl	_ZNSt6localeD1Ev		//
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	ldp	x0, x3, [sp, 64]	// _44, _48, %sfp
+	ldr	x2, [x0, -24]	// MEM[(long int *)_44 + -24B], MEM[(long int *)_44 + -24B]
+	str	x0, [sp, 560]	// _44, MEM[(struct basic_istream *)&file]._vptr.basic_istream
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:282:       ~basic_ios() { }
+	ldr	x0, [sp]	// tmp401, %sfp
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	str	x3, [x28, x2]	// _48, MEM[(struct basic_ios *)_160].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:282:       ~basic_ios() { }
+	add	x1, x0, 16	// tmp384, tmp401,
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	str	xzr, [sp, 568]	//, MEM[(struct basic_istream *)&file]._M_gcount
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:282:       ~basic_ios() { }
+	ldr	x0, [sp, 88]	//, %sfp
+	str	x1, [sp, 824]	// tmp384, MEM[(struct basic_ios *)&file + 264B].D.48536._vptr.ios_base
+	bl	_ZNSt8ios_baseD2Ev		//
+// sum_indirect.hh:36: }
+	adrp	x0, :got:__stack_chk_guard	// tmp397,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp397,
+	ldr	x2, [sp, 1096]	// tmp448, D.84392
+	ldr	x1, [x0]	// tmp449,
+	subs	x2, x2, x1	// tmp448, tmp449
+	mov	x1, 0	// tmp449
+	bne	.L216		//,
+	add	sp, sp, 1104	//,,
+	.cfi_remember_state
+	.cfi_def_cfa_offset 96
+	ldp	x19, x20, [sp, 16]	//,,
+	ldp	x21, x22, [sp, 32]	//,,
+	ldp	x23, x24, [sp, 48]	//,,
+	ldp	x25, x26, [sp, 64]	//,,
+	ldp	x27, x28, [sp, 80]	//,,
+	ldp	x29, x30, [sp], 96	//,,,
+	.cfi_restore 30
+	.cfi_restore 29
+	.cfi_restore 27
+	.cfi_restore 28
+	.cfi_restore 25
+	.cfi_restore 26
+	.cfi_restore 23
+	.cfi_restore 24
+	.cfi_restore 21
+	.cfi_restore 22
+	.cfi_restore 19
+	.cfi_restore 20
+	.cfi_def_cfa_offset 0
+	ret	
+	.p2align 2,,3
+.L219:
+	.cfi_restore_state
+// /usr/aarch64-linux-gnu/include/c++/13/bits/ios_base.h:171:   { return _Ios_Iostate(static_cast<int>(__a) | static_cast<int>(__b)); }
+	ldr	w1, [x0, 32]	//, MEM[(const struct basic_ios *)_59].D.48536._M_streambuf_state
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:158:       { this->clear(this->rdstate() | __state); }
+	orr	w1, w1, 4	//, MEM[(const struct basic_ios *)_59].D.48536._M_streambuf_state,
+.LEHB27:
+	bl	_ZNSt9basic_iosIcSt11char_traitsIcEE5clearESt12_Ios_Iostate		//
+.LEHE27:
+	b	.L158		//
+.L221:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:625: 	  std::__throw_logic_error(__N("basic_string: "
+	adrp	x0, :got:__stack_chk_guard	// tmp414,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp414,
+	str	x0, [sp, 40]	// tmp414, %sfp
+	mov	x2, x0	// tmp414, tmp414
+	ldr	x0, [sp, 1096]	// tmp446, D.84392
+	ldr	x1, [x2]	// tmp447,
+	subs	x0, x0, x1	// tmp446, tmp447
+	mov	x1, 0	// tmp447
+	bne	.L216		//,
+	adrp	x0, .LC0	// tmp272,
+	add	x0, x0, :lo12:.LC0	//, tmp272,
+.LEHB28:
+	bl	_ZSt19__throw_logic_errorPKc		//
+.LEHE28:
+.L197:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:804:       { _M_dispose(); }
+	mov	x19, x0	// tmp320, tmp439
+.L181:
+	ldr	x0, [sp, 48]	//, %sfp
+	bl	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE10_M_disposeEv		//
+// sum_indirect.hh:36: }
+	mov	x0, x28	//, tmp402
+	bl	_ZNSt14basic_ifstreamIcSt11char_traitsIcEED1Ev		//
+	ldr	x2, [sp, 40]	// tmp414, %sfp
+	ldr	x0, [sp, 1096]	// tmp450, D.84392
+	ldr	x1, [x2]	// tmp451,
+	subs	x0, x0, x1	// tmp450, tmp451
+	mov	x1, 0	// tmp451
+	beq	.L193		//,
+.L216:
+	bl	__stack_chk_fail		//
+.L198:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:282:       ~basic_ios() { }
+	mov	x19, x0	// tmp224, tmp430
+.L163:
+	ldr	x0, [sp]	// tmp401, %sfp
+	add	x1, x0, 16	// tmp226, tmp401,
+	str	x1, [sp, 824]	// tmp226, MEM[(struct basic_ios *)&file + 264B].D.48536._vptr.ios_base
+	ldr	x0, [sp, 88]	//, %sfp
+	bl	_ZNSt8ios_baseD2Ev		//
+	adrp	x0, :got:__stack_chk_guard	// tmp230,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp230,
+	ldr	x2, [sp, 1096]	// tmp442, D.84392
+	ldr	x1, [x0]	// tmp443,
+	subs	x2, x2, x1	// tmp442, tmp443
+	mov	x1, 0	// tmp443
+	bne	.L216		//,
+.L193:
+	mov	x0, x19	//, tmp320
+.LEHB29:
+	bl	_Unwind_Resume		//
+.LEHE29:
+.L205:
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:257: 	__catch(...)
+	bl	__cxa_begin_catch		//
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:257: 	__catch(...)
+	bl	__cxa_end_catch		//
+	b	.L191		//
+.L203:
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:205:       { }
+	mov	x19, x0	// tmp288, tmp433
+.L176:
+	ldr	x0, [sp, 112]	// tmp421, %sfp
+	add	x1, x0, 16	// tmp292, tmp421,
+	mov	x0, x25	//, tmp405
+	str	x1, [sp, 192]	// tmp292, MEM[(struct basic_streambuf *)&ss + 16B]._vptr.basic_streambuf
+	bl	_ZNSt6localeD1Ev		//
+.L177:
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	ldr	x0, [x20, -24]	// MEM[(long int *)_75 + -24B], MEM[(long int *)_75 + -24B]
+	str	x20, [sp, 176]	// _75, MEM[(struct basic_istream *)&ss]._vptr.basic_istream
+	str	x26, [x21, x0]	// _79, MEM[(struct basic_ios *)_91].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	str	xzr, [sp, 184]	//, MEM[(struct basic_istream *)&ss]._M_gcount
+.L180:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:282:       ~basic_ios() { }
+	ldr	x0, [sp]	// tmp401, %sfp
+	add	x1, x0, 16	// tmp316, tmp401,
+	mov	x0, x22	//, tmp410
+	str	x1, [sp, 296]	// tmp316, MEM[(struct basic_ios *)&ss + 120B].D.48536._vptr.ios_base
+	bl	_ZNSt8ios_baseD2Ev		//
+	b	.L181		//
+.L196:
+// sum_indirect.hh:29:     while (std::getline(file, line))
+	mov	x19, x0	// tmp438,
+	mov	x0, x21	//, tmp399
+	bl	_ZNSt7__cxx1119basic_istringstreamIcSt11char_traitsIcESaIcEED1Ev		//
+	adrp	x0, :got:__stack_chk_guard	// tmp414,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp414,
+	str	x0, [sp, 40]	// tmp414, %sfp
+	b	.L181		//
+.L202:
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:79:     class basic_stringbuf : public basic_streambuf<_CharT, _Traits>
+	ldr	x1, [sp, 120]	// tmp423, %sfp
+	mov	x19, x0	// tmp310, tmp434
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:804:       { _M_dispose(); }
+	add	x0, sp, 264	//,,
+// /usr/aarch64-linux-gnu/include/c++/13/sstream:79:     class basic_stringbuf : public basic_streambuf<_CharT, _Traits>
+	add	x1, x1, 16	// tmp302, tmp423,
+	str	x1, [sp, 192]	// tmp302, MEM[(struct basic_stringbuf *)&ss + 16B].D.57795._vptr.basic_streambuf
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:804:       { _M_dispose(); }
+	bl	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE10_M_disposeEv		//
+// /usr/aarch64-linux-gnu/include/c++/13/streambuf:205:       { }
+	ldr	x0, [sp, 112]	// tmp421, %sfp
+	add	x1, x0, 16	// tmp306, tmp421,
+	mov	x0, x25	//, tmp405
+	str	x1, [sp, 192]	// tmp306, MEM[(struct basic_streambuf *)&ss + 16B]._vptr.basic_streambuf
+	bl	_ZNSt6localeD1Ev		//
+	adrp	x0, :got:__stack_chk_guard	// tmp414,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp414,
+	str	x0, [sp, 40]	// tmp414, %sfp
+	b	.L177		//
+.L200:
+// /usr/aarch64-linux-gnu/include/c++/13/fstream:575:       }
+	mov	x19, x0	// tmp428,
+	ldr	x0, [sp, 80]	//, %sfp
+	bl	_ZNSt13basic_filebufIcSt11char_traitsIcEED1Ev		//
+.L162:
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	ldr	x1, [sp, 64]	// _44, %sfp
+	ldr	x0, [x1, -24]	// MEM[(long int *)_44 + -24B], MEM[(long int *)_44 + -24B]
+	str	x1, [sp, 560]	// _44, MEM[(struct basic_istream *)&file]._vptr.basic_istream
+	ldr	x1, [sp, 72]	// _48, %sfp
+	str	x1, [x28, x0]	// _48, MEM[(struct basic_ios *)_57].D.48536._vptr.ios_base
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	str	xzr, [sp, 568]	//, MEM[(struct basic_istream *)&file]._M_gcount
+	b	.L163		//
+.L201:
+	adrp	x1, :got:__stack_chk_guard	// tmp414,
+	ldr	x1, [x1, :got_lo12:__stack_chk_guard]	// tmp414,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_ios.h:282:       ~basic_ios() { }
+	mov	x19, x0	// tmp314, tmp435
+	str	x1, [sp, 40]	// tmp414, %sfp
+	b	.L180		//
+.L199:
+// /usr/aarch64-linux-gnu/include/c++/13/istream:106:       { _M_gcount = streamsize(0); }
+	mov	x19, x0	// tmp218, tmp429
+	b	.L162		//
+.L204:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:804:       { _M_dispose(); }
+	mov	x19, x0	// tmp432,
+	add	x0, sp, 264	//,,
+	bl	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE10_M_disposeEv		//
+	adrp	x0, :got:__stack_chk_guard	// tmp414,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp414,
+	str	x0, [sp, 40]	// tmp414, %sfp
+	b	.L176		//
+	.cfi_endproc
+.LFE2929:
+	.section	.gcc_except_table._Z20read_array_from_fileIdEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE,"aG",@progbits,_Z20read_array_from_fileIdEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE,comdat
+	.align	2
+.LLSDA2929:
+	.byte	0xff
+	.byte	0x9b
+	.uleb128 .LLSDATT2929-.LLSDATTD2929
+.LLSDATTD2929:
+	.byte	0x1
+	.uleb128 .LLSDACSE2929-.LLSDACSB2929
+.LLSDACSB2929:
+	.uleb128 .LEHB15-.LFB2929
+	.uleb128 .LEHE15-.LEHB15
+	.uleb128 .L198-.LFB2929
+	.uleb128 0
+	.uleb128 .LEHB16-.LFB2929
+	.uleb128 .LEHE16-.LEHB16
+	.uleb128 .L199-.LFB2929
+	.uleb128 0
+	.uleb128 .LEHB17-.LFB2929
+	.uleb128 .LEHE17-.LEHB17
+	.uleb128 .L200-.LFB2929
+	.uleb128 0
+	.uleb128 .LEHB18-.LFB2929
+	.uleb128 .LEHE18-.LEHB18
+	.uleb128 .L197-.LFB2929
+	.uleb128 0
+	.uleb128 .LEHB19-.LFB2929
+	.uleb128 .LEHE19-.LEHB19
+	.uleb128 .L201-.LFB2929
+	.uleb128 0
+	.uleb128 .LEHB20-.LFB2929
+	.uleb128 .LEHE20-.LEHB20
+	.uleb128 .L204-.LFB2929
+	.uleb128 0
+	.uleb128 .LEHB21-.LFB2929
+	.uleb128 .LEHE21-.LEHB21
+	.uleb128 .L202-.LFB2929
+	.uleb128 0
+	.uleb128 .LEHB22-.LFB2929
+	.uleb128 .LEHE22-.LEHB22
+	.uleb128 .L196-.LFB2929
+	.uleb128 0
+	.uleb128 .LEHB23-.LFB2929
+	.uleb128 .LEHE23-.LEHB23
+	.uleb128 .L197-.LFB2929
+	.uleb128 0
+	.uleb128 .LEHB24-.LFB2929
+	.uleb128 .LEHE24-.LEHB24
+	.uleb128 .L203-.LFB2929
+	.uleb128 0
+	.uleb128 .LEHB25-.LFB2929
+	.uleb128 .LEHE25-.LEHB25
+	.uleb128 .L196-.LFB2929
+	.uleb128 0
+	.uleb128 .LEHB26-.LFB2929
+	.uleb128 .LEHE26-.LEHB26
+	.uleb128 .L205-.LFB2929
+	.uleb128 0x1
+	.uleb128 .LEHB27-.LFB2929
+	.uleb128 .LEHE27-.LEHB27
+	.uleb128 .L200-.LFB2929
+	.uleb128 0
+	.uleb128 .LEHB28-.LFB2929
+	.uleb128 .LEHE28-.LEHB28
+	.uleb128 .L203-.LFB2929
+	.uleb128 0
+	.uleb128 .LEHB29-.LFB2929
+	.uleb128 .LEHE29-.LEHB29
+	.uleb128 0
+	.uleb128 0
+.LLSDACSE2929:
+	.byte	0x1
+	.byte	0
+	.align	2
+	.4byte	0
+
+.LLSDATT2929:
+	.section	.text._Z20read_array_from_fileIdEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE,"axG",@progbits,_Z20read_array_from_fileIdEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE,comdat
+	.size	_Z20read_array_from_fileIdEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE, .-_Z20read_array_from_fileIdEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE
+	.section	.rodata.str1.8,"aMS",@progbits,1
+	.align	3
+.LC3:
+	.string	"Usage: "
+	.align	3
+.LC4:
+	.string	" <index_file> <data_file>"
+	.align	3
+.LC5:
+	.string	"Read "
+	.align	3
+.LC6:
+	.string	"Index and data arrays should be of the same size."
+	.align	3
+.LC7:
+	.string	" elements."
+	.align	3
+.LC8:
+	.string	"Total sum: "
+	.section	.text.startup,"ax",@progbits
+	.align	2
+	.p2align 4,,11
+	.global	main
+	.type	main, %function
+main:
+.LFB2606:
+	.cfi_startproc
+	.cfi_personality 0x9b,DW.ref.__gxx_personality_v0
+	.cfi_lsda 0x1b,.LLSDA2606
+	sub	sp, sp, #192	//,,
+	.cfi_def_cfa_offset 192
+	adrp	x2, :got:__stack_chk_guard	// tmp113,
+	ldr	x2, [x2, :got_lo12:__stack_chk_guard]	// tmp113,
+	stp	x29, x30, [sp, 112]	//,,
+	.cfi_offset 29, -80
+	.cfi_offset 30, -72
+	add	x29, sp, 112	//,,
+	stp	x19, x20, [sp, 128]	//,,
+	.cfi_offset 19, -64
+	.cfi_offset 20, -56
+	mov	x20, x1	// argv, tmp178
+	stp	x21, x22, [sp, 144]	//,,
+	stp	x23, x24, [sp, 160]	//,,
+	str	d8, [sp, 176]	//,
+	.cfi_offset 21, -48
+	.cfi_offset 22, -40
+	.cfi_offset 23, -32
+	.cfi_offset 24, -24
+	.cfi_offset 72, -16
+// sum_indirect.cc:16: {
+	ldr	x1, [x2]	// tmp185,
+	str	x1, [sp, 104]	// tmp185, D.84418
+	mov	x1, 0	// tmp185
+// sum_indirect.cc:17:     if (argc < 3)
+	cmp	w0, 2	// tmp177,
+	ble	.L239		//,
+.L224:
+// sum_indirect.cc:30:     read_array_from_file<uint64_t>(argv[1], index);
+	ldr	x1, [x20, 8]	//, MEM[(char * *)argv_11(D) + 8B]
+	add	x23, sp, 8	// tmp176,,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:100: 	: _M_start(), _M_finish(), _M_end_of_storage()
+	movi	v0.4s, 0	// tmp120
+// sum_indirect.cc:30:     read_array_from_file<uint64_t>(argv[1], index);
+	add	x19, sp, 72	// tmp173,,
+	mov	x2, x23	//, tmp176
+	mov	x0, x19	//, tmp173
+	add	x22, sp, 16	// tmp174,,
+	add	x21, sp, 48	// tmp175,,
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:100: 	: _M_start(), _M_finish(), _M_end_of_storage()
+	str	xzr, [sp, 32]	//, MEM[(struct _Vector_impl_data *)&index]._M_end_of_storage
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:100: 	: _M_start(), _M_finish(), _M_end_of_storage()
+	str	q0, [sp, 16]	// tmp120, MEM <vector(2) long unsigned int> [(long unsigned int * *)&index]
+	str	q0, [sp, 48]	// tmp120, MEM <vector(2) long unsigned int> [(double * *)&data]
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:100: 	: _M_start(), _M_finish(), _M_end_of_storage()
+	str	xzr, [sp, 64]	//, MEM[(struct _Vector_impl_data *)&data]._M_end_of_storage
+.LEHB30:
+// sum_indirect.cc:30:     read_array_from_file<uint64_t>(argv[1], index);
+	bl	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC1IS3_EEPKcRKS3_		//
+.LEHE30:
+// sum_indirect.cc:30:     read_array_from_file<uint64_t>(argv[1], index);
+	mov	x0, x19	//, tmp173
+	mov	x1, x22	//, tmp174
+.LEHB31:
+	bl	_Z20read_array_from_fileImEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE		//
+.LEHE31:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:804:       { _M_dispose(); }
+	mov	x0, x19	//, tmp173
+	bl	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE10_M_disposeEv		//
+// sum_indirect.cc:31:     read_array_from_file<double>(argv[2], data);
+	ldr	x1, [x20, 16]	//, MEM[(char * *)argv_11(D) + 16B]
+	mov	x2, x23	//, tmp176
+	mov	x0, x19	//, tmp173
+.LEHB32:
+	bl	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC1IS3_EEPKcRKS3_		//
+.LEHE32:
+// sum_indirect.cc:31:     read_array_from_file<double>(argv[2], data);
+	mov	x0, x19	//, tmp173
+	mov	x1, x21	//, tmp175
+.LEHB33:
+	bl	_Z20read_array_from_fileIdEvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt6vectorIT_SaIS9_EE		//
+.LEHE33:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:804:       { _M_dispose(); }
+	mov	x0, x19	//, tmp173
+	bl	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE10_M_disposeEv		//
+// /usr/aarch64-linux-gnu/include/c++/13/bits/stl_vector.h:993:       { return size_type(this->_M_impl._M_finish - this->_M_impl._M_start); }
+	ldp	x23, x19, [sp, 16]	// _42, index.D.75590._M_impl.D.74902._M_finish, index.D.75590._M_impl.D.74902._M_start
+	ldp	x24, x0, [sp, 48]	// _14, data.D.76709._M_impl.D.76048._M_finish, data.D.76709._M_impl.D.76048._M_start
+	sub	x19, x19, x23	// tmp134, index.D.75590._M_impl.D.74902._M_finish, _42
+	sub	x0, x0, x24	// tmp138, data.D.76709._M_impl.D.76048._M_finish, _14
+	asr	x19, x19, 3	// tmp137, tmp134,
+	asr	x0, x0, 3	// tmp141, tmp138,
+// sum_indirect.cc:32:     if (static_cast<int>(index.size()) != static_cast<int>(data.size())) {
+	cmp	w19, w0	// tmp137, tmp141
+	beq	.L227		//,
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:667: 	__ostream_insert(__out, __s,
+	adrp	x0, :got:_ZSt4cerr	//,
+	ldr	x0, [x0, :got_lo12:_ZSt4cerr]	//,
+	adrp	x1, .LC6	// tmp146,
+	mov	x2, 49	//,
+	add	x1, x1, :lo12:.LC6	//, tmp146,
+.LEHB34:
+	bl	_ZSt16__ostream_insertIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_PKS3_l		//
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:115: 	return __pf(*this);
+	adrp	x0, :got:_ZSt4cerr	//,
+	ldr	x0, [x0, :got_lo12:_ZSt4cerr]	//,
+	bl	_ZSt4endlIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_.isra.0		//
+.L227:
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:667: 	__ostream_insert(__out, __s,
+	adrp	x0, :got:_ZSt4cout	//,
+	ldr	x0, [x0, :got_lo12:_ZSt4cout]	//,
+	adrp	x1, .LC5	// tmp143,
+	mov	x2, 5	//,
+	add	x1, x1, :lo12:.LC5	//, tmp143,
+	bl	_ZSt16__ostream_insertIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_PKS3_l		//
+// sum_indirect.cc:36:     std::cout << "Read " << num_elements << " elements." << std::endl;
+	adrp	x0, :got:_ZSt4cout	//,
+	ldr	x0, [x0, :got_lo12:_ZSt4cout]	//,
+	mov	w1, w19	//, tmp137
+	bl	_ZNSolsEi		//
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:667: 	__ostream_insert(__out, __s,
+	adrp	x1, .LC7	// tmp151,
+// sum_indirect.cc:36:     std::cout << "Read " << num_elements << " elements." << std::endl;
+	mov	x20, x0	// _26, tmp180
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:667: 	__ostream_insert(__out, __s,
+	add	x1, x1, :lo12:.LC7	//, tmp151,
+	mov	x2, 10	//,
+	bl	_ZSt16__ostream_insertIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_PKS3_l		//
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:115: 	return __pf(*this);
+	mov	x0, x20	//, _26
+	bl	_ZSt4endlIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_.isra.0		//
+// sum_indirect.cc:48:     double sum = sum_indirect(index.data(), data.data(), num_elements);
+	mov	x0, x23	//, _42
+	mov	w2, w19	//, tmp137
+	mov	x1, x24	//, _14
+	bl	_Z12sum_indirectPKmPKdi		//
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:667: 	__ostream_insert(__out, __s,
+	adrp	x0, :got:_ZSt4cout	//,
+	ldr	x0, [x0, :got_lo12:_ZSt4cout]	//,
+// sum_indirect.cc:48:     double sum = sum_indirect(index.data(), data.data(), num_elements);
+	fmov	d8, d0	// sum, tmp181
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:667: 	__ostream_insert(__out, __s,
+	adrp	x1, .LC8	// tmp153,
+	mov	x2, 11	//,
+	add	x1, x1, :lo12:.LC8	//, tmp153,
+	bl	_ZSt16__ostream_insertIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_PKS3_l		//
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:223:       { return _M_insert(__f); }
+	fmov	d0, d8	//, sum
+	adrp	x0, :got:_ZSt4cout	//,
+	ldr	x0, [x0, :got_lo12:_ZSt4cout]	//,
+	bl	_ZNSo9_M_insertIdEERSoT_		//
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:115: 	return __pf(*this);
+	bl	_ZSt4endlIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_.isra.0		//
+.LEHE34:
+// sum_indirect.cc:58: }
+	mov	x0, x21	//, tmp175
+	bl	_ZNSt6vectorIdSaIdEED1Ev		//
+// sum_indirect.cc:58: }
+	mov	x0, x22	//, tmp174
+	bl	_ZNSt6vectorImSaImEED1Ev		//
+// sum_indirect.cc:58: }
+	adrp	x0, :got:__stack_chk_guard	// tmp172,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp172,
+	ldr	x2, [sp, 104]	// tmp186, D.84418
+	ldr	x1, [x0]	// tmp187,
+	subs	x2, x2, x1	// tmp186, tmp187
+	mov	x1, 0	// tmp187
+	bne	.L237		//,
+	ldp	x29, x30, [sp, 112]	//,,
+	mov	w0, 0	//,
+	ldp	x19, x20, [sp, 128]	//,,
+	ldp	x21, x22, [sp, 144]	//,,
+	ldp	x23, x24, [sp, 160]	//,,
+	ldr	d8, [sp, 176]	//,
+	add	sp, sp, 192	//,,
+	.cfi_remember_state
+	.cfi_restore 29
+	.cfi_restore 30
+	.cfi_restore 23
+	.cfi_restore 24
+	.cfi_restore 21
+	.cfi_restore 22
+	.cfi_restore 19
+	.cfi_restore 20
+	.cfi_restore 72
+	.cfi_def_cfa_offset 0
+	ret	
+.L239:
+	.cfi_restore_state
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:667: 	__ostream_insert(__out, __s,
+	adrp	x0, :got:_ZSt4cerr	//,
+	ldr	x0, [x0, :got_lo12:_ZSt4cerr]	//,
+	mov	x2, 7	//,
+	adrp	x1, .LC3	// tmp115,
+	add	x1, x1, :lo12:.LC3	//, tmp115,
+.LEHB35:
+	bl	_ZSt16__ostream_insertIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_PKS3_l		//
+// sum_indirect.cc:19:         std::cerr << "Usage: " << argv[0] << " <index_file> <data_file>" << std::endl;
+	ldr	x1, [x20]	//, *argv_11(D)
+	adrp	x0, :got:_ZSt4cerr	//,
+	ldr	x0, [x0, :got_lo12:_ZSt4cerr]	//,
+	bl	_ZStlsISt11char_traitsIcEERSt13basic_ostreamIcT_ES5_PKc		//
+	mov	x19, x0	// _13, tmp179
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:667: 	__ostream_insert(__out, __s,
+	adrp	x1, .LC4	// tmp119,
+	add	x1, x1, :lo12:.LC4	//, tmp119,
+	mov	x2, 25	//,
+	bl	_ZSt16__ostream_insertIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_PKS3_l		//
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:115: 	return __pf(*this);
+	mov	x0, x19	//, _13
+	bl	_ZSt4endlIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_.isra.0		//
+// /usr/aarch64-linux-gnu/include/c++/13/ostream:115: 	return __pf(*this);
+	b	.L224		//
+.L235:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:804:       { _M_dispose(); }
+	mov	x1, x0	// tmp183,
+	mov	x0, x19	//, tmp173
+	mov	x19, x1	// tmp165, tmp183
+	bl	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE10_M_disposeEv		//
+.L229:
+// sum_indirect.cc:58: }
+	mov	x0, x21	//, tmp175
+	bl	_ZNSt6vectorIdSaIdEED1Ev		//
+	mov	x0, x22	//, tmp174
+	bl	_ZNSt6vectorImSaImEED1Ev		//
+	adrp	x0, :got:__stack_chk_guard	// tmp171,
+	ldr	x0, [x0, :got_lo12:__stack_chk_guard]	// tmp171,
+	ldr	x2, [sp, 104]	// tmp188, D.84418
+	ldr	x1, [x0]	// tmp189,
+	subs	x2, x2, x1	// tmp188, tmp189
+	mov	x1, 0	// tmp189
+	beq	.L231		//,
+.L237:
+	bl	__stack_chk_fail		//
+.L233:
+// /usr/aarch64-linux-gnu/include/c++/13/bits/basic_string.h:804:       { _M_dispose(); }
+	mov	x1, x0	// tmp182,
+	add	x21, sp, 48	// tmp175,,
+	mov	x0, x19	//, tmp173
+	mov	x19, x1	// tmp161, tmp182
+	bl	_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE10_M_disposeEv		//
+	b	.L229		//
+.L234:
+// sum_indirect.cc:58: }
+	mov	x19, x0	// tmp160, tmp184
+	b	.L229		//
+.L231:
+	mov	x0, x19	//, tmp160
+	bl	_Unwind_Resume		//
+.LEHE35:
+	.cfi_endproc
+.LFE2606:
+	.section	.gcc_except_table,"a",@progbits
+.LLSDA2606:
+	.byte	0xff
+	.byte	0xff
+	.byte	0x1
+	.uleb128 .LLSDACSE2606-.LLSDACSB2606
+.LLSDACSB2606:
+	.uleb128 .LEHB30-.LFB2606
+	.uleb128 .LEHE30-.LEHB30
+	.uleb128 .L234-.LFB2606
+	.uleb128 0
+	.uleb128 .LEHB31-.LFB2606
+	.uleb128 .LEHE31-.LEHB31
+	.uleb128 .L233-.LFB2606
+	.uleb128 0
+	.uleb128 .LEHB32-.LFB2606
+	.uleb128 .LEHE32-.LEHB32
+	.uleb128 .L234-.LFB2606
+	.uleb128 0
+	.uleb128 .LEHB33-.LFB2606
+	.uleb128 .LEHE33-.LEHB33
+	.uleb128 .L235-.LFB2606
+	.uleb128 0
+	.uleb128 .LEHB34-.LFB2606
+	.uleb128 .LEHE34-.LEHB34
+	.uleb128 .L234-.LFB2606
+	.uleb128 0
+	.uleb128 .LEHB35-.LFB2606
+	.uleb128 .LEHE35-.LEHB35
+	.uleb128 0
+	.uleb128 0
+.LLSDACSE2606:
+	.section	.text.startup
+	.size	main, .-main
+	.section	.rodata
+	.align	4
+.LC2:
+	.xword	0
+	.xword	0
+	.xword	0
+	.xword	0
+	.hidden	DW.ref.__gxx_personality_v0
+	.weak	DW.ref.__gxx_personality_v0
+	.section	.data.rel.local.DW.ref.__gxx_personality_v0,"awG",@progbits,DW.ref.__gxx_personality_v0,comdat
+	.align	3
+	.type	DW.ref.__gxx_personality_v0, %object
+	.size	DW.ref.__gxx_personality_v0, 8
+DW.ref.__gxx_personality_v0:
+	.xword	__gxx_personality_v0
+	.ident	"GCC: (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0"
+	.section	.note.GNU-stack,"",@progbits

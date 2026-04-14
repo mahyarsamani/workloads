@@ -1,0 +1,44 @@
+CXX := g++
+OPTFLAGS := -O3
+SVE_FLAGS := -DUSE_SVE -march=armv8.6-a+sve -msve-vector-bits=512
+
+ANNOTATE_FLAGS := -DANNOTATE
+ANNOTATE_DIR := $(PWD)/../annotate
+ANNOTATE_LIB := -L$(ANNOTATE_DIR)/lib
+ANNOTATE_INC := -I$(ANNOTATE_DIR)/include
+GEM5_ANNOTATE_LIB := -L$(ANNOTATE_DIR)/gem5/lib -lannotate.gem5se -lm5
+PAPI_ANNOTATE_LIB := -L$(ANNOTATE_DIR)/papi/install/lib -lannotate.papi -lpapi -lpthread
+
+SRC := sum_indirect.cc
+BINARY_BASE := sum_indirect
+ASM_BASE := asm_sum_indirect
+
+
+all: native gem5 papi
+
+native:
+	@echo "Building binaries with no annotations."
+	$(CXX) $(OPTFLAGS) -o $(BINARY_BASE) $(SRC)
+	$(CXX) $(OPTFLAGS) -fverbose-asm -S -o $(ASM_BASE) $(SRC)
+	$(CXX) $(OPTFLAGS) $(SVE_FLAGS) -o $(BINARY_BASE)_sve $(SRC)
+	$(CXX) $(OPTFLAGS) $(SVE_FLAGS) -fverbose-asm -S -o $(ASM_BASE)_sve $(SRC)
+
+gem5:
+	@echo "Building binaries with gem5 annotations."
+	$(CXX) $(ANNOTATE_FLAGS) $(ANNOTATE_INC) $(ANNOTATE_LIB) $(GEM5_ANNOTATE_LIB) $(OPTFLAGS) -o $(BINARY_BASE)_gem5 $(SRC)
+	$(CXX) $(ANNOTATE_FLAGS) $(ANNOTATE_INC) $(ANNOTATE_LIB) $(GEM5_ANNOTATE_LIB) $(OPTFLAGS) -fverbose-asm -S -o $(ASM_BASE)_gem5 $(SRC)
+	$(CXX) $(ANNOTATE_FLAGS) $(ANNOTATE_INC) $(ANNOTATE_LIB) $(GEM5_ANNOTATE_LIB) $(OPTFLAGS) $(SVE_FLAGS) -o $(BINARY_BASE)_gem5_sve $(SRC)
+	$(CXX) $(ANNOTATE_FLAGS) $(ANNOTATE_INC) $(ANNOTATE_LIB) $(GEM5_ANNOTATE_LIB) $(OPTFLAGS) $(SVE_FLAGS) -fverbose-asm -S -o $(ASM_BASE)_gem5_sve $(SRC)
+
+papi:
+	@echo "Building binaries with papi annotations."
+	$(CXX) $(ANNOTATE_FLAGS) $(ANNOTATE_INC) $(ANNOTATE_LIB) $(PAPI_ANNOTATE_LIB) $(OPTFLAGS) -o $(BINARY_BASE)_papi $(SRC)
+	$(CXX) $(ANNOTATE_FLAGS) $(ANNOTATE_INC) $(ANNOTATE_LIB) $(PAPI_ANNOTATE_LIB) $(OPTFLAGS) -fverbose-asm -S -o $(ASM_BASE)_papi $(SRC)
+	$(CXX) $(ANNOTATE_FLAGS) $(ANNOTATE_INC) $(ANNOTATE_LIB) $(PAPI_ANNOTATE_LIB) $(OPTFLAGS) $(SVE_FLAGS) -o $(BINARY_BASE)_papi_sve $(SRC)
+	$(CXX) $(ANNOTATE_FLAGS) $(ANNOTATE_INC) $(ANNOTATE_LIB) $(PAPI_ANNOTATE_LIB) $(OPTFLAGS) $(SVE_FLAGS) -fverbose-asm -S -o $(ASM_BASE)_papi_sve $(SRC)
+
+
+clean:
+	rm -f sum_indirect sum_indirect_sve asm_sum_indirect asm_sum_indirect_sve
+	rm -f sum_indirect_gem5 sum_indirect_gem5_sve asm_sum_indirect_gem5 asm_sum_indirect_gem5_sve
+	rm -f sum_indirect_papi sum_indirect_papi_sve asm_sum_indirect_papi asm_sum_indirect_papi_sve
