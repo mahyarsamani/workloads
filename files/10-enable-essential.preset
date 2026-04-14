@@ -1,0 +1,6 @@
+enable ssh.service
+enable getty@tty1.service
+enable systemd-udevd.service
+enable systemd-logind.service
+enable cron.service
+enable dbus.service

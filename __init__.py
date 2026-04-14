@@ -1,18 +1,16 @@
-from .microbench import workloads
+from .se_workload_wrapper import sum_indirect
 
-from .fs_cmd_wrapper import BootCommandWrapper as BootWrapper
-from .fs_cmd_wrapper import MPIBenchCommandWrapper as MPIBenchWrapper
-from .fs_cmd_wrapper import HPCGCommandWrapper as HPCGWrapper
-from .fs_cmd_wrapper import BransonCommandWrapper as BransonWrapper
-from .fs_cmd_wrapper import UMECommandWrapper as UMEWrapper
-from .fs_cmd_wrapper import NPBCommandWrapper as NPBWrapper
-from .fs_cmd_wrapper import NPBMPICommandWrapper as NPBMPIWrapper
-from .fs_cmd_wrapper import GUPSCommandWrapper as GUPSWrapper
-from .fs_cmd_wrapper import (
-    PermutatingGatherCommandWrapper as PermGatherWrapper,
+from .fs_workload_wrapper import (
+    BootWrapper,
+    MPIBenchWrapper,
+    HPCGWrapper,
+    BransonWrapper,
+    UMEWrapper,
+    NPBWrapper,
+    MPINPBWrapper,
+    GUPSWrapper,
+    PermutatingGatherWrapper,
+    PermutatingScatterWrapper,
+    SpatterWrapper,
+    StreamWrapper,
 )
-from .fs_cmd_wrapper import (
-    PermutatingScatterCommandWrapper as PermScatterWrapper,
-)
-from .fs_cmd_wrapper import SpatterCommandWrapper as SpatterWrapper
-from .fs_cmd_wrapper import StreamCommandWrapper as StreamWrapper

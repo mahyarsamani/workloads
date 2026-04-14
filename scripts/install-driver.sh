@@ -39,9 +39,24 @@ if [ -z "$ISA" ]; then
 fi
 
 # moving modules to the correct location
-mv /home/gem5/5.15.167 /lib/modules/5.15.167
-depmod --quick -a 5.15.167
-update-initramfs -u -k 5.15.167
+
+if [ -z "$DISTRO_VERSION" ]; then
+  echo "Error: DISTRO_VERSION environment variable is not set."
+  exit 1
+fi
+
+if [ "$DISTRO_VERSION" = "22.04" ]; then
+    mv /home/gem5/5.15.167 /lib/modules/5.15.167
+    depmod --quick -a 5.15.167
+    update-initramfs -u -k 5.15.167
+elif [ "$DISTRO_VERSION" = "24.04" ]; then
+    mv /home/gem5/6.8.12 /lib/modules/6.8.12
+    depmod --quick -a 6.8.12
+    update-initramfs -u -k 6.8.12
+else
+  echo "Unsupported DISTRO_VERSION: $DISTRO_VERSION"
+  exit 1
+fi
 
 # Just get the files we need
 git clone https://github.com/nkrim/gem5.git --depth=1 --filter=blob:none --no-checkout --sparse --single-branch --branch=gem5-bridge

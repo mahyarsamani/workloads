@@ -128,6 +128,16 @@ build {
   }
 
   provisioner "file" {
+    destination = "/home/gem5/"
+    source      = "files/00-default.preset"
+  }
+
+  provisioner "file" {
+    destination = "/home/gem5/"
+    source      = "files/10-enable-essential.preset"
+  }
+
+  provisioner "file" {
     destination = "/home/gem5"
     source      = "modules/u2204/files/5.15.167"
   }
@@ -207,7 +217,7 @@ build {
   provisioner "shell" {
     execute_command = "echo '${var.ssh_password}' | {{ .Vars }} sudo -E -S bash '{{ .Path }}'"
     scripts         = ["scripts/install-driver.sh", "scripts/install-packages.sh"]
-    environment_vars = ["ISA=arm64", "DEBIAN_FRONTEND=noninteractive"]
+    environment_vars = ["ISA=arm64", "DISTRO_VERSION=${var.ubuntu_version}", "DEBIAN_FRONTEND=noninteractive"]
     expect_disconnect = true
   }
 
@@ -220,5 +230,4 @@ build {
     scripts         = ["scripts/install-gem5-init.sh", "scripts/disable-services.sh"]
     expect_disconnect = true
   }
-
 }

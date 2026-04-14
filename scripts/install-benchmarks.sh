@@ -26,7 +26,7 @@ cd ..
 cd branson
 mkdir build
 cd build
-cmake ../src -DCMAKE_BUILD_TYPE=Release -DCMAKE_ANNOTATE_TYPE=gem5fs
+cmake ../src -DCMAKE_BUILD_TYPE=Release -DCMAKE_ANNOTATE_TYPE=gem5fs -DSYNC_ANNOTATE=true
 make
 cd ..
 cd ..
@@ -50,17 +50,14 @@ cd pipe_3d
 ./extract_files.sh
 ./delete_compressed_files.sh
 cd ..
-cd tgv
-./remake_partitioned_files.sh
-./delete_partitions.sh
-./extract_files.sh
-./delete_compressed_files.sh
 cd ..
-cd ..
+mpirun -np 8 ./build/src/scale_mesh inputs/pipe_3d/pipe_3d/pipe_3d_00001 2
+mpirun -np 8 ./build/src/scale_mesh inputs/pipe_3d/pipe_3d/pipe_3d_00001 4
+mpirun -np 1 ./build/src/scale_mesh inputs/blake/blake/blake 128
 cd ..
 
 cd hpcg
-./configure Linux_MPI_gem5fs
+./configure Linux_MPI_gem5fs_sync
 make
 cd ..
 
