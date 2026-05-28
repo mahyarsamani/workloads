@@ -2,12 +2,12 @@ import struct
 import platform
 
 from pathlib import Path
-from typing import List
+from typing import List, Optional, Tuple
 
 from m5 import options
 from m5.core import setInterpDir
 from m5.objects import RedirectPath
-from m5.util import inform, warn
+from m5.util import inform
 
 
 from gem5.components.boards.abstract_board import AbstractBoard
@@ -34,7 +34,6 @@ class SEWorkloadWrapper:
         )
 
     def _dynamically_linked(self):
-
         with open(self._binary_path, "rb") as binary:
             if binary.read(4) != b"\x7fELF":
                 raise ValueError(f"{self._binary_path} is not an ELF binary")
@@ -97,7 +96,22 @@ class SEWorkloadWrapper:
 
         return binary_arch == host_arch
 
-    def setup_linking(self, board: AbstractBoard, sysroot_base: Path):
+    def setup_linking(
+        self,
+        board: AbstractBoard,
+        sysroot_base: Path,
+        extra_libs: Optional[List[Tuple[Path, str]]] = None,
+    ):
+        """Set up dynamic linking for cross-compiled SE-mode binaries.
+
+        Args:
+            board: The board to configure redirect paths on.
+            sysroot_base: Base directory containing per-arch sysroots.
+            extra_libs: Optional list of (host_path, app_path) tuples.
+                Each host_path is a directory containing shared libraries,
+                and app_path is the guest path it should be reachable from
+                (e.g. "/lib" or "/usr/lib").
+        """
         inform(f"binary at {self._binary_path}:")
         inform(f"dynamically linked: {self._dynamically_linked()}")
         inform(f"compatible with host: {self._compatible_with_host()}")
@@ -108,39 +122,87 @@ class SEWorkloadWrapper:
         sysroot_path = sysroot_base / self._get_architecture()
         outdir = Path(options.outdir)
 
-        proc = outdir / "fs" / "proc"
-        sys = outdir / "fs" / "sys"
-        tmp = outdir / "fs" / "tmp"
+        proc = outdir / "fs_emulation" / "proc"
+        sys = outdir / "fs_emulation" / "sys"
+        tmp = outdir / "fs_emulation" / "tmp"
         proc.mkdir(parents=True, exist_ok=True)
         sys.mkdir(parents=True, exist_ok=True)
         tmp.mkdir(parents=True, exist_ok=True)
 
         setInterpDir(str(sysroot_path))
 
+        # Base library search paths from sysroot
+        lib_redirects = {
+            "/lib": [str(sysroot_path / "lib")],
+            "/lib64": [str(sysroot_path / "lib")],
+            "/usr/lib": [str(sysroot_path / "usr/lib")],
+            "/usr/lib64": [str(sysroot_path / "usr/lib")],
+        }
+
+        # Merge caller-provided extra library directories
+        for host_path, app_path in extra_libs or []:
+            lib_redirects.setdefault(app_path, []).append(str(host_path))
+
         board.redirect_paths = [
             RedirectPath(app_path="/proc", host_paths=[str(proc)]),
             RedirectPath(app_path="/sys", host_paths=[str(sys)]),
             RedirectPath(app_path="/tmp", host_paths=[str(tmp)]),
-            RedirectPath(
-                app_path="/lib", host_paths=[str(sysroot_path / "lib")]
-            ),
-            RedirectPath(
-                app_path="/lib64", host_paths=[str(sysroot_path / "lib")]
-            ),
-            RedirectPath(
-                app_path="/usr/lib", host_paths=[str(sysroot_path / "usr/lib")]
-            ),
-            RedirectPath(
-                app_path="/usr/lib64",
-                host_paths=[str(sysroot_path / "usr/lib")],
-            ),
+        ] + [
+            RedirectPath(app_path=app_path, host_paths=host_paths)
+            for app_path, host_paths in lib_redirects.items()
         ]
 
 
-sum_indirect = SEWorkloadWrapper(
-    _base_dir / "sum_indirect" / "sum_indirect_sve",
-    [
-        _base_dir / "sum_indirect" / "index.txt",
-        _base_dir / "sum_indirect" / "data.txt",
-    ],
-)
+_hov_test_dir = _base_dir / "hov" / "tests"
+
+
+class HOVUnitTestWrapper(SEWorkloadWrapper):
+    def __init__(self, name: str, arguments: list):
+        super().__init__(_hov_test_dir / "unit" / name / name, arguments)
+
+
+test_load = HOVUnitTestWrapper("test_load", [])
+test_store = HOVUnitTestWrapper("test_store", [])
+
+
+class HOVKernelTestWrapper(SEWorkloadWrapper):
+    def __init__(self, name: str, opt: str, arguments: list):
+        super().__init__(
+            _hov_test_dir / "kernel" / name / f"{name}{opt}", arguments
+        )
+
+
+class DotIndirect(HOVKernelTestWrapper):
+    def __init__(self, opt: str):
+        super().__init__(
+            "dot_indirect",
+            opt,
+            [
+                _hov_test_dir / "kernel" / "dot_indirect" / "index_a.txt",
+                _hov_test_dir / "kernel" / "dot_indirect" / "index_b.txt",
+                _hov_test_dir / "kernel" / "dot_indirect" / "data_a.txt",
+                _hov_test_dir / "kernel" / "dot_indirect" / "data_b.txt",
+            ],
+        )
+
+
+dot_indirect = DotIndirect("")
+dot_indirect_sve = DotIndirect("_sve")
+dot_indirect_hov = DotIndirect("_hov")
+
+
+class ReduceIndirect(HOVKernelTestWrapper):
+    def __init__(self, opt: str):
+        super().__init__(
+            "reduce_indirect",
+            opt,
+            [
+                _hov_test_dir / "kernel" / "reduce_indirect" / "index.txt",
+                _hov_test_dir / "kernel" / "reduce_indirect" / "data.txt",
+            ],
+        )
+
+
+reduce_indirect = ReduceIndirect("")
+reduce_indirect_sve = ReduceIndirect("_sve")
+reduce_indirect_hov = ReduceIndirect("_hov")

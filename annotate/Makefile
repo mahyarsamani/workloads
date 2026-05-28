@@ -1,54 +1,74 @@
+# ==== Toolchain / Target ====
+TRIPLE ?= aarch64-linux-gnu
+CC      = $(TRIPLE)-gcc
+AR      = $(TRIPLE)-ar
 
-CC=gcc
+# ==== Sysroot ====
+SYSROOT ?= /home/mahyar/scratch/sysroots/aarch64
+ifneq ($(strip $(SYSROOT)),)
+  SYSROOT_CFLAGS := --sysroot=$(SYSROOT)
+endif
 
-all: papi gem5se gem5fs native
+# ==== Flags ====
+CFLAGS := -Wall -O2 -fPIC $(SYSROOT_CFLAGS)
 
-papi: make_dir libannotate.papi.a libannotate.papi.so annotate.papi
-gem5se: make_dir libannotate.gem5se.a libannotate.gem5se.so annotate.gem5se
-gem5fs:make_dir libannotate.gem5fs.a libannotate.gem5fs.so annotate.gem5fs
-native: make_dir libannotate.native.a libannotate.native.so annotate.native
+# ==== Directories ====
+LIB_DIR     := lib
+GEM5_INC    := gem5/include
+PAPI_INC    := papi/install/include
+INC_DIR     := include
 
-make_dir:
-	mkdir -p lib
+# ==== Source ====
+SRC := annotate.c
 
-libannotate.papi.a: annotate.c
-	$(CC) -c $< -o lib/$@ -DPAPI --static -Ipapi/install/include
+# ============================================================================
+# Targets
+# ============================================================================
 
-libannotate.gem5se.a: annotate.c
-	$(CC) -c $< -o lib/$@ -DGEM5SE --static -Igem5/include
+.PHONY: all gem5se gem5fs papi native clean
 
-libannotate.gem5fs.a: annotate.c
-	$(CC) -c $< -o lib/$@ -DGEM5FS --static -Igem5/include
+all: gem5se
 
-libannotate.native.a: annotate.c
-	$(CC) -c $< -o lib/$@ --static
+# ---- gem5 SE mode ----
+gem5se: $(LIB_DIR)/libannotate.gem5se.a $(LIB_DIR)/libannotate.gem5se.so
 
-libannotate.papi.so: annotate.c
-	$(CC) -c $< -o lib/$@ -DPAPI -Ipapi/install/include
+$(LIB_DIR)/libannotate.gem5se.a: $(SRC) | $(LIB_DIR)
+	$(CC) $(CFLAGS) -DGEM5SE -I$(GEM5_INC) -c $< -o $@
 
-libannotate.gem5se.so: annotate.c
-	$(CC) -c $< -o lib/$@ -DGEM5SE -Igem5/include
+$(LIB_DIR)/libannotate.gem5se.so: $(SRC) | $(LIB_DIR)
+	$(CC) $(CFLAGS) -DGEM5SE -I$(GEM5_INC) -shared -o $@ $<
 
-libannotate.gem5fs.so: annotate.c
-	$(CC) -c $< -o lib/$@ -DGEM5FS -Igem5/include
+# ---- gem5 FS mode ----
+gem5fs: $(LIB_DIR)/libannotate.gem5fs.a $(LIB_DIR)/libannotate.gem5fs.so
 
-libannotate.native.so: annotate.c
-	$(CC) -c $< -o lib/$@
+$(LIB_DIR)/libannotate.gem5fs.a: $(SRC) | $(LIB_DIR)
+	$(CC) $(CFLAGS) -DGEM5FS -I$(GEM5_INC) -c $< -o $@
 
-annotate.papi: annotate.c
-	$(CC) -c $< -o lib/$@ -DPAPI -Ipapi/install/include
+$(LIB_DIR)/libannotate.gem5fs.so: $(SRC) | $(LIB_DIR)
+	$(CC) $(CFLAGS) -DGEM5FS -I$(GEM5_INC) -shared -o $@ $<
 
-annotate.gem5se: annotate.c
-	$(CC) -c $< -o lib/$@ -DGEM5SE -Igem5/include
+# ---- PAPI ----
+papi: $(LIB_DIR)/libannotate.papi.a $(LIB_DIR)/libannotate.papi.so
 
-annotate.gem5fs: annotate.c
-	$(CC) -c $< -o lib/$@ -DGEM5FS -Igem5/include
+$(LIB_DIR)/libannotate.papi.a: $(SRC) | $(LIB_DIR)
+	$(CC) $(CFLAGS) -DPAPI -I$(PAPI_INC) -c $< -o $@
 
-annotate.native: annotate.c
-	$(CC) -c $< -o lib/$@
+$(LIB_DIR)/libannotate.papi.so: $(SRC) | $(LIB_DIR)
+	$(CC) $(CFLAGS) -DPAPI -I$(PAPI_INC) -shared -o $@ $<
 
+# ---- Native (no instrumentation) ----
+native: $(LIB_DIR)/libannotate.native.a $(LIB_DIR)/libannotate.native.so
+
+$(LIB_DIR)/libannotate.native.a: $(SRC) | $(LIB_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(LIB_DIR)/libannotate.native.so: $(SRC) | $(LIB_DIR)
+	$(CC) $(CFLAGS) -shared -o $@ $<
+
+# ---- Directory ----
+$(LIB_DIR):
+	mkdir -p $(LIB_DIR)
+
+# ---- Clean ----
 clean:
-	rm -f lib/libannotate.papi.a lib/libannotate.papi.so lib/annotate.papi
-	rm -f lib/libannotate.gem5se.a lib/libannotate.gem5se.so lib/annotate.gem5se
-	rm -f lib/libannotate.gem5fs.a lib/libannotate.gem5fs.so lib/annotate.gem5fs
-	rm -f lib/libannotate.native.a lib/libannotate.native.so lib/annotate.native
+	rm -f $(LIB_DIR)/libannotate.*.a $(LIB_DIR)/libannotate.*.so

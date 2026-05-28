@@ -113,7 +113,6 @@ class ExitEventHandlerWrapper:
         self,
         sample_stats: bool,
         sample_period: str,
-        num_regions_to_skip: int,
         take_checkpoint: bool,
         restore_checkpoint: bool,
         checkpoint_path: Union[Path, None],
@@ -125,10 +124,6 @@ class ExitEventHandlerWrapper:
             )
         self._sample_stats = sample_stats
         self._sample_period = sample_period
-        self._num_regions_to_skip = (
-            num_regions_to_skip if not restore_checkpoint else 0
-        )
-        self._num_regions_skipped = 0
         self._reacted_yet = restore_checkpoint
         self._take_checkpoint = take_checkpoint
         self._checkpoint_path = checkpoint_path
@@ -189,17 +184,7 @@ class ExitEventHandlerWrapper:
             processor = board.get_processor()
             can_switch = isinstance(processor, SwitchableProcessor)
             assert can_switch != self._take_checkpoint
-            while self._num_regions_skipped < self._num_regions_to_skip:
-                inform("Received a work_begin.")
-                inform(
-                    f"Have skipped {self._num_regions_skipped} regions so far."
-                )
-                yield SimStep.REMAINING_TIME
-            inform(
-                "Received a work_begin after having "
-                f"skipped {self._num_regions_skipped} regions.\n"
-                f"Needed to skip: {self._num_regions_to_skip}."
-            )
+            inform("Received a work_begin.")
             reset_stats()
             inform("Reset sim stats.")
             if self._take_checkpoint:
@@ -232,18 +217,7 @@ class ExitEventHandlerWrapper:
             raise RuntimeError("Did not expect a work_begin.")
 
         def handle_work_end():
-            while self._num_regions_skipped < self._num_regions_to_skip:
-                inform("Received a work_end.")
-                inform(
-                    f"Have skipped {self._num_regions_skipped} regions so far."
-                )
-                self._num_regions_skipped += 1
-                yield SimStep.REMAINING_TIME
-            inform(
-                "Received a work_end after having "
-                f"skipped {self._num_regions_skipped} regions.\n"
-                f"Needed to skip: {self._num_regions_to_skip}."
-            )
+            inform("Received a work_end.")
             dump_stats()
             inform("Dumped sim stats.")
             yield SimStep.STOP
@@ -263,7 +237,6 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
         num_processes: int,
         sample_stats: bool,
         sample_period: str,
-        num_regions_to_skip: int,
         take_checkpoint: bool,
         restore_checkpoint: bool,
         checkpoint_base_path: Optional[Union[str, Path]],
@@ -271,7 +244,6 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
         super().__init__(
             sample_stats,
             sample_period,
-            num_regions_to_skip,
             take_checkpoint,
             restore_checkpoint,
             checkpoint_base_path,
@@ -320,23 +292,6 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
             assert processor.get_num_cores() >= self._num_processes
 
             num_work_begin_received = 0
-            while self._num_regions_skipped < self._num_regions_to_skip:
-                inform("Received a work_begin.")
-                num_work_begin_received += 1
-                inform(
-                    f"Received {num_work_begin_received} work_begins so far."
-                )
-                inform(
-                    f"Have skipped {self._num_regions_skipped} regions so far."
-                )
-                if num_work_begin_received % self._num_processes == 0:
-                    self._mss_flag += 1
-                    board.setMSSFlag(self._mss_flag)
-                yield SimStep.REMAINING_TIME
-
-            inform("Entered the desired region.")
-            inform("Resetting the count of received work_begins.")
-            num_work_begin_received = 0
             while not self._reacted_yet:
                 inform("Received a work_begin.")
                 num_work_begin_received += 1
@@ -346,6 +301,8 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                 if num_work_begin_received == self._num_processes:
                     reset_stats()
                     inform("Reset sim stats.")
+                    self._mss_flag += 1
+                    board.setMSSFlag(self._mss_flag)
                     if self._take_checkpoint:
                         take_checkpoint(self._checkpoint_path)
                         inform(
@@ -370,8 +327,6 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                         processor.switch()
                         inform("Switched to the next processor.")
                         self._reacted_yet = True
-                        self._mss_flag += 1
-                        board.setMSSFlag(self._mss_flag)
                         yield (
                             SimStep.REMAINING_TIME
                             if not self._sample_stats
@@ -390,25 +345,6 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
             assert processor.get_num_cores() >= self._num_processes
             num_work_end_received = 0
 
-            while self._num_regions_skipped < self._num_regions_to_skip:
-                inform("Received a work_end.")
-                num_work_end_received += 1
-                inform(f"Received {num_work_end_received} work_ends so far.")
-                inform(
-                    f"Have skipped {self._num_regions_skipped} regions so far."
-                )
-                if num_work_end_received % self._num_processes == 0:
-                    inform(
-                        "This work_end marks the end of the this current region."
-                    )
-                    self._num_regions_skipped += 1
-                    self._mss_flag += 1
-                    board.setMSSFlag(self._mss_flag)
-                yield SimStep.REMAINING_TIME
-
-            inform("Inside the desired region.")
-            inform("Resetting the count of received work_ends.")
-            num_work_end_received = 0
             not_dumped_yet = True
             while not_dumped_yet:
                 inform("Received a work_end.")
@@ -451,16 +387,13 @@ class FSWorkloadWrapper:
         cwd: str,
         binary_name: str,
         num_processes,
-        num_regions_to_skip: int = 0,
     ):
         self._cwd = cwd
         self._binary_name = binary_name
         self._num_processes = num_processes
-        self._num_regions_to_skip = num_regions_to_skip
         self._exit_handler = None
 
-    def get_mss_flag(self):
-        return 1
+
 
     def generate_cmdline(self):
         return (
@@ -539,7 +472,6 @@ class FSWorkloadWrapper:
         self._exit_handler = ExitEventHandlerWrapper(
             sample_stats,
             sample_period,
-            self._num_regions_to_skip,
             take_checkpoint,
             restore_checkpoint,
             checkpoint_path,
@@ -575,9 +507,8 @@ class FSMPIWorkloadWrapper(FSWorkloadWrapper):
         cwd: str,
         binary_name: str,
         num_processes: int,
-        num_regions_to_skip: int = 0,
     ):
-        super().__init__(cwd, binary_name, num_processes, num_regions_to_skip)
+        super().__init__(cwd, binary_name, num_processes)
 
     def _create_exit_event_handler(
         self,
@@ -591,7 +522,6 @@ class FSMPIWorkloadWrapper(FSWorkloadWrapper):
             self._num_processes,
             sample_stats,
             sample_period,
-            self._num_regions_to_skip,
             take_checkpoint,
             restore_checkpoint,
             checkpoint_path,
@@ -606,7 +536,6 @@ class BootWrapper(FSWorkloadWrapper):
                 sample_period="none",
                 take_checkpoint=False,
                 restore_checkpoint=False,
-                num_regions_to_skip=0,
                 checkpoint_path=None,
             )
 
@@ -748,24 +677,32 @@ ret b17c
             choices=BransonWrapper._input_translator.keys(),
         )
 
+        parser.add_argument(
+            "--variant", type=str, required=True, choices=["ref", "hov"]
+        )
+
         parsed_args = parser.parse_args(args)
         return [
             parsed_args.num_processes,
             parsed_args.input_name,
+            parsed_args.variant,
         ]
 
     def __init__(
         self,
         num_processes: int,
         input_name: str,
+        variant: str,
     ):
+        binary_name = f"BRANSON_{variant}" if variant == "hov" else "BRANSON"
         super().__init__(
-            "/home/gem5/workloads/branson/build", "BRANSON", num_processes
+            "/home/gem5/workloads/branson/build", binary_name, num_processes
         )
         self._input_name = BransonWrapper._input_translator[input_name]
         self._input_path = (
             f"{BransonWrapper._base_input_path}/{self._input_name}"
         )
+        self._variant = variant
         self._access_sites, self._indirect_chains = process_snippet(
             BransonWrapper.snippet
         )
@@ -781,6 +718,7 @@ ret b17c
             "name": "branson",
             "num-processes": self._num_processes,
             "input": self._input_name,
+            "variant": self._variant,
         }
 
     def add_workload_insights(self, board: AbstractBoard) -> None:
@@ -847,6 +785,10 @@ ret 21eec
         parser.add_argument("--dim-y", type=int, required=True)
         parser.add_argument("--dim-z", type=int, required=True)
         parser.add_argument("--seconds", type=int, required=True)
+        parser.add_argument("--kernel", type=str, required=True)
+        parser.add_argument(
+            "--variant", type=str, required=True, choices=["ref", "hov"]
+        )
 
         parsed_args = parser.parse_args(args)
         return [
@@ -855,6 +797,8 @@ ret 21eec
             parsed_args.dim_y,
             parsed_args.dim_z,
             parsed_args.seconds,
+            parsed_args.kernel,
+            parsed_args.variant,
         ]
 
     def __init__(
@@ -864,14 +808,19 @@ ret 21eec
         dim_y: int,
         dim_z: int,
         seconds: int,
+        kernel: str,
+        variant: str,
     ):
+        binary_name = f"xhpcg_{kernel}_{variant}_gem5fs" if variant == "hov" else f"xhpcg_{kernel}_gem5fs"
         super().__init__(
-            "/home/gem5/workloads/hpcg/bin", "xhpcg", num_processes
+            "/home/gem5/workloads/hpcg/bin", binary_name, num_processes
         )
         self._x = dim_x
         self._y = dim_y
         self._z = dim_z
         self._secs = seconds
+        self._kernel = kernel
+        self._variant = variant
         self._dat_content = f'"{self._x} {self._y} {self._z}\\n{self._secs}"'
         self._write_dat = f"echo {self._dat_content} > hpcg.dat"
 
@@ -889,6 +838,8 @@ ret 21eec
             "dim-y": self._y,
             "dim-z": self._z,
             "set-time": self._secs,
+            "kernel": self._kernel,
+            "variant": self._variant,
         }
 
 
@@ -1011,35 +962,35 @@ ret c134
             choices=list(UMEWrapper._region_translator.keys()),
         )
 
+        parser.add_argument(
+            "--variant", type=str, required=True, choices=["ref", "hov"]
+        )
+
         parsed_args = parser.parse_args(args)
-        return [parsed_args.input_name, parsed_args.region]
+        return [parsed_args.input_name, parsed_args.region, parsed_args.variant]
 
     def __init__(
         self,
         input_name: str,
         region: str,
+        variant: str,
     ):
         input_file, num_processes = UMEWrapper._input_translator[input_name]
+        binary_name = f"ume_mpi_{region}_{variant}" if variant == "hov" else f"ume_mpi_{region}"
         super().__init__(
             "/home/gem5/workloads/UME/build/src",
-            "ume_mpi",
+            binary_name,
             num_processes,
-            UMEWrapper._region_translator[region],
         )
         self._input_name = input_name
         self._input_file = input_file
         self._region_name = region
+        self._variant = variant
         self._access_sites, self._indirect_chains = process_snippet(
             UMEWrapper.snippet_translator[region]
         )
 
-    def get_mss_flag(self):
-        if self._region_name == "gradzatz":
-            return 1
-        elif self._region_name == "gradzatz_invert":
-            return 3
-        elif self._region_name == "face_area":
-            return 5
+
 
     def _generate_cmdline(self):
         workload_cmd = (
@@ -1056,6 +1007,7 @@ ret c134
             "num-processes": self._num_processes,
             "input": self._input_name,
             "region": self._region_name,
+            "variant": self._variant,
         }
 
     def add_workload_insights(self, board: AbstractBoard) -> None:
