@@ -176,11 +176,6 @@ build {
 
   provisioner "file" {
     destination = "/home/gem5/workloads/"
-    source      = "mpi_bench"
-  }
-
-  provisioner "file" {
-    destination = "/home/gem5/workloads/"
     source      = "branson"
   }
 
