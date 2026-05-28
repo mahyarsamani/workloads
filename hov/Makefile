@@ -4,7 +4,7 @@ CC       = $(TRIPLE)-gcc
 AR       = $(TRIPLE)-ar
 
 # ==== Sysroot ====
-SYSROOT ?= /home/mahyar/scratch/sysroots/aarch64
+SYSROOT ?= $(abspath $(CURDIR)/..)/sysroots/aarch64
 ifneq ($(strip $(SYSROOT)),)
   SYSROOT_CFLAGS  := --sysroot=$(SYSROOT)
   SYSROOT_LDFLAGS := --sysroot=$(SYSROOT)

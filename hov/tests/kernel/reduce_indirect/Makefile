@@ -7,8 +7,14 @@ ifdef CLANG
 TARGET_FLAG := --target=$(TRIPLE)
 endif
 
-# ==== Sysroot (optional) ====
-SYSROOT ?= /home/mahyar/scratch/sysroots/aarch64
+# ==== Sysroot ====
+HOST_ARCH := $(shell uname -m)
+ifneq ($(HOST_ARCH),aarch64)
+ifndef SYSROOT
+$(error SYSROOT must be set when cross-compiling on $(HOST_ARCH))
+endif
+endif
+
 ifneq ($(strip $(SYSROOT)),)
   SYSROOT_CFLAGS  := --sysroot=$(SYSROOT)
   SYSROOT_LDFLAGS := --sysroot=$(SYSROOT) \

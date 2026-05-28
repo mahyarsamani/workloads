@@ -3,7 +3,13 @@ TRIPLE  ?= aarch64-linux-gnu
 CC       = $(TRIPLE)-gcc
 
 # ==== Sysroot ====
-SYSROOT ?= /home/mahyar/scratch/sysroots/aarch64
+HOST_ARCH := $(shell uname -m)
+ifneq ($(HOST_ARCH),aarch64)
+ifndef SYSROOT
+$(error SYSROOT must be set when cross-compiling on $(HOST_ARCH))
+endif
+endif
+
 ifneq ($(strip $(SYSROOT)),)
   SYSROOT_CFLAGS  := --sysroot=$(SYSROOT)
   SYSROOT_LDFLAGS := --sysroot=$(SYSROOT)
