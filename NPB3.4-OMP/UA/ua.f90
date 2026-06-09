@@ -54,10 +54,10 @@ program ua
 !$ integer omp_get_max_threads
 !$ external omp_get_max_threads
 
-  call annotate_init
-
   double precision t2, trecs(t_last)
   character t_names(t_last)*10
+
+  call annotate_init
 
 !---------------------------------------------------------------------
 !     Read input file (if it exists), else take

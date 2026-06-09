@@ -4,6 +4,7 @@ CC       = $(TRIPLE)-gcc
 
 # ==== Sysroot ====
 HOST_ARCH := $(shell uname -m)
+ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(HOST_ARCH),aarch64)
 ifndef SYSROOT
 $(error SYSROOT must be set when cross-compiling on $(HOST_ARCH))
@@ -13,6 +14,7 @@ endif
 ifneq ($(strip $(SYSROOT)),)
   SYSROOT_CFLAGS  := --sysroot=$(SYSROOT)
   SYSROOT_LDFLAGS := --sysroot=$(SYSROOT)
+endif
 endif
 
 # ==== Paths (relative to workloads/hov/) ====

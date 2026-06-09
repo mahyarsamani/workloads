@@ -4,7 +4,14 @@ CC       = $(TRIPLE)-gcc
 AR       = $(TRIPLE)-ar
 
 # ==== Sysroot ====
-SYSROOT ?= $(abspath $(CURDIR)/..)/sysroots/aarch64
+HOST_ARCH := $(shell uname -m)
+ifneq ($(MAKECMDGOALS),clean)
+ifeq ($(strip $(SYSROOT)),)
+  ifneq ($(HOST_ARCH),aarch64)
+    $(error "Error: SYSROOT is not defined and host architecture is $(HOST_ARCH). Cross-compilation requires SYSROOT to be set")
+  endif
+endif
+endif
 ifneq ($(strip $(SYSROOT)),)
   SYSROOT_CFLAGS  := --sysroot=$(SYSROOT)
   SYSROOT_LDFLAGS := --sysroot=$(SYSROOT)

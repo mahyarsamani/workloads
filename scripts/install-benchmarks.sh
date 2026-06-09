@@ -7,12 +7,15 @@ cd $HOME
 
 cd workloads
 
+# Number of parallel jobs for make
+NPROC=$(nproc)
+
 cd annotate/
-make gem5fs
+make -j$NPROC gem5fs
 cd ..
 
-cd mpi_bench
-make gem5
+cd hov
+make -j$NPROC lib
 cd ..
 
 cd NPB3.4-OMP
@@ -27,14 +30,14 @@ cd branson
 mkdir build
 cd build
 # Build Reference Variant
-cmake ../src -DCMAKE_BUILD_TYPE=Release -DCMAKE_ANNOTATE_TYPE=gem5fs -DSYNC_ANNOTATE=true -DCMAKE_CXX_FLAGS="-DROI_BRANSON"
-make
+cmake ../src -DCMAKE_BUILD_TYPE=Release -DANNOTATE_TOOL=gem5fs -DROI_TYPE=sync -DCMAKE_CXX_FLAGS="-DKERNEL_BRANSON"
+make -j$NPROC
 mv BRANSON BRANSON_ref
 
 # Build HOV Variant
 make clean
-cmake ../src -DCMAKE_BUILD_TYPE=Release -DCMAKE_ANNOTATE_TYPE=gem5fs -DSYNC_ANNOTATE=true -DCMAKE_CXX_FLAGS="-DHOV -DROI_BRANSON -I../../hov/include" -DCMAKE_EXE_LINKER_FLAGS="-L../../hov/lib -lhov"
-make
+cmake ../src -DCMAKE_BUILD_TYPE=Release -DANNOTATE_TOOL=gem5fs -DROI_TYPE=sync -DCMAKE_CXX_FLAGS="-DHOV -DKERNEL_BRANSON -I../../hov/include" -DCMAKE_EXE_LINKER_FLAGS="-L../../hov/lib -lhov"
+make -j$NPROC
 mv BRANSON BRANSON_hov
 cd ..
 cd ..
@@ -43,18 +46,22 @@ cd UME
 mkdir build
 cd build
 # Build Reference Variants
-cmake ../ -DCMAKE_BUILD_TYPE=Release -DUSE_CATCH2=off -DUSE_MPI=true -DCMAKE_ANNOTATE_TYPE=gem5fs -DCMAKE_ROI_TYPE=sync
-make
+cmake ../ -DCMAKE_BUILD_TYPE=Release -DUSE_CATCH2=off -DUSE_MPI=true -DANNOTATE_TOOL=gem5fs -DROI_TYPE=sync
+make -j$NPROC
 mv src/ume_mpi_gradzatz src/ume_mpi_gradzatz_ref
+mv src/ume_mpi_gradzatp src/ume_mpi_gradzatp_ref
 mv src/ume_mpi_gradzatz_invert src/ume_mpi_gradzatz_invert_ref
+mv src/ume_mpi_gradzatp_invert src/ume_mpi_gradzatp_invert_ref
 mv src/ume_mpi_face_area src/ume_mpi_face_area_ref
 
 # Build HOV Variants
 make clean
-cmake ../ -DCMAKE_BUILD_TYPE=Release -DUSE_CATCH2=off -DUSE_MPI=true -DCMAKE_ANNOTATE_TYPE=gem5fs -DCMAKE_ROI_TYPE=sync -DCMAKE_CXX_FLAGS="-DHOV -I../../hov/include" -DCMAKE_EXE_LINKER_FLAGS="-L../../hov/lib -lhov"
-make
+cmake ../ -DCMAKE_BUILD_TYPE=Release -DUSE_CATCH2=off -DUSE_MPI=true -DANNOTATE_TOOL=gem5fs -DROI_TYPE=sync -DCMAKE_CXX_FLAGS="-DHOV -I../../hov/include" -DCMAKE_EXE_LINKER_FLAGS="-L../../hov/lib -lhov"
+make -j$NPROC
 mv src/ume_mpi_gradzatz src/ume_mpi_gradzatz_hov
+mv src/ume_mpi_gradzatp src/ume_mpi_gradzatp_hov
 mv src/ume_mpi_gradzatz_invert src/ume_mpi_gradzatz_invert_hov
+mv src/ume_mpi_gradzatp_invert src/ume_mpi_gradzatp_invert_hov
 mv src/ume_mpi_face_area src/ume_mpi_face_area_hov
 cd ..
 cd inputs
@@ -76,21 +83,17 @@ mpirun -np 8 ./build/src/scale_mesh inputs/pipe_3d/pipe_3d/pipe_3d_00001 4
 mpirun -np 1 ./build/src/scale_mesh inputs/blake/blake/blake 128
 cd ..
 
-cd hov
-make lib
-cd ..
-
 cd hpcg
-./configure Linux_MPI_gem5fs_sync
+./configure Linux_MPI_gem5fs
 for kernel in SPMVM SYMGS WAXPBY MG CG; do
     # Build Reference Variant
-    make clean
-    make EXTRA_CXXFLAGS="-DROI_$kernel"
+    make clean arch=Linux_MPI_gem5fs
+    make -j$NPROC arch=Linux_MPI_gem5fs HPCG_KERNEL=$kernel
     mv bin/xhpcg bin/xhpcg_${kernel,,}_ref_gem5fs
 
     # Build HOV Variant (only truly impacts SPMVM and SYMGS, but we'll build all for consistency)
-    make clean
-    make EXTRA_CXXFLAGS="-DROI_$kernel -DHOV" EXTRA_LINKFLAGS="-L../hov/lib -lhov"
+    make clean arch=Linux_MPI_gem5fs_hov
+    make -j$NPROC arch=Linux_MPI_gem5fs_hov HPCG_KERNEL=$kernel
     mv bin/xhpcg bin/xhpcg_${kernel,,}_hov_gem5fs
 done
 cd ..
@@ -98,23 +101,23 @@ cd ..
 cd simple-vector-bench
 
 cd gups
-make gem5fs
-make gem5fs EXTENSION=sve
+make -j$NPROC gem5fs
+make -j$NPROC gem5fs EXTENSION=sve
 cd ..
 
 cd permutating-gather
-make gem5fs
-make gem5fs EXTENSION=sve
+make -j$NPROC gem5fs
+make -j$NPROC gem5fs EXTENSION=sve
 cd ..
 
 cd permutating-scatter
-make gem5fs
-make gem5fs EXTENSION=sve
+make -j$NPROC gem5fs
+make -j$NPROC gem5fs EXTENSION=sve
 cd ..
 
 cd spatter
-make gem5fs
-make gem5fs EXTENSION=sve
+make -j$NPROC gem5fs
+make -j$NPROC gem5fs EXTENSION=sve
 cd ..
 cd ..
 cd spatter-traces
@@ -122,7 +125,7 @@ cd spatter-traces
 cd ..
 
 cd simple-vector-bench/stream
-make gem5fs
-make gem5fs EXTENSION=sve
+make -j$NPROC gem5fs
+make -j$NPROC gem5fs EXTENSION=sve
 cd ..
 cd ..

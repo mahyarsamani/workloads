@@ -57,7 +57,7 @@
 #include "adc.h"
 #include "macrodef.h"
 #include "npbparams.h"
-#include "roi.h"
+#include "annotate.h"
 
 #ifdef UNIX
 #include <sys/types.h>

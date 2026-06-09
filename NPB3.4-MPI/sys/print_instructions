@@ -1,3 +1,4 @@
+#!/bin/sh
 echo ''
 echo '   To make a NAS benchmark type '
 echo ''

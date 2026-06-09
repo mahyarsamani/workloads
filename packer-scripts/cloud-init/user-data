@@ -1,0 +1,17 @@
+#cloud-config
+users:
+  - default
+  - name: gem5
+    groups: sudo
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    lock_passwd: false
+chpasswd:
+  list: |
+    gem5:12345
+  expire: False
+ssh_pwauth: true
+growpart:
+  mode: auto
+  devices: ['/']
+  ignore_growroot_disabled: false

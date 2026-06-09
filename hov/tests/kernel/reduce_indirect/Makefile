@@ -9,9 +9,11 @@ endif
 
 # ==== Sysroot ====
 HOST_ARCH := $(shell uname -m)
+ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(HOST_ARCH),aarch64)
 ifndef SYSROOT
 $(error SYSROOT must be set when cross-compiling on $(HOST_ARCH))
+endif
 endif
 endif
 
@@ -55,7 +57,7 @@ endif
 ANNOTATE_FLAGS := -DANNOTATE
 ANNOTATE_INC   := -I$(ANNOTATE_DIR)/include
 ANNOTATE_LIB   := -L$(ANNOTATE_DIR)/lib
-ANNOTATE_LDLIBS := -L$(ANNOTATE_DIR)/gem5/lib -lannotate.gem5se -lm5
+ANNOTATE_LDLIBS := -lannotate.gem5se -lm5
 UTIL_INC       := -I$(UTIL_DIR)
 
 # ==== Sources / Outputs ====

@@ -59,7 +59,7 @@ else
 fi
 
 # Just get the files we need
-git clone https://github.com/nkrim/gem5.git --depth=1 --filter=blob:none --no-checkout --sparse --single-branch --branch=gem5-bridge
+git clone https://github.com/gem5/gem5.git --depth=1 --filter=blob:none --no-checkout --sparse --single-branch --branch=stable
 pushd gem5
 # Checkout just the files we need
 git sparse-checkout add util/m5
@@ -68,6 +68,7 @@ git sparse-checkout add include
 git checkout
 # Install the headers globally so that other benchmarks can use them
 cp -r include/gem5 /usr/local/include/
+cp util/m5/src/m5_mmap.h /usr/local/include/gem5/
 
 # Build the library and binary
 pushd util/m5

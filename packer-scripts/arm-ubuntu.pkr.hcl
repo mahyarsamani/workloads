@@ -33,16 +33,14 @@ variable "ubuntu_version" {
 locals {
   iso_data = {
     "22.04" = {
-      iso_url       = "https://old-releases.ubuntu.com/releases/jammy/ubuntu-22.04-live-server-arm64.iso"
-      iso_checksum  = "sha256:c209ab013280d3cd26a344def60b7b19fbb427de904ea285057d94ca6ac82dd5"
+      iso_url       = "https://cloud-images.ubuntu.com/releases/jammy/release-20260515/ubuntu-22.04-server-cloudimg-arm64.img"
+      iso_checksum  = "file:https://cloud-images.ubuntu.com/releases/jammy/release-20260515/SHA256SUMS"
       output_dir    = "${var.image_name}-2204"
-      http_directory = "http/arm-2204"
     }
     "24.04" = {
-      iso_url       = "https://cdimage.ubuntu.com/releases/24.04/release/ubuntu-24.04.1-live-server-arm64.iso"
-      iso_checksum  = "sha256:5ceecb7ef5f976e8ab3fffee7871518c8e9927ec221a3bb548ee1193989e1773"
+      iso_url       = "https://cloud-images.ubuntu.com/releases/noble/release-20260518/ubuntu-24.04-server-cloudimg-arm64.img"
+      iso_checksum  = "file:https://cloud-images.ubuntu.com/releases/noble/release-20260518/SHA256SUMS"
       output_dir    = "${var.image_name}-2404"
-      http_directory = "http/arm-2404"
     }
   }
 }
@@ -80,21 +78,13 @@ locals {
 }
 
 source "qemu" "initialize" {
-  boot_command     = [
-                      "c<wait>",
-                      "linux /casper/vmlinuz autoinstall ds=nocloud-net\\;s=http://{{.HTTPIP}}:{{.HTTPPort}}/ --- ",
-                      "<enter><wait>",
-                      "initrd /casper/initrd",
-                      "<enter><wait>",
-                      "boot",
-                      "<enter>",
-                      "<wait>"
-                      ]
+  disk_image       = true
+  cd_files         = ["cloud-init/user-data", "cloud-init/meta-data"]
+  cd_label         = "cidata"
   cpus             = "32"
   disk_size        = "64000"
   format           = "raw"
   headless         = "true"
-  http_directory   = local.iso_data[var.ubuntu_version].http_directory
   iso_checksum     = local.iso_data[var.ubuntu_version].iso_checksum
   iso_urls         = [local.iso_data[var.ubuntu_version].iso_url]
   memory           = "65536"
@@ -167,11 +157,6 @@ build {
   provisioner "file" {
     destination = "/home/gem5/workloads/annotate/"
     source      = "annotate/Makefile"
-  }
-
-  provisioner "file" {
-    destination = "/home/gem5/workloads/annotate/"
-    source      = "annotate/gem5"
   }
 
   provisioner "file" {
