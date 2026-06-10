@@ -30,13 +30,13 @@ cd branson
 mkdir build
 cd build
 # Build Reference Variant
-cmake ../src -DCMAKE_BUILD_TYPE=Release -DANNOTATE_TOOL=gem5fs -DROI_TYPE=sync -DCMAKE_CXX_FLAGS="-DKERNEL_BRANSON"
+cmake ../src -DCMAKE_BUILD_TYPE=Release -DANNOTATE_TOOL=gem5fs -DROI_TYPE=sync
 make -j$NPROC
 mv BRANSON BRANSON_ref
 
 # Build HOV Variant
 make clean
-cmake ../src -DCMAKE_BUILD_TYPE=Release -DANNOTATE_TOOL=gem5fs -DROI_TYPE=sync -DCMAKE_CXX_FLAGS="-DHOV -DKERNEL_BRANSON -I../../hov/include" -DCMAKE_EXE_LINKER_FLAGS="-L../../hov/lib -lhov"
+cmake ../src -DCMAKE_BUILD_TYPE=Release -DANNOTATE_TOOL=gem5fs -DROI_TYPE=sync -DHOV=ON
 make -j$NPROC
 mv BRANSON BRANSON_hov
 cd ..
@@ -56,7 +56,7 @@ mv src/ume_mpi_face_area src/ume_mpi_face_area_ref
 
 # Build HOV Variants
 make clean
-cmake ../ -DCMAKE_BUILD_TYPE=Release -DUSE_CATCH2=off -DUSE_MPI=true -DANNOTATE_TOOL=gem5fs -DROI_TYPE=sync -DCMAKE_CXX_FLAGS="-DHOV -I../../hov/include" -DCMAKE_EXE_LINKER_FLAGS="-L../../hov/lib -lhov"
+cmake ../ -DCMAKE_BUILD_TYPE=Release -DUSE_CATCH2=off -DUSE_MPI=true -DANNOTATE_TOOL=gem5fs -DROI_TYPE=sync -DHOV=ON
 make -j$NPROC
 mv src/ume_mpi_gradzatz src/ume_mpi_gradzatz_hov
 mv src/ume_mpi_gradzatp src/ume_mpi_gradzatp_hov
