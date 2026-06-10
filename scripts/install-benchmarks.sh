@@ -5,10 +5,10 @@
 
 cd $HOME
 
-cd workloads
-
 # Number of parallel jobs for make
 NPROC=$(nproc)
+
+cd workloads
 
 cd annotate/
 make -j$NPROC gem5fs

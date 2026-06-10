@@ -79,7 +79,7 @@ locals {
 
 source "qemu" "initialize" {
   disk_image       = true
-  cd_files         = ["cloud-init/user-data", "cloud-init/meta-data"]
+  cd_files         = ["packer-scripts/cloud-init/user-data", "packer-scripts/cloud-init/meta-data"]
   cd_label         = "cidata"
   cpus             = "32"
   disk_size        = "64000"
@@ -157,6 +157,11 @@ build {
   provisioner "file" {
     destination = "/home/gem5/workloads/annotate/"
     source      = "annotate/Makefile"
+  }
+
+  provisioner "file" {
+    destination = "/home/gem5/workloads/"
+    source      = "hov"
   }
 
   provisioner "file" {
