@@ -11,6 +11,7 @@ chpasswd:
     gem5:12345
   expire: False
 ssh_pwauth: true
+manage_etc_hosts: true
 growpart:
   mode: auto
   devices: ['/']

@@ -3,7 +3,7 @@ CXX?=g++
 CFLAGS+=-O2 -fopenmp
 CXXFLAGS+=-O2 -fopenmp
 BIN_DIR=bin
-ANNOTATE_DIR=$(PWD)/../../annotate
+ANNOTATE_DIR=$(abspath $(PWD)/../../annotate)
 
 EXT=
 ifeq ($(EXTENSION), sve)
@@ -20,13 +20,13 @@ kernels: make_dir
 	$(CC) -c -o $(BIN_DIR)/kernels.o gups_kernels.c $(CFLAGS) -Iinclude
 
 papi: kernels
-	$(CXX) -o $(BIN_DIR)/gups$(EXT).papi gups.cpp $(BIN_DIR)/kernels.o $(CXXFLAGS) -Iinclude -I$(ANNOTATE_DIR)/include -I$(ANNOTATE_DIR)/papi/install/include -L$(ANNOTATE_DIR)/lib -L$(ANNOTATE_DIR)/papi/install/lib -lannotate.papi -lpapi -lpthread
+	$(CXX) -o $(BIN_DIR)/gups$(EXT).papi gups.cpp $(BIN_DIR)/kernels.o $(CXXFLAGS) -Iinclude -I$(ANNOTATE_DIR)/include -I$(ANNOTATE_DIR)/papi/install/include -L$(ANNOTATE_DIR)/lib -L$(ANNOTATE_DIR)/papi/install/lib -Wl,-Bstatic -lannotate.papi -Wl,-Bdynamic -lpapi -lpthread
 
 gem5fs: kernels
-	$(CXX) -o $(BIN_DIR)/gups$(EXT).gem5fs gups.cpp $(BIN_DIR)/kernels.o $(CXXFLAGS) -Iinclude -I$(ANNOTATE_DIR)/include -L$(ANNOTATE_DIR)/lib -lannotate.gem5fs -lm5 $(LDFLAGS)
+	$(CXX) -o $(BIN_DIR)/gups$(EXT).gem5fs gups.cpp $(BIN_DIR)/kernels.o $(CXXFLAGS) -Iinclude -I$(ANNOTATE_DIR)/include -L$(ANNOTATE_DIR)/lib -Wl,-Bstatic -lannotate.gem5fs -lm5 -Wl,-Bdynamic $(LDFLAGS)
 
 native: kernels
-	$(CXX) -o $(BIN_DIR)/gups$(EXT).native gups.cpp $(BIN_DIR)/kernels.o $(CXXFLAGS) -Iinclude -I$(ANNOTATE_DIR)/include -L$(ANNOTATE_DIR)/lib -lannotate.native
+	$(CXX) -o $(BIN_DIR)/gups$(EXT).native gups.cpp $(BIN_DIR)/kernels.o $(CXXFLAGS) -Iinclude -I$(ANNOTATE_DIR)/include -L$(ANNOTATE_DIR)/lib -Wl,-Bstatic -lannotate.native -Wl,-Bdynamic
 
 clean:
 	rm -f bin/gups.papi bin/gups-sve.papi

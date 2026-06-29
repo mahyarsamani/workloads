@@ -3,7 +3,7 @@ CLASS=W
 VERSION=
 SFILE=config/suite.def
 
-ROI_DIR=$(PWD)/../annotate
+ROI_DIR=$(abspath $(PWD)/../annotate)
 ROI_BIN=
 ROI_OBJ=
 ROI_INC=-I$(ROI_DIR)/include
@@ -11,16 +11,16 @@ ROI_LIB=
 
 
 ifeq ($(PLATFORM), papi)
-	ROI_BIN+=$(ROI_DIR)/lib/libannotate.papi.so
+	ROI_BIN+=$(ROI_DIR)/lib/libannotate.papi.a
 	ROI_INC+=-I$(ROI_DIR)/papi/install/include
 	ROI_LIB+=-L$(ROI_DIR)/papi/install/lib
 	ROI_OBJ+=-lpapi
 	ROI_OBJ+=-lpthread
 else ifeq ($(PLATFORM), gem5)
-	ROI_BIN+=$(ROI_DIR)/lib/libannotate.gem5fs.so
+	ROI_BIN+=$(ROI_DIR)/lib/libannotate.gem5fs.a
 	ROI_OBJ+=-lm5
 else
-	ROI_BIN+=$(ROI_DIR)/lib/libannotate.native.so
+	ROI_BIN+=$(ROI_DIR)/lib/libannotate.native.a
 endif
 
 default: header

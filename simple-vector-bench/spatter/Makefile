@@ -4,7 +4,7 @@ CFLAGS+=-O3 -fopenmp
 CXXFLAGS+=-O3 -fopenmp
 BIN_DIR=bin
 
-ANNOTATE_DIR=$(PWD)/../../annotate
+ANNOTATE_DIR=$(abspath $(PWD)/../../annotate)
 
 EXT=
 ifeq ($(EXTENSION), sve)
@@ -21,13 +21,13 @@ kernels: make_dir
 	$(CC) -c -o $(BIN_DIR)/kernels.o scatter_gather_kernels.c $(CFLAGS) -Iinclude
 
 papi: kernels
-	$(CXX) -o $(BIN_DIR)/spatter$(EXT).papi spatter.cpp $(BIN_DIR)/kernels.o $(CXXFLAGS) -Iinclude -Ijson/single_include/nlohmann -I$(ANNOTATE_DIR)/include -I$(ANNOTATE_DIR)/papi/install/include -L$(ANNOTATE_DIR)/lib -L$(ANNOTATE_DIR)/papi/install/lib -lannotate.papi -lpapi -lpthread
+	$(CXX) -o $(BIN_DIR)/spatter$(EXT).papi spatter.cpp $(BIN_DIR)/kernels.o $(CXXFLAGS) -Iinclude -Ijson/single_include/nlohmann -I$(ANNOTATE_DIR)/include -I$(ANNOTATE_DIR)/papi/install/include -L$(ANNOTATE_DIR)/lib -L$(ANNOTATE_DIR)/papi/install/lib -Wl,-Bstatic -lannotate.papi -Wl,-Bdynamic -lpapi -lpthread
 
 gem5fs: kernels
-	$(CXX) -o $(BIN_DIR)/spatter$(EXT).gem5fs spatter.cpp $(BIN_DIR)/kernels.o $(CXXFLAGS) -Iinclude -Ijson/single_include/nlohmann -I$(ANNOTATE_DIR)/include -L$(ANNOTATE_DIR)/lib -lannotate.gem5fs -lm5 $(LDFLAGS)
+	$(CXX) -o $(BIN_DIR)/spatter$(EXT).gem5fs spatter.cpp $(BIN_DIR)/kernels.o $(CXXFLAGS) -Iinclude -Ijson/single_include/nlohmann -I$(ANNOTATE_DIR)/include -L$(ANNOTATE_DIR)/lib -Wl,-Bstatic -lannotate.gem5fs -lm5 -Wl,-Bdynamic $(LDFLAGS)
 
 native: kernels
-	$(CXX) -o $(BIN_DIR)/spatter$(EXT).native spatter.cpp $(BIN_DIR)/kernels.o $(CXXFLAGS) -Iinclude -Ijson/single_include/nlohmann -I$(ANNOTATE_DIR)/include -L$(ANNOTATE_DIR)/lib -lannotate.native
+	$(CXX) -o $(BIN_DIR)/spatter$(EXT).native spatter.cpp $(BIN_DIR)/kernels.o $(CXXFLAGS) -Iinclude -Ijson/single_include/nlohmann -I$(ANNOTATE_DIR)/include -L$(ANNOTATE_DIR)/lib -Wl,-Bstatic -lannotate.native -Wl,-Bdynamic
 
 clean:
 	rm -f $(BIN_DIR)/spatter.papi $(BIN_DIR)/spatter-sve.papi

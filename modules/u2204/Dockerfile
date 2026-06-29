@@ -40,6 +40,10 @@ RUN git clone https://github.com/nkrim/gem5.git --depth=1 --filter=blob:none --n
 RUN cd gem5/util/gem5_bridge && \
     make KMAKEDIR=/workspace/linux-5.15.0 INSTALL_MOD_PATH=/workspace/output build install
 
+RUN git clone https://github.com/mahyarsamani/hov.git /workspace/hov && \
+    cd /workspace/hov/driver && \
+    make KMAKEDIR=/workspace/linux-5.15.0 INSTALL_MOD_PATH=/workspace/output build install
+
 RUN cd /workspace/output/lib/modules/5.15.167 && \
     rm -rf build source
 

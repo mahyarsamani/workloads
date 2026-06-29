@@ -4,7 +4,7 @@ CFLAGS+=-O2 -fopenmp
 CXXFLAGS+=-O2 -fopenmp
 BIN_DIR=bin
 
-ANNOTATE_DIR=$(PWD)/../../annotate
+ANNOTATE_DIR=$(abspath $(PWD)/../../annotate)
 
 EXT=
 ifeq ($(EXTENSION), sve)
@@ -21,13 +21,13 @@ kernels: make_dir
 	$(CC) -c -o $(BIN_DIR)/scatter-kernel.o scatter_kernel.c $(CFLAGS) -Iinclude
 
 papi: kernels
-	$(CXX) -o $(BIN_DIR)/permutating-scatter$(EXT).papi permutating_scatter.cpp $(BIN_DIR)/scatter-kernel.o $(CXXFLAGS) -Iinclude -I$(ANNOTATE_DIR)/include -I$(ANNOTATE_DIR)/papi/install/include -L$(ANNOTATE_DIR)/lib -L$(ANNOTATE_DIR)/papi/install/lib -lannotate.papi -lpapi -lpthread
+	$(CXX) -o $(BIN_DIR)/permutating-scatter$(EXT).papi permutating_scatter.cpp $(BIN_DIR)/scatter-kernel.o $(CXXFLAGS) -Iinclude -I$(ANNOTATE_DIR)/include -I$(ANNOTATE_DIR)/papi/install/include -L$(ANNOTATE_DIR)/lib -L$(ANNOTATE_DIR)/papi/install/lib -Wl,-Bstatic -lannotate.papi -Wl,-Bdynamic -lpapi -lpthread
 
 gem5fs: kernels
-	$(CXX) -o $(BIN_DIR)/permutating-scatter$(EXT).gem5fs permutating_scatter.cpp $(BIN_DIR)/scatter-kernel.o $(CXXFLAGS) -Iinclude -I$(ANNOTATE_DIR)/include -L$(ANNOTATE_DIR)/lib -lannotate.gem5fs -lm5 $(LDFLAGS)
+	$(CXX) -o $(BIN_DIR)/permutating-scatter$(EXT).gem5fs permutating_scatter.cpp $(BIN_DIR)/scatter-kernel.o $(CXXFLAGS) -Iinclude -I$(ANNOTATE_DIR)/include -L$(ANNOTATE_DIR)/lib -Wl,-Bstatic -lannotate.gem5fs -lm5 -Wl,-Bdynamic $(LDFLAGS)
 
 native: kernels
-	$(CXX) -o $(BIN_DIR)/permutating-scatter$(EXT).native permutating_scatter.cpp $(BIN_DIR)/scatter-kernel.o $(CXXFLAGS) -Iinclude -I$(ANNOTATE_DIR)/include -L$(ANNOTATE_DIR)/lib -lannotate.native
+	$(CXX) -o $(BIN_DIR)/permutating-scatter$(EXT).native permutating_scatter.cpp $(BIN_DIR)/scatter-kernel.o $(CXXFLAGS) -Iinclude -I$(ANNOTATE_DIR)/include -L$(ANNOTATE_DIR)/lib -Wl,-Bstatic -lannotate.native -Wl,-Bdynamic
 
 clean:
 	rm -f $(BIN_DIR)/permutating-scatter.papi $(BIN_DIR)/permutating-scatter-sve.papi

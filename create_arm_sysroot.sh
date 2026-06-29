@@ -2,14 +2,18 @@
 set -e
 
 # 1. Create a directory for our sysroot
-SYSROOT_DIR="$(pwd)/sysroots/aarch64"
+SYSROOT_DIR="${SYSROOT_DIR:=$(pwd)/sysroots/aarch64}"
+HOST_ARCH=$(uname -m)
 mkdir -p "$SYSROOT_DIR"
 
 # 2. Install debootstrap to setup a fake root
-sudo debootstrap --arch=arm64 --foreign jammy "$SYSROOT_DIR" http://ports.ubuntu.com/ubuntu-ports/
-
-# 3. Setup the emulator bridge
-sudo cp /usr/bin/qemu-aarch64-static "$SYSROOT_DIR/usr/bin/"
+if [ "$HOST_ARCH" = "aarch64" ]; then
+    sudo debootstrap --arch=arm64 jammy "$SYSROOT_DIR" http://ports.ubuntu.com/ubuntu-ports/
+else
+    sudo debootstrap --arch=arm64 --foreign jammy "$SYSROOT_DIR" http://ports.ubuntu.com/ubuntu-ports/
+    # 3. Setup the emulator bridge (only needed for cross-arch)
+    sudo cp /usr/bin/qemu-aarch64-static "$SYSROOT_DIR/usr/bin/"
+fi
 
 # 4. Mount virtual filesystems needed for package installation
 echo "Mounting virtual filesystems..."
@@ -27,13 +31,15 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# 5. Run second stage and install DEV dependencies natively via chroot
+# 5. Run second stage (if cross-arch) and install DEV dependencies natively via chroot
 echo "Configuring sysroot natively..."
-sudo chroot "$SYSROOT_DIR" /bin/bash << 'EOF'
+sudo chroot "$SYSROOT_DIR" /bin/bash <<CHROOT_EOF
 set -e
 
-# Run debootstrap second stage
-/debootstrap/debootstrap --second-stage
+# Run debootstrap second stage only when --foreign was used
+if [ "$HOST_ARCH" != "aarch64" ]; then
+    /debootstrap/debootstrap --second-stage
+fi
 
 # Install core packages
 apt-get update -y
@@ -65,7 +71,7 @@ update-alternatives --install /usr/bin/cpp cpp /usr/bin/cpp-13 130
 update-alternatives --set cpp /usr/bin/cpp-13
 
 echo "Sysroot configuration complete."
-EOF
+CHROOT_EOF
 
 # 6. CONVERT TO RELATIVE SYMLINKS (Crucial step)
 echo "Converting symlinks..."
@@ -80,7 +86,11 @@ cd "$TEMP_GEM5_DIR"
 git sparse-checkout add util/m5 util/gem5_bridge include
 git checkout
 cd util/m5
-scons build/arm64/out/m5 CROSS_COMPILE=aarch64-linux-gnu- CXX="aarch64-linux-gnu-gcc --sysroot=$SYSROOT_DIR" CC="aarch64-linux-gnu-gcc --sysroot=$SYSROOT_DIR"
+if [ "$HOST_ARCH" = "aarch64" ]; then
+    scons build/arm64/out/m5
+else
+    scons build/arm64/out/m5 CROSS_COMPILE=aarch64-linux-gnu- CXX="aarch64-linux-gnu-gcc --sysroot=$SYSROOT_DIR" CC="aarch64-linux-gnu-gcc --sysroot=$SYSROOT_DIR"
+fi
 sudo mkdir -p "$SYSROOT_DIR/usr/local/include/gem5"
 sudo cp -r ../../include/gem5/* "$SYSROOT_DIR/usr/local/include/gem5/"
 sudo cp src/m5_mmap.h "$SYSROOT_DIR/usr/local/include/gem5/"

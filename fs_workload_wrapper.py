@@ -4,6 +4,12 @@ import argparse
 import os
 import re
 
+from enum import Enum
+
+class WorkloadVariant(Enum):
+    REF = "ref"
+    HOV = "hov"
+
 from pathlib import Path
 from typing import Optional, Union
 
@@ -40,6 +46,7 @@ def copy_file(file_name: str, src_dir: Path, dst_dir: Path):
 
 
 def take_checkpoint(checkpoint_path: Path):
+    inform(f"Taking a checkpoint in {checkpoint_path}.")
     checkpoint(str(checkpoint_path))
 
 
@@ -116,6 +123,7 @@ class ExitEventHandlerWrapper:
         take_checkpoint: bool,
         restore_checkpoint: bool,
         checkpoint_path: Union[Path, None],
+        has_warmup: bool,
     ):
         if take_checkpoint and restore_checkpoint:
             raise ValueError(
@@ -127,19 +135,21 @@ class ExitEventHandlerWrapper:
         self._reacted_yet = restore_checkpoint
         self._take_checkpoint = take_checkpoint
         self._checkpoint_path = checkpoint_path
+        self._has_warmup = has_warmup
 
     def _validate_options(self, board: AbstractBoard):
         if self._take_checkpoint:
             if self._checkpoint_path is None:
                 raise ValueError("Checkpoint base path is not provided.")
-            if isinstance(board.get_processor(), SwitchableProcessor):
+        if self._sample_stats:
+            if self._sample_period == "none":
                 raise ValueError(
-                    "Checkpointing is not supported with SwitchableProcessor."
+                    "`sample_stats` is set but `sample_period` is none."
                 )
         if self._sample_period != "none":
             if not self._sample_stats:
                 raise ValueError(
-                    "Sample period is set, but sample_stats is disabled."
+                    "`sample_period` is set, but `sample_stats` is disabled."
                 )
 
     def get_exit_event_handler(self, board: AbstractBoard):
@@ -183,7 +193,12 @@ class ExitEventHandlerWrapper:
         def handle_work_begin(board):
             processor = board.get_processor()
             can_switch = isinstance(processor, SwitchableProcessor)
-            assert can_switch != self._take_checkpoint
+            if self._has_warmup:
+                inform("Received a work_begin.")
+                if can_switch and processor.has_phase("warmup"):
+                    processor.switch("warmup")
+                    inform("Switched cpu without resetting stats.")
+                yield SimStep.REMAINING_TIME
             inform("Received a work_begin.")
             reset_stats()
             inform("Reset sim stats.")
@@ -205,10 +220,11 @@ class ExitEventHandlerWrapper:
                     "it's probably not going to be used."
                 )
                 yield SimStep.STOP
-            if can_switch:
-                processor.switch()
-                inform("Switched to the next processor.")
-                self._reacted_yet = True
+            else:
+                if can_switch and processor.has_phase("main"):
+                    processor.switch("main")
+                    inform("Switched to the next processor.")
+                    self._reacted_yet = True
                 yield (
                     SimStep.REMAINING_TIME
                     if not self._sample_stats
@@ -240,6 +256,7 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
         take_checkpoint: bool,
         restore_checkpoint: bool,
         checkpoint_base_path: Optional[Union[str, Path]],
+        has_warmup: bool,
     ):
         super().__init__(
             sample_stats,
@@ -247,6 +264,7 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
             take_checkpoint,
             restore_checkpoint,
             checkpoint_base_path,
+            has_warmup,
         )
         self._mss_flag = 0
         self._num_processes = num_processes
@@ -265,7 +283,7 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                     inform("Continuing simulation past after_boot.sh.")
                 else:
                     warn("Received an unexpected exit.")
-                    yield SimStep.Stop
+                    yield SimStep.STOP
                 yield SimStep.REMAINING_TIME
 
         def handle_max_tick():
@@ -288,50 +306,58 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
         def handle_work_begin(board):
             processor = board.get_processor()
             can_switch = isinstance(processor, SwitchableProcessor)
-            assert can_switch != self._take_checkpoint
             assert processor.get_num_cores() >= self._num_processes
 
             num_work_begin_received = 0
+            warmed_up_yet = False
             while not self._reacted_yet:
                 inform("Received a work_begin.")
                 num_work_begin_received += 1
                 inform(
                     f"Received {num_work_begin_received} work_begins so far."
                 )
-                if num_work_begin_received == self._num_processes:
-                    reset_stats()
-                    inform("Reset sim stats.")
+                if num_work_begin_received % self._num_processes == 0:
                     self._mss_flag += 1
                     board.setMSSFlag(self._mss_flag)
-                    if self._take_checkpoint:
-                        take_checkpoint(self._checkpoint_path)
-                        inform(
-                            f"Took a checkpoint in {self._checkpoint_path}."
-                        )
-                        inform(
-                            "Copying process_info.txt from m5.outdir "
-                            "to checkpoint path if it exists."
-                        )
-                        copy_file(
-                            "process_info.txt",
-                            get_outdir(),
-                            self._checkpoint_path,
-                        )
-                        self._reacted_yet = True
-                        inform(
-                            "Set `_reacted_yet` to True although "
-                            "it's probably not going to be used."
-                        )
-                        yield SimStep.STOP
-                    if can_switch:
-                        processor.switch()
-                        inform("Switched to the next processor.")
-                        self._reacted_yet = True
-                        yield (
-                            SimStep.REMAINING_TIME
-                            if not self._sample_stats
-                            else self._sample_period
-                        )
+                    if self._has_warmup and not warmed_up_yet:
+                        if can_switch and processor.has_phase("warmup"):
+                            processor.switch("warmup")
+                            inform("Switched cpu without resetting stats.")
+                        warmed_up_yet = True
+                        yield SimStep.REMAINING_TIME
+                    else:
+                        reset_stats()
+                        inform("Reset sim stats.")
+                        if self._take_checkpoint:
+                            take_checkpoint(self._checkpoint_path)
+                            inform(
+                                f"Took a checkpoint in {self._checkpoint_path}."
+                            )
+                            inform(
+                                "Copying process_info.txt from m5.outdir "
+                                "to checkpoint path if it exists."
+                            )
+                            copy_file(
+                                "process_info.txt",
+                                get_outdir(),
+                                self._checkpoint_path,
+                            )
+                            self._reacted_yet = True
+                            inform(
+                                "Set `_reacted_yet` to True although "
+                                "it's probably not going to be used."
+                            )
+                            yield SimStep.STOP
+                        else:
+                            if can_switch and processor.has_phase("main"):
+                                processor.switch("main")
+                                inform("Switched to the next processor.")
+                                self._reacted_yet = True
+                            yield (
+                                SimStep.REMAINING_TIME
+                                if not self._sample_stats
+                                else self._sample_period
+                            )
                 else:
                     yield SimStep.REMAINING_TIME
             raise RuntimeError(
@@ -386,14 +412,14 @@ class FSWorkloadWrapper:
         self,
         cwd: str,
         binary_name: str,
-        num_processes,
+        num_processes: int,
+        has_warmup: bool,
     ):
         self._cwd = cwd
         self._binary_name = binary_name
         self._num_processes = num_processes
+        self._has_warmup = has_warmup
         self._exit_handler = None
-
-
 
     def generate_cmdline(self):
         return (
@@ -475,6 +501,7 @@ class FSWorkloadWrapper:
             take_checkpoint,
             restore_checkpoint,
             checkpoint_path,
+            self._has_warmup,
         )
 
     def get_exit_event_handler(
@@ -500,15 +527,18 @@ class FSWorkloadWrapper:
     def add_workload_insights(self, board: AbstractBoard) -> None:
         pass
 
+    def init_mss_flag(self, restoring_checkpoint: bool):
+        return -1
+
+    def needs_hov_mem(self) -> bool:
+        return False
+
 
 class FSMPIWorkloadWrapper(FSWorkloadWrapper):
     def __init__(
-        self,
-        cwd: str,
-        binary_name: str,
-        num_processes: int,
+        self, cwd: str, binary_name: str, num_processes: int, has_warmup: bool
     ):
-        super().__init__(cwd, binary_name, num_processes)
+        super().__init__(cwd, binary_name, num_processes, has_warmup)
 
     def _create_exit_event_handler(
         self,
@@ -525,6 +555,12 @@ class FSMPIWorkloadWrapper(FSWorkloadWrapper):
             take_checkpoint,
             restore_checkpoint,
             checkpoint_path,
+            self._has_warmup,
+        )
+
+    def init_mss_flag(self, restoring_checkpoint: bool):
+        return (
+            0 if not restoring_checkpoint else (2 if self._has_warmup else 1)
         )
 
 
@@ -537,6 +573,7 @@ class BootWrapper(FSWorkloadWrapper):
                 take_checkpoint=False,
                 restore_checkpoint=False,
                 checkpoint_path=None,
+                has_warmup=False,
             )
 
         def _get_exit_event_handler(self, board):
@@ -599,45 +636,6 @@ class BootWrapper(FSWorkloadWrapper):
         return {"name": "boot"}
 
 
-class MPIBenchWrapper(FSMPIWorkloadWrapper):
-    @staticmethod
-    def parse_args(args):
-        parser = argparse.ArgumentParser()
-        parser.add_argument("--num-processes", type=int, required=True)
-        parser.add_argument("--use-sve", type=str, required=True)
-
-        parsed_args = parser.parse_args(args)
-        return [parsed_args.num_processes, parsed_args.use_sve]
-
-    def __init__(
-        self,
-        num_processes: int,
-        use_sve: Union[bool, int, str],
-    ):
-        binary_name = (
-            "mpi_bench_gem5_sve"
-            if try_convert_bool(use_sve)
-            else "mpi_bench_gem5"
-        )
-        super().__init__(
-            "/home/gem5/workloads/mpi_bench", binary_name, num_processes
-        )
-        self._use_sve = try_convert_bool(use_sve)
-
-    def _generate_cmdline(self):
-        workload_cmd = f"./{self._binary_name} index.txt data.txt"
-        return _mpirun_command_template.format(
-            num_processes=self._num_processes, workload_cmd=workload_cmd
-        )
-
-    def generate_id_dict(self):
-        return {
-            "name": "mpi-bench",
-            "use-sve": self._use_sve,
-            "num-processes": self._num_processes,
-        }
-
-
 class BransonWrapper(FSMPIWorkloadWrapper):
     _base_input_path = "/home/gem5/workloads/branson/inputs"
     _input_translator = {
@@ -685,18 +683,21 @@ ret b17c
         return [
             parsed_args.num_processes,
             parsed_args.input_name,
-            parsed_args.variant,
+            WorkloadVariant(parsed_args.variant),
         ]
 
     def __init__(
         self,
         num_processes: int,
         input_name: str,
-        variant: str,
+        variant: WorkloadVariant,
     ):
-        binary_name = f"BRANSON_{variant}" if variant == "hov" else "BRANSON"
+        binary_name = f"BRANSON_{variant.value}" if variant == WorkloadVariant.HOV else "BRANSON"
         super().__init__(
-            "/home/gem5/workloads/branson/build", binary_name, num_processes
+            "/home/gem5/workloads/branson/build",
+            binary_name,
+            num_processes,
+            False,
         )
         self._input_name = BransonWrapper._input_translator[input_name]
         self._input_path = (
@@ -718,8 +719,11 @@ ret b17c
             "name": "branson",
             "num-processes": self._num_processes,
             "input": self._input_name,
-            "variant": self._variant,
+            "variant": self._variant.value,
         }
+
+    def needs_hov_mem(self) -> bool:
+        return self._variant == WorkloadVariant.HOV
 
     def add_workload_insights(self, board: AbstractBoard) -> None:
         processor = board.get_processor()
@@ -798,7 +802,7 @@ ret 21eec
             parsed_args.dim_z,
             parsed_args.seconds,
             parsed_args.kernel,
-            parsed_args.variant,
+            WorkloadVariant(parsed_args.variant),
         ]
 
     def __init__(
@@ -809,11 +813,15 @@ ret 21eec
         dim_z: int,
         seconds: int,
         kernel: str,
-        variant: str,
+        variant: WorkloadVariant,
     ):
-        binary_name = f"xhpcg_{kernel}_{variant}_gem5fs" if variant == "hov" else f"xhpcg_{kernel}_gem5fs"
+        binary_name = (
+            f"xhpcg_{kernel}_{variant.value}_gem5fs"
+            if variant == WorkloadVariant.HOV
+            else f"xhpcg_{kernel}_gem5fs"
+        )
         super().__init__(
-            "/home/gem5/workloads/hpcg/bin", binary_name, num_processes
+            "/home/gem5/workloads/hpcg/bin", binary_name, num_processes, False
         )
         self._x = dim_x
         self._y = dim_y
@@ -839,8 +847,11 @@ ret 21eec
             "dim-z": self._z,
             "set-time": self._secs,
             "kernel": self._kernel,
-            "variant": self._variant,
+            "variant": self._variant.value,
         }
+
+    def needs_hov_mem(self) -> bool:
+        return self._variant == WorkloadVariant.HOV
 
 
 class UMEWrapper(FSMPIWorkloadWrapper):
@@ -967,20 +978,29 @@ ret c134
         )
 
         parsed_args = parser.parse_args(args)
-        return [parsed_args.input_name, parsed_args.region, parsed_args.variant]
+        return [
+            parsed_args.input_name,
+            parsed_args.region,
+            WorkloadVariant(parsed_args.variant),
+        ]
 
     def __init__(
         self,
         input_name: str,
         region: str,
-        variant: str,
+        variant: WorkloadVariant,
     ):
         input_file, num_processes = UMEWrapper._input_translator[input_name]
-        binary_name = f"ume_mpi_{region}_{variant}" if variant == "hov" else f"ume_mpi_{region}"
+        binary_name = (
+            f"ume_mpi_{region}_{variant.value}"
+            if variant == WorkloadVariant.HOV
+            else f"ume_mpi_{region}"
+        )
         super().__init__(
             "/home/gem5/workloads/UME/build/src",
             binary_name,
             num_processes,
+            True,
         )
         self._input_name = input_name
         self._input_file = input_file
@@ -989,8 +1009,6 @@ ret c134
         self._access_sites, self._indirect_chains = process_snippet(
             UMEWrapper.snippet_translator[region]
         )
-
-
 
     def _generate_cmdline(self):
         workload_cmd = (
@@ -1007,8 +1025,11 @@ ret c134
             "num-processes": self._num_processes,
             "input": self._input_name,
             "region": self._region_name,
-            "variant": self._variant,
+            "variant": self._variant.value,
         }
+
+    def needs_hov_mem(self) -> bool:
+        return self._variant == WorkloadVariant.HOV
 
     def add_workload_insights(self, board: AbstractBoard) -> None:
         processor = board.get_processor()
@@ -1054,7 +1075,7 @@ class NPBWrapper(FSWorkloadWrapper):
     ):
         binary_name = f"{workload.lower()}.{size.upper()}.x"
         super().__init__(
-            f"/home/gem5/workloads/NPB3.4-OMP/bin", f"{binary_name}"
+            f"/home/gem5/workloads/NPB3.4-OMP/bin", f"{binary_name}", False
         )
         self._workload = workload.lower()
         self._size = size.upper()
@@ -1084,7 +1105,10 @@ class MPINPBWrapper(FSMPIWorkloadWrapper):
     def __init__(self, num_processes: int, workload: str, size: str):
         binary_name = f"{workload.lower()}.{size.upper()}.x"
         super().__init__(
-            "/home/gem5/workloads/NPB3.4-MPI/bin", binary_name, num_processes
+            "/home/gem5/workloads/NPB3.4-MPI/bin",
+            binary_name,
+            num_processes,
+            False,
         )
         self._num_processes = num_processes
         self._workload = workload.lower()
@@ -1116,7 +1140,7 @@ class SimpleVectorWrapper(FSWorkloadWrapper):
             "sve" if try_convert_bool(use_sve) else "scalar"
         )
         suffix = "-sve.gem5fs" if try_convert_bool(use_sve) else ".gem5"
-        super().__init__(cwd, binary_name + suffix)
+        super().__init__(cwd, binary_name + suffix, False)
 
 
 class GUPSWrapper(SimpleVectorWrapper):

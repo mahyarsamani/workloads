@@ -11,7 +11,6 @@ from .se_workload_wrapper import (
 
 from .fs_workload_wrapper import (
     BootWrapper,
-    MPIBenchWrapper,
     HPCGWrapper,
     BransonWrapper,
     UMEWrapper,
