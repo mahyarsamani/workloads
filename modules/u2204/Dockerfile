@@ -23,14 +23,16 @@ RUN mkdir /workspace
 RUN cd /workspace && apt source linux-image-unsigned-5.15.0-25-generic
 
 RUN cd /workspace/linux-5.15.0 && \
+    sed -i 's/^SUBLEVEL = .*/SUBLEVEL = 167/' Makefile && \
     cd scripts && \
     chmod +x pahole-version.sh && \
     cd .. && \
     make defconfig && \
+    sed -i 's/CONFIG_SECURITY_SELINUX=y/# CONFIG_SECURITY_SELINUX is not set/' .config && \
     make -j 32 && \
     make INSTALL_MOD_PATH=/workspace/output modules_install
 
-RUN git clone https://github.com/nkrim/gem5.git --depth=1 --filter=blob:none --no-checkout --sparse --single-branch --branch=gem5-bridge && \
+RUN git clone https://github.com/gem5/gem5.git --depth=1 --filter=blob:none --no-checkout --sparse --single-branch --branch=stable && \
     cd gem5 && \
     git sparse-checkout add util/m5 && \
     git sparse-checkout add util/gem5_bridge && \

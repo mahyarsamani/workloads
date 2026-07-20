@@ -132,11 +132,6 @@ build {
     source      = "modules/u2204/files/5.15.167"
   }
 
-  provisioner "file" {
-    destination = "/home/gem5"
-    source      = "modules/u2404/files/6.8.12"
-  }
-
   provisioner "shell" {
     inline = [
       "mkdir -p /home/gem5/workloads",
@@ -204,6 +199,11 @@ build {
     scripts         = ["scripts/install-driver.sh", "scripts/install-packages.sh"]
     environment_vars = ["ISA=arm64", "DISTRO_VERSION=${var.ubuntu_version}", "DEBIAN_FRONTEND=noninteractive"]
     expect_disconnect = true
+  }
+
+  provisioner "shell" {
+    execute_command = "echo '${var.ssh_password}' | {{ .Vars }} sudo -E -S bash '{{ .Path }}'"
+    scripts         = ["scripts/install-hov.sh"]
   }
 
   provisioner "shell" {

@@ -4,25 +4,24 @@
 IMAGE_NAME=ms-u2204-kernel-modules-source-image
 CONTAINER_NAME=ms-u2204-kernel-modules-source-container
 
-# Check if the image exists
-if ! docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
-    echo "Docker image $IMAGE_NAME not found. Building the image..."
-
-    # Replace with the actual Docker build command
-    docker build -t $IMAGE_NAME .
-
-    if [ $? -ne 0 ]; then
-        echo "Failed to build the Docker image."
-        exit 1
-    fi
-else
-    echo "Docker image $IMAGE_NAME exists."
+# Clean up any existing container and image to prevent stale caches
+if docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME\$"; then
+    echo "Removing existing container $CONTAINER_NAME..."
+    docker rm -f $CONTAINER_NAME
 fi
 
-# Check if the container already exists and stop/remove it if necessary
-if docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME\$"; then
-    echo "Container $CONTAINER_NAME already exists. Removing it..."
-    docker rm -f $CONTAINER_NAME
+if docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
+    echo "Removing existing image $IMAGE_NAME to prevent cache..."
+    docker rmi -f $IMAGE_NAME
+fi
+
+# Build the image from scratch (no cache)
+echo "Building Docker image $IMAGE_NAME..."
+docker build --no-cache --platform linux/arm64 -t $IMAGE_NAME .
+
+if [ $? -ne 0 ]; then
+    echo "Failed to build the Docker image."
+    exit 1
 fi
 
 

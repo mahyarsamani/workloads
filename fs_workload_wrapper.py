@@ -6,9 +6,11 @@ import re
 
 from enum import Enum
 
+
 class WorkloadVariant(Enum):
     REF = "ref"
     HOV = "hov"
+
 
 from pathlib import Path
 from typing import Optional, Union
@@ -30,8 +32,11 @@ from gem5.simulate.exit_event_generators import SimStep
 
 _mpirun_command_template = (
     "mpirun -np {num_processes} "
+    "{extra_args}"
     "-mca coll basic,self,libnbc -mca btl self,vader --noprefix {workload_cmd}"
 )
+
+_hov_syscalls_lib = "/home/gem5/workloads/hov/lib/libhov_syscalls.so"
 
 
 def get_outdir():
@@ -426,11 +431,11 @@ class FSWorkloadWrapper:
             "#! /bin/bash\n\n"
             "# Disabling ASLR.\n"
             'echo "12345" | sudo -S sysctl -w kernel.randomize_va_space=0\n\n'
-            "# Waiting for 10 minutes to make sure all services have started.\n"
-            "# This will reduce interference with the workload.\n"
-            'echo "Waiting for 120 seconds for services to start."\n'
-            "sleep 120\n"
-            'echo "Wait is over."\n\n'
+            # "# Waiting for 10 minutes to make sure all services have started.\n"
+            # "# This will reduce interference with the workload.\n"
+            # 'echo "Waiting for 120 seconds for services to start."\n'
+            # "sleep 120\n"
+            # 'echo "Wait is over."\n\n'
             "# Changing directory to the right cwd.\n"
             f"cd {self._cwd}\n\n"
             "# Dumping the object file to a text file.\n"
@@ -473,6 +478,12 @@ class FSWorkloadWrapper:
             "echo 1 > $MMAP_DONE_PATH\n"
             "# Waiting for the workload to finish.\n"
             "wait\n"
+            "ret=$?\n"
+            'echo "Workload finished with exit code $ret"\n'
+            "if [ $ret -ne 0 ]; then\n"
+            '\techo "Workload failed! Checking dmesg..."\n'
+            '\techo "12345" | sudo -S dmesg | tail -n 50\n'
+            "fi\n"
         )
 
     def _generate_cmdline(self):
@@ -654,10 +665,10 @@ func transport_photon:
     e424:   umaddl      x20, w5, w1, x2
     e470:   ldr         d12, [x20, #152]    label:  cell                main
 
-    e584: ldr  x3, [sp, #176]               label:  phtn                main
-    e590: lsl  x5, x3, #4
-    e594: add  x6, x28, x5
-    e5ac: ldr  d6,  [x6,  #8]               label: cell_tallies         main
+    e584:   ldr  x3, [sp, #176]             label:  phtn                main
+    e590:   lsl  x5, x3, #4
+    e594:   add  x6, x28, x5
+    e5ac:   ldr  d6,  [x6,  #8]             label: cell_tallies         main
 ret e658
 
 func main
@@ -692,7 +703,7 @@ ret b17c
         input_name: str,
         variant: WorkloadVariant,
     ):
-        binary_name = f"BRANSON_{variant.value}" if variant == WorkloadVariant.HOV else "BRANSON"
+        binary_name = f"BRANSON_{variant.value}"
         super().__init__(
             "/home/gem5/workloads/branson/build",
             binary_name,
@@ -711,7 +722,9 @@ ret b17c
     def _generate_cmdline(self):
         workload_cmd = f"./{self._binary_name} {self._input_path}"
         return _mpirun_command_template.format(
-            num_processes=self._num_processes, workload_cmd=workload_cmd
+            num_processes=self._num_processes,
+            extra_args="",
+            workload_cmd=workload_cmd,
         )
 
     def generate_id_dict(self):
@@ -815,11 +828,7 @@ ret 21eec
         kernel: str,
         variant: WorkloadVariant,
     ):
-        binary_name = (
-            f"xhpcg_{kernel}_{variant.value}_gem5fs"
-            if variant == WorkloadVariant.HOV
-            else f"xhpcg_{kernel}_gem5fs"
-        )
+        binary_name = f"xhpcg_{kernel}_{variant.value}_gem5fs"
         super().__init__(
             "/home/gem5/workloads/hpcg/bin", binary_name, num_processes, False
         )
@@ -835,6 +844,7 @@ ret 21eec
     def _generate_cmdline(self):
         return f"{self._write_dat};\n" + _mpirun_command_template.format(
             num_processes=self._num_processes,
+            extra_args="",
             workload_cmd=f"./{self._binary_name}",
         )
 
@@ -991,11 +1001,8 @@ ret c134
         variant: WorkloadVariant,
     ):
         input_file, num_processes = UMEWrapper._input_translator[input_name]
-        binary_name = (
-            f"ume_mpi_{region}_{variant.value}"
-            if variant == WorkloadVariant.HOV
-            else f"ume_mpi_{region}"
-        )
+        binary_name = f"ume_mpi_{region}_{variant.value}"
+
         super().__init__(
             "/home/gem5/workloads/UME/build/src",
             binary_name,
@@ -1015,8 +1022,13 @@ ret c134
             f"./{self._binary_name} "
             f"{UMEWrapper._base_input_path}/{self._input_file}"
         )
+        mpi_extra_args = ""
+        if self._variant == WorkloadVariant.HOV:
+            mpi_extra_args = f"-x LD_PRELOAD={_hov_syscalls_lib} "
         return _mpirun_command_template.format(
-            num_processes=self._num_processes, workload_cmd=workload_cmd
+            num_processes=self._num_processes,
+            extra_args=mpi_extra_args,
+            workload_cmd=workload_cmd,
         )
 
     def generate_id_dict(self):
@@ -1117,7 +1129,9 @@ class MPINPBWrapper(FSMPIWorkloadWrapper):
     def _generate_cmdline(self):
         workload_cmd = f"./{self._binary_name}"
         return _mpirun_command_template.format(
-            num_processes=self._num_processes, workload_cmd=workload_cmd
+            num_processes=self._num_processes,
+            extra_args="",
+            workload_cmd=workload_cmd,
         )
 
     def generate_id_dict(self):

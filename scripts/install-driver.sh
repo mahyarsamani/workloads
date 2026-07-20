@@ -49,12 +49,6 @@ if [ "$DISTRO_VERSION" = "22.04" ]; then
     mv /home/gem5/5.15.167 /lib/modules/5.15.167
     depmod --quick -a 5.15.167
     update-initramfs -u -k 5.15.167
-    echo "hov_drv" > /etc/modules-load.d/hov_drv.conf
-elif [ "$DISTRO_VERSION" = "24.04" ]; then
-    mv /home/gem5/6.8.12 /lib/modules/6.8.12
-    depmod --quick -a 6.8.12
-    update-initramfs -u -k 6.8.12
-    echo "hov_drv" > /etc/modules-load.d/hov_drv.conf
 else
   echo "Unsupported DISTRO_VERSION: $DISTRO_VERSION"
   exit 1

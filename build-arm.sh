@@ -13,10 +13,25 @@ if [ ! -f ./packer ]; then
     rm packer_${PACKER_VERSION}_linux_arm64.zip;
 fi
 
+# Parse optional flags
+REBUILD_MODULES=false
+while [[ "$1" == --* ]]; do
+    case "$1" in
+        --rebuild-modules)
+            REBUILD_MODULES=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
 # Check if the Ubuntu version variable is provided
 if [ -z "$1" ]; then
-    echo "Usage: $0 <ubuntu_version> [image_name]"
-    echo "Example: $0 22.04 or $0 24.04"
+    echo "Usage: $0 [--rebuild-modules] <ubuntu_version> [image_name]"
+    echo "Example: $0 22.04 or $0 --rebuild-modules 22.04"
     exit 1
 fi
 
@@ -31,6 +46,15 @@ fi
 
 # Store the image name from the second command line argument or default to "arm-ubuntu"
 image_name="${2:-arm-ubuntu}"
+
+# Optionally rebuild kernel modules from scratch
+if [ "$REBUILD_MODULES" = true ]; then
+    echo "Rebuilding kernel modules..."
+    rm -rf ./modules/u2204/files
+    pushd ./modules/u2204
+    bash copy_modules.sh
+    popd
+fi
 
 # make the flash0.img file
 cd ./files
