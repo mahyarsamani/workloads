@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from .workload_insights import process_snippet
 
 import argparse
@@ -429,13 +430,6 @@ class FSWorkloadWrapper:
     def generate_cmdline(self):
         return (
             "#! /bin/bash\n\n"
-            "# Disabling ASLR.\n"
-            'echo "12345" | sudo -S sysctl -w kernel.randomize_va_space=0\n\n'
-            # "# Waiting for 10 minutes to make sure all services have started.\n"
-            # "# This will reduce interference with the workload.\n"
-            # 'echo "Waiting for 120 seconds for services to start."\n'
-            # "sleep 120\n"
-            # 'echo "Wait is over."\n\n'
             "# Changing directory to the right cwd.\n"
             f"cd {self._cwd}\n\n"
             "# Dumping the object file to a text file.\n"
@@ -577,32 +571,37 @@ class FSMPIWorkloadWrapper(FSWorkloadWrapper):
 
 class BootWrapper(FSWorkloadWrapper):
     class BootExitEventHandlerWrapper(ExitEventHandlerWrapper):
-        def __init__(self):
+        def __init__(
+            self,
+            take_checkpoint: bool,
+            restore_checkpoint: bool,
+            checkpoint_path: Path,
+        ):
             super().__init__(
                 sample_stats=False,
                 sample_period="none",
-                take_checkpoint=False,
-                restore_checkpoint=False,
-                checkpoint_path=None,
+                take_checkpoint=take_checkpoint,
+                restore_checkpoint=restore_checkpoint,
+                checkpoint_path=checkpoint_path,
                 has_warmup=False,
             )
 
         def _get_exit_event_handler(self, board):
             def handle_exit():
-                num_exits_received = 0
-                while True:
-                    inform("Received an exit.")
-                    num_exits_received += 1
-                    if num_exits_received == 1:
-                        inform("It's from gem5_init.sh.")
-                        inform("Continuing simulation past gem5_init.sh.")
-                    elif num_exits_received == 2:
-                        inform("It's from after_boot.sh.")
-                        inform("Continuing simulation past after_boot.sh.")
-                    else:
-                        warn("Received an unexpected exit.")
-                        yield SimStep.STOP
+                inform("Received an exit.")
+                inform("It's from gem5_init.sh.")
+                inform("Continuing simulation past gem5_init.sh.")
+                yield SimStep.REMAINING_TIME
+                inform("It's from after_boot.sh.")
+                if self._take_checkpoint:
+                    inform("Taking a checkpoint")
+                    take_checkpoint(self._checkpoint_path)
+                    yield SimStep.STOP
+                else:
+                    inform("Continuing simulation past after_boot.sh.")
                     yield SimStep.REMAINING_TIME
+                warn("Received an unexpected exit.")
+                yield SimStep.STOP
 
             return {
                 ExitEvent.EXIT: handle_exit(),
@@ -614,7 +613,7 @@ class BootWrapper(FSWorkloadWrapper):
         return []
 
     def __init__(self):
-        super().__init__("/home/gem5", "", 1)
+        super().__init__("/home/gem5", "", 1, False)
 
     def generate_cmdline(self):
         return (
@@ -638,10 +637,13 @@ class BootWrapper(FSWorkloadWrapper):
         checkpoint_path,
     ):
         inform(
-            "BootCommandWrapper ignores all of `sample_stats`, "
-            "`sample_period`, `take_checkpoint`, `checkpoint_path`."
+            "BootCommandWrapper ignores all of `sample_stats`, `sample_period`."
         )
-        self._exit_handler = BootWrapper.BootExitEventHandlerWrapper()
+        self._exit_handler = BootWrapper.BootExitEventHandlerWrapper(
+            take_checkpoint,
+            restore_checkpoint,
+            checkpoint_path,
+        )
 
     def generate_id_dict(self):
         return {"name": "boot"}

@@ -14,23 +14,20 @@
 
 # gem5-bridge exit signifying that after_boot.sh is running
 printf "In after_boot.sh...\n"
-gem5-bridge --addr=0x10010000 exit # TODO: Make this a specialized event.
 
-# Read /proc/cmdline and parse options
+printf "Disabling ASLR.\n"
+echo "12345" | sudo -S sysctl -w kernel.randomize_va_space=0
 
-cmdline=$(cat /proc/cmdline)
-interactive=false
-IGNORE_M5=0
-if [[ $cmdline == *"interactive"* ]]; then
-    interactive=true
-fi
+printf "Waiting for two minutes for services to start.\n"
+sleep 120
+printf "Done waiting.\n"
 
 if [[ $cmdline == *"use_hov=1"* ]]; then
     printf "HOV enabled in boot parameters, loading hov_drv module...\n"
     sudo modprobe hov_drv
 fi
 
-printf "Interactive mode: $interactive\n"
+gem5-bridge --addr=0x10010000 exit # TODO: Make this a specialized event.
 
 # Try to read the run script from the host regardless of interactive mode.
 # This way, interactive sessions still have /tmp/script available.
@@ -53,6 +50,14 @@ if ! [ -z $IGNORE_M5 ]; then
     fi
 fi
 
+# Read /proc/cmdline and parse options
+cmdline=$(cat /proc/cmdline)
+interactive=false
+IGNORE_M5=0
+if [[ $cmdline == *"interactive"* ]]; then
+    interactive=true
+fi
+printf "Interactive mode: $interactive\n"
 
 if [[ $interactive == true ]]; then
     printf "Interactive mode enabled, dropping to shell.\n"
