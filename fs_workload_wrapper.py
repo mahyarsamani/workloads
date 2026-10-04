@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from .checkpoint_manifest import write_manifest
 from .workload_insights import process_snippet
 
 import argparse
@@ -142,6 +143,24 @@ class ExitEventHandlerWrapper:
         self._take_checkpoint = take_checkpoint
         self._checkpoint_path = checkpoint_path
         self._has_warmup = has_warmup
+        # Called with the checkpoint path after each checkpoint; set by the
+        # workload wrapper to write the checkpoint manifest.
+        self._on_checkpoint = None
+
+    def _after_checkpoint(self):
+        """Store everything that belongs with a checkpoint next to it:
+        process_info.txt (if the guest wrote one) and the manifest."""
+        inform(
+            "Copying process_info.txt from m5.outdir "
+            "to checkpoint path if it exists."
+        )
+        copy_file(
+            "process_info.txt",
+            get_outdir(),
+            self._checkpoint_path,
+        )
+        if self._on_checkpoint is not None:
+            self._on_checkpoint(self._checkpoint_path)
 
     def _validate_options(self, board: AbstractBoard):
         if self._take_checkpoint:
@@ -211,15 +230,7 @@ class ExitEventHandlerWrapper:
             if self._take_checkpoint:
                 take_checkpoint(self._checkpoint_path)
                 inform(f"Took a checkpoint in {self._checkpoint_path}.")
-                inform(
-                    "Copying process_info.txt from m5.outdir "
-                    "to checkpoint path if it exists."
-                )
-                copy_file(
-                    "process_info.txt",
-                    get_outdir(),
-                    self._checkpoint_path,
-                )
+                self._after_checkpoint()
                 self._reacted_yet = True
                 inform(
                     "Set `_reacted_yet` to True although "
@@ -339,15 +350,7 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                             inform(
                                 f"Took a checkpoint in {self._checkpoint_path}."
                             )
-                            inform(
-                                "Copying process_info.txt from m5.outdir "
-                                "to checkpoint path if it exists."
-                            )
-                            copy_file(
-                                "process_info.txt",
-                                get_outdir(),
-                                self._checkpoint_path,
-                            )
+                            self._after_checkpoint()
                             self._reacted_yet = True
                             inform(
                                 "Set `_reacted_yet` to True although "
@@ -426,14 +429,15 @@ class FSWorkloadWrapper:
         self._num_processes = num_processes
         self._has_warmup = has_warmup
         self._exit_handler = None
+        self._checkpoint_context = None
 
     def generate_cmdline(self):
         return (
             "#! /bin/bash\n\n"
             "# Changing directory to the right cwd.\n"
             f"cd {self._cwd}\n\n"
-            "# Dumping the object file to a text file.\n"
-            'echo "objdump" >> process_info.txt\n'
+            "# Dumping the object file to a text file (truncate any old one).\n"
+            'echo "objdump" > process_info.txt\n'
             f"objdump -S {self._binary_name} >> process_info.txt\n\n"
             "# Creating the directory for mmap_done.\n"
             f"mkdir -p {self._cwd}/mmap_done\n"
@@ -444,7 +448,8 @@ class FSWorkloadWrapper:
             "# Exporting PID_DUMP_PATH.\n"
             f"export PID_DUMP_PATH={self._cwd}/pids\n\n"
             "# Running the command to launch workload.\n"
-            f"{self._generate_cmdline()} &\n\n"
+            f"{self._generate_cmdline()} &\n"
+            "WL_PID=$!\n\n"
             f"# Storing process mmap to host.\n"
             "# Waiting for the PID_DUMP_PATH to be created.\n"
             "while true; do\n"
@@ -470,8 +475,9 @@ class FSWorkloadWrapper:
             "gem5-bridge --addr=0x10010000 writefile process_info.txt\n\n"
             "# Writing 1 to the mmap_done.txt file to indicate that mmap is done.\n"
             "echo 1 > $MMAP_DONE_PATH\n"
-            "# Waiting for the workload to finish.\n"
-            "wait\n"
+            "# Waiting for the workload to finish (wait on its PID so that\n"
+            "# its exit code is returned; a bare `wait` always returns 0).\n"
+            "wait $WL_PID\n"
             "ret=$?\n"
             'echo "Workload finished with exit code $ret"\n'
             "if [ $ret -ne 0 ]; then\n"
@@ -527,7 +533,34 @@ class FSWorkloadWrapper:
         )
         if self._exit_handler is None:
             raise RuntimeError("Failed to create an exit event handler.")
+        self._exit_handler._on_checkpoint = self._write_checkpoint_manifest
         return self._exit_handler.get_exit_event_handler(board)
+
+    def set_checkpoint_context(self, files: dict, **fields) -> None:
+        """Run settings the wrapper can't know (platform, CPU type, mods,
+        kernel/disk paths, ...), recorded in the manifest of any checkpoint
+        this run takes. `files` maps a role to a path."""
+        self._checkpoint_context = {"files": files, **fields}
+
+    def _write_checkpoint_manifest(self, checkpoint_path: Path) -> None:
+        if self._checkpoint_context is None:
+            warn(
+                "No checkpoint context set (set_checkpoint_context); "
+                f"no manifest written for {checkpoint_path}."
+            )
+            return
+        context = dict(self._checkpoint_context)
+        manifest = write_manifest(
+            checkpoint_path,
+            files=context.pop("files"),
+            snippet=self.get_snippet(),
+            id_dict=self.generate_id_dict(),
+            id_string=self.generate_id_string(),
+            hov_mem="8GiB" if self.needs_hov_mem() else None,
+            **context,
+            **self.checkpoint_state(),
+        )
+        inform(f"Wrote {manifest}.")
 
     def add_workload_insights(self, board: AbstractBoard) -> None:
         pass
@@ -537,6 +570,25 @@ class FSWorkloadWrapper:
 
     def needs_hov_mem(self) -> bool:
         return False
+
+    def checkpoint_state(self) -> dict:
+        """State the guest depends on when a checkpoint is taken; stored in
+        the checkpoint manifest and used again on restore."""
+        return {
+            "has_warmup": self._has_warmup,
+            "mss_flag": getattr(self._exit_handler, "_mss_flag", None),
+        }
+
+    def restore_mss_flag(self, mss_flag: int) -> None:
+        """Continue the exit handler's MSS flag count from the value the
+        board was restored with, so later updates (e.g. at work_end) follow
+        on from it."""
+        if hasattr(self._exit_handler, "_mss_flag"):
+            self._exit_handler._mss_flag = mss_flag
+
+    def get_snippet(self) -> Optional[str]:
+        """The workload-insights snippet this run uses, if any."""
+        return getattr(type(self), "snippet", None)
 
 
 class FSMPIWorkloadWrapper(FSWorkloadWrapper):
@@ -596,6 +648,7 @@ class BootWrapper(FSWorkloadWrapper):
                 if self._take_checkpoint:
                     inform("Taking a checkpoint")
                     take_checkpoint(self._checkpoint_path)
+                    self._after_checkpoint()
                     yield SimStep.STOP
                 else:
                     inform("Continuing simulation past after_boot.sh.")
@@ -609,11 +662,23 @@ class BootWrapper(FSWorkloadWrapper):
 
     @staticmethod
     def parse_args(args):
-        inform("BootCommandWrapper does not accept any arguments.")
-        return []
+        parser = argparse.ArgumentParser()
+        # hov boots a different machine: Linux gets less memory and the hov
+        # pool is passed on the kernel command line, so ref and hov workloads
+        # each need their own boot checkpoint.
+        parser.add_argument(
+            "--variant",
+            type=str,
+            required=False,
+            default="ref",
+            choices=[variant.value for variant in WorkloadVariant],
+        )
+        parsed_args = parser.parse_args(args)
+        return [WorkloadVariant(parsed_args.variant)]
 
-    def __init__(self):
+    def __init__(self, variant: WorkloadVariant = WorkloadVariant.REF):
         super().__init__("/home/gem5", "", 1, False)
+        self._variant = variant
 
     def generate_cmdline(self):
         return (
@@ -646,7 +711,16 @@ class BootWrapper(FSWorkloadWrapper):
         )
 
     def generate_id_dict(self):
-        return {"name": "boot"}
+        return {"name": "boot", "variant": self._variant.value}
+
+    def needs_hov_mem(self) -> bool:
+        return self._variant == WorkloadVariant.HOV
+
+    @staticmethod
+    def id_string_for(variant: WorkloadVariant) -> str:
+        """ID string (checkpoint directory name) of the boot checkpoint for
+        `variant`, e.g. NAME.boot-VARIANT.hov."""
+        return BootWrapper(variant).generate_id_string()
 
 
 class BransonWrapper(FSMPIWorkloadWrapper):
@@ -688,8 +762,10 @@ ret b17c
             choices=BransonWrapper._input_translator.keys(),
         )
 
+        # Branson is ref-only: the hov variant is parked on branson's
+        # sift-hov branch, so no BRANSON_hov binary is built.
         parser.add_argument(
-            "--variant", type=str, required=True, choices=["ref", "hov"]
+            "--variant", type=str, required=True, choices=["ref"]
         )
 
         parsed_args = parser.parse_args(args)
@@ -840,8 +916,14 @@ ret 21eec
         self._secs = seconds
         self._kernel = kernel
         self._variant = variant
-        self._dat_content = f'"{self._x} {self._y} {self._z}\\n{self._secs}"'
-        self._write_dat = f"echo {self._dat_content} > hpcg.dat"
+        # ReadHpcgDat skips two header lines, then reads "nx ny nz" and the
+        # run time; anything it can't read silently falls back to 16^3/1800s.
+        self._write_dat = (
+            "printf 'HPCG benchmark input file\\n"
+            "Sandia National Laboratories; University of Tennessee, Knoxville\\n"
+            "%d %d %d\\n%d\\n' "
+            f"{self._x} {self._y} {self._z} {self._secs} > hpcg.dat"
+        )
 
     def _generate_cmdline(self):
         return f"{self._write_dat};\n" + _mpirun_command_template.format(
@@ -1044,6 +1126,9 @@ ret c134
 
     def needs_hov_mem(self) -> bool:
         return self._variant == WorkloadVariant.HOV
+
+    def get_snippet(self) -> Optional[str]:
+        return UMEWrapper.snippet_translator.get(self._region_name)
 
     def add_workload_insights(self, board: AbstractBoard) -> None:
         processor = board.get_processor()
