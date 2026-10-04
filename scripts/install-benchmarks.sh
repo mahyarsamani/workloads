@@ -82,7 +82,10 @@ popd
 popd
 
 pushd hpcg
-./configure Linux_MPI_gem5fs
+# In-source configure: its last step copies setup/Make.<arch> onto itself,
+# which fails with status 1 after the Makefile has been generated. Ignore
+# only that; real configure errors (missing arch/setup file) exit 127.
+./configure Linux_MPI_gem5fs || [ $? -eq 1 ]
 for kernel in SPMVM SYMGS WAXPBY MG CG; do
     # Build Reference Variant
     make clean arch=Linux_MPI_gem5fs
