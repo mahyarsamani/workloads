@@ -3,6 +3,8 @@
 # Copyright (c) 2024 The Regents of the University of California.
 # SPDX-License-Identifier: BSD 3-Clause
 
+set -e
+
 echo "Post Installation Started."
 
 
@@ -27,7 +29,7 @@ echo "Adding after_boot.sh to the gem5 user's .bashrc."
 echo -e "\nif [ -z \"\$AFTER_BOOT_EXECUTED\" ]; then\n   export AFTER_BOOT_EXECUTED=1\n    /home/gem5/after_boot.sh\nfi\n" >> /home/gem5/.bashrc
 
 # Remove the motd
-rm /etc/update-motd.d/*
+rm -f /etc/update-motd.d/*
 
 # Build and install the gem5-bridge (m5) binary, library, and headers
 echo "Building and installing gem5-bridge (m5) and libm5."

@@ -2,7 +2,7 @@
 set -e
 
 # 1. Create a directory for our sysroot
-SYSROOT_DIR="${SYSROOT_DIR:=$(pwd)/sysroots/aarch64}"
+SYSROOT_DIR="${SYSROOT_DIR:=/scr/msamani/robust_sysroots/aarch64}"
 HOST_ARCH=$(uname -m)
 mkdir -p "$SYSROOT_DIR"
 

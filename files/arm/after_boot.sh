@@ -15,6 +15,12 @@
 # gem5-bridge exit signifying that after_boot.sh is running
 printf "In after_boot.sh...\n"
 
+# Read /proc/cmdline and parse options. This must come first: $cmdline from
+# gem5_init.sh is not inherited (systemd and the login shell are separate
+# processes), so the hov_drv and readfile checks below would see it empty.
+cmdline=$(cat /proc/cmdline)
+IGNORE_M5=${IGNORE_M5:-0}
+
 printf "Disabling ASLR.\n"
 echo "12345" | sudo -S sysctl -w kernel.randomize_va_space=0
 
@@ -31,7 +37,7 @@ gem5-bridge --addr=0x10010000 exit # TODO: Make this a specialized event.
 
 # Try to read the run script from the host regardless of interactive mode.
 # This way, interactive sessions still have /tmp/script available.
-if ! [ -z $IGNORE_M5 ]; then
+if [[ $IGNORE_M5 == 0 ]]; then
     printf "Starting gem5 init... trying to read run script file via readfile.\n"
     if ! gem5-bridge --addr=0x10010000 readfile > /tmp/script; then
         printf "Failed to run gem5-bridge readfile, exiting!\n"
@@ -50,10 +56,7 @@ if ! [ -z $IGNORE_M5 ]; then
     fi
 fi
 
-# Read /proc/cmdline and parse options
-cmdline=$(cat /proc/cmdline)
 interactive=false
-IGNORE_M5=0
 if [[ $cmdline == *"interactive"* ]]; then
     interactive=true
 fi

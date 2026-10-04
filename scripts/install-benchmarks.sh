@@ -3,6 +3,10 @@
 # Copyright (c) 2024 The Regents of the University of California.
 # SPDX-License-Identifier: BSD 3-Clause
 
+# Stop on the first failing build, so packer reports it instead of
+# producing an image with missing binaries.
+set -e
+
 cd $HOME
 
 # Number of parallel jobs for make
@@ -23,26 +27,21 @@ pushd NPB3.4-MPI
 popd
 
 pushd branson
-mkdir build
+mkdir -p build
 pushd build
-# Build Reference Variant
+# Build Reference Variant only: the hov (SIFT) variant is parked on the
+# branson sift-hov branch (see SIFT_HOV_NOTES.md there).
 cmake ../src -DCMAKE_BUILD_TYPE=Release -DANNOTATE_TOOL=gem5fs -DROI_TYPE=sync
 make -j$NPROC
 mv BRANSON BRANSON_ref
-
-# Build HOV Variant
-make clean
-cmake ../src -DCMAKE_BUILD_TYPE=Release -DANNOTATE_TOOL=gem5fs -DROI_TYPE=sync -DHOV=ON
-make -j$NPROC
-mv BRANSON BRANSON_hov
 popd
 popd
 
 pushd UME
-mkdir build
+mkdir -p build
 pushd build
-# Build Reference Variants
-cmake ../ -DCMAKE_BUILD_TYPE=Release -DUSE_CATCH2=off -DUSE_MPI=true -DANNOTATE_TOOL=gem5fs -DROI_TYPE=sync
+# Build Reference Variants (HOV=OFF explicitly, see the Branson note above)
+cmake ../ -DCMAKE_BUILD_TYPE=Release -DUSE_CATCH2=off -DUSE_MPI=true -DANNOTATE_TOOL=gem5fs -DROI_TYPE=sync -DHOV=OFF
 make -j$NPROC
 mv src/ume_mpi_gradzatz src/ume_mpi_gradzatz_ref
 mv src/ume_mpi_gradzatp src/ume_mpi_gradzatp_ref

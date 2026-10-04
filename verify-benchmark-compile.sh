@@ -127,9 +127,6 @@ run_build "NPB3.4-MPI" "cd NPB3.4-MPI && ./build_npb_gem5.sh"
 # --- Branson ---
 run_build "branson" "cd branson && mkdir build && cd build && \
     cmake ../src -DCMAKE_BUILD_TYPE=Release -DANNOTATE_TOOL=gem5fs -DROI_TYPE=sync && \
-    make -j$NPROC && \
-    make clean && \
-    cmake ../src -DCMAKE_BUILD_TYPE=Release -DANNOTATE_TOOL=gem5fs -DROI_TYPE=sync -DHOV=ON && \
     make -j$NPROC"
 
 # --- UME ---

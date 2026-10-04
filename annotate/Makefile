@@ -38,7 +38,7 @@ SRC := annotate.c
 
 .PHONY: all gem5se gem5fs papi native clean
 
-all: gem5se gem5fs papi native clean
+all: gem5se gem5fs papi native
 
 # ---- gem5 SE mode ----
 gem5se: $(LIB_DIR)/libannotate.gem5se.a $(LIB_DIR)/libannotate.gem5se.so

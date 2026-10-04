@@ -3,6 +3,8 @@
 # Copyright (c) 2024 The Regents of the University of California.
 # SPDX-License-Identifier: BSD 3-Clause
 
+set -e
+
 PACKER_VERSION="1.10.0"
 
 # This part installs the packer binary on the arm64 machine as we are assuming

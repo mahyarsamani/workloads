@@ -21,7 +21,7 @@ HOV_DIR="/home/gem5/workloads/hov"
 # ---- Build the HOV userspace library ----
 echo "Building HOV library..."
 pushd "${HOV_DIR}"
-make -j${NPROC} lib HOV_DEBUG=1
+make -j${NPROC} lib
 popd
 
 echo "=== HOV installation complete ==="
