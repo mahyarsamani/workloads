@@ -69,3 +69,9 @@ cd ..
 
 # Build the image with the specified Ubuntu version
 ./packer build -var "ubuntu_version=${ubuntu_version}" -var "image_name=${image_name}" ./packer-scripts/arm-ubuntu.pkr.hcl
+
+# Record the image's md5 next to it (checkpoint manifests read it from there
+# instead of hashing the whole image on every checkpoint).
+output_dir="disk-images/${image_name}-${ubuntu_version//./}"
+echo "Computing the md5 of ${output_dir}/disk-image..."
+(cd "${output_dir}" && md5sum disk-image > disk-image.md5)

@@ -6,3 +6,7 @@
 __pycache__
 modules/*/files
 
+boot-ckpts/
+checkpoints/
+disk-images/
+/packer

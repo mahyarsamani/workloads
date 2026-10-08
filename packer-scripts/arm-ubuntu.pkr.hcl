@@ -35,12 +35,12 @@ locals {
     "22.04" = {
       iso_url       = "https://cloud-images.ubuntu.com/releases/jammy/release-20260515/ubuntu-22.04-server-cloudimg-arm64.img"
       iso_checksum  = "file:https://cloud-images.ubuntu.com/releases/jammy/release-20260515/SHA256SUMS"
-      output_dir    = "${var.image_name}-2204"
+      output_dir    = "disk-images/${var.image_name}-2204"
     }
     "24.04" = {
       iso_url       = "https://cloud-images.ubuntu.com/releases/noble/release-20260518/ubuntu-24.04-server-cloudimg-arm64.img"
       iso_checksum  = "file:https://cloud-images.ubuntu.com/releases/noble/release-20260518/SHA256SUMS"
-      output_dir    = "${var.image_name}-2404"
+      output_dir    = "disk-images/${var.image_name}-2404"
     }
   }
 }

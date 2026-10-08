@@ -1,10 +1,16 @@
 from types import SimpleNamespace
-from .checkpoint_manifest import write_manifest
+from .checkpoint_manifest import (
+    MANIFEST_NAME,
+    SNIPPET_NAME,
+    read_manifest,
+    write_manifest,
+)
 from .workload_insights import process_snippet
 
 import argparse
 import os
 import re
+import shutil
 
 from enum import Enum
 
@@ -128,26 +134,31 @@ class ExitEventHandlerWrapper:
         sample_stats: bool,
         sample_period: str,
         take_checkpoint: bool,
-        restore_checkpoint: bool,
         checkpoint_path: Union[Path, None],
         has_warmup: bool,
     ):
-        if take_checkpoint and restore_checkpoint:
-            raise ValueError(
-                "Both `take_checkpoint` and `restore_checkpoint` "
-                "can not be True at the same time."
-            )
         self._sample_stats = sample_stats
         self._sample_period = sample_period
-        self._reacted_yet = restore_checkpoint
+        # Whether the ROI has begun. A restored checkpoint sets it from its
+        # manifest (set_state).
+        self._reacted_yet = False
         self._take_checkpoint = take_checkpoint
         self._checkpoint_path = checkpoint_path
         self._has_warmup = has_warmup
-        # Called with the checkpoint path after each checkpoint; set by the
-        # workload wrapper to write the checkpoint manifest.
+        # Called with the checkpoint path and the board after each
+        # checkpoint; set by the workload wrapper to write the manifest.
         self._on_checkpoint = None
 
-    def _after_checkpoint(self):
+    def get_state(self) -> dict:
+        """The handler's state, recorded in the manifest of a checkpoint so
+        that restoring it continues from the same state."""
+        return {"reacted_yet": self._reacted_yet}
+
+    def set_state(self, state: dict) -> None:
+        """Continue from `state` (from get_state at checkpoint time)."""
+        self._reacted_yet = state["reacted_yet"]
+
+    def _after_checkpoint(self, board: AbstractBoard):
         """Store everything that belongs with a checkpoint next to it:
         process_info.txt (if the guest wrote one) and the manifest."""
         inform(
@@ -160,7 +171,7 @@ class ExitEventHandlerWrapper:
             self._checkpoint_path,
         )
         if self._on_checkpoint is not None:
-            self._on_checkpoint(self._checkpoint_path)
+            self._on_checkpoint(self._checkpoint_path, board)
 
     def _validate_options(self, board: AbstractBoard):
         if self._take_checkpoint:
@@ -182,7 +193,7 @@ class ExitEventHandlerWrapper:
         return self._get_exit_event_handler(board)
 
     def _get_exit_event_handler(self, board: AbstractBoard):
-        def handle_exit():
+        def handle_exit(board):
             num_exits_received = 0
             while True:
                 inform("Received an exit.")
@@ -198,7 +209,7 @@ class ExitEventHandlerWrapper:
                     yield SimStep.STOP
                 yield SimStep.REMAINING_TIME
 
-        def handle_max_tick():
+        def handle_max_tick(board):
             while not self._reacted_yet:
                 inform("Received a `max_tick` before reacting to the ROI.")
                 yield SimStep.REMAINING_TIME
@@ -228,14 +239,12 @@ class ExitEventHandlerWrapper:
             reset_stats()
             inform("Reset sim stats.")
             if self._take_checkpoint:
+                # Set before the manifest records the handler's state, so
+                # that restoring the checkpoint continues inside the ROI.
+                self._reacted_yet = True
                 take_checkpoint(self._checkpoint_path)
                 inform(f"Took a checkpoint in {self._checkpoint_path}.")
-                self._after_checkpoint()
-                self._reacted_yet = True
-                inform(
-                    "Set `_reacted_yet` to True although "
-                    "it's probably not going to be used."
-                )
+                self._after_checkpoint(board)
                 yield SimStep.STOP
             else:
                 if can_switch and processor.has_phase("main"):
@@ -249,7 +258,7 @@ class ExitEventHandlerWrapper:
                 )
             raise RuntimeError("Did not expect a work_begin.")
 
-        def handle_work_end():
+        def handle_work_end(board):
             inform("Received a work_end.")
             dump_stats()
             inform("Dumped sim stats.")
@@ -257,10 +266,10 @@ class ExitEventHandlerWrapper:
             raise RuntimeError("Did not expect a work_end.")
 
         return {
-            ExitEvent.EXIT: handle_exit(),
-            ExitEvent.MAX_TICK: handle_max_tick(),
+            ExitEvent.EXIT: handle_exit(board),
+            ExitEvent.MAX_TICK: handle_max_tick(board),
             ExitEvent.WORKBEGIN: handle_work_begin(board),
-            ExitEvent.WORKEND: handle_work_end(),
+            ExitEvent.WORKEND: handle_work_end(board),
         }
 
 
@@ -271,7 +280,6 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
         sample_stats: bool,
         sample_period: str,
         take_checkpoint: bool,
-        restore_checkpoint: bool,
         checkpoint_base_path: Optional[Union[str, Path]],
         has_warmup: bool,
     ):
@@ -279,15 +287,13 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
             sample_stats,
             sample_period,
             take_checkpoint,
-            restore_checkpoint,
             checkpoint_base_path,
             has_warmup,
         )
-        self._mss_flag = 0
         self._num_processes = num_processes
 
     def _get_exit_event_handler(self, board: AbstractBoard):
-        def handle_exit():
+        def handle_exit(board):
             num_exits_received = 0
             while True:
                 inform("Received an exit.")
@@ -303,7 +309,7 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                     yield SimStep.STOP
                 yield SimStep.REMAINING_TIME
 
-        def handle_max_tick():
+        def handle_max_tick(board):
             while not self._reacted_yet:
                 inform("Received a `max_tick` before reacting to the ROI.")
                 yield SimStep.REMAINING_TIME
@@ -334,8 +340,9 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                     f"Received {num_work_begin_received} work_begins so far."
                 )
                 if num_work_begin_received % self._num_processes == 0:
-                    self._mss_flag += 1
-                    board.setMSSFlag(self._mss_flag)
+                    # The board holds the MSS flag (restored from the
+                    # manifest), so count from its current value.
+                    board.setMSSFlag(board.getMSSFlag() + 1)
                     if self._has_warmup and not warmed_up_yet:
                         if can_switch and processor.has_phase("warmup"):
                             processor.switch("warmup")
@@ -346,16 +353,15 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                         reset_stats()
                         inform("Reset sim stats.")
                         if self._take_checkpoint:
+                            # Set before the manifest records the handler's
+                            # state, so that restoring the checkpoint
+                            # continues inside the ROI.
+                            self._reacted_yet = True
                             take_checkpoint(self._checkpoint_path)
                             inform(
                                 f"Took a checkpoint in {self._checkpoint_path}."
                             )
-                            self._after_checkpoint()
-                            self._reacted_yet = True
-                            inform(
-                                "Set `_reacted_yet` to True although "
-                                "it's probably not going to be used."
-                            )
+                            self._after_checkpoint(board)
                             yield SimStep.STOP
                         else:
                             if can_switch and processor.has_phase("main"):
@@ -389,8 +395,7 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                     dump_stats()
                     inform("Dumped sim stats.")
                     not_dumped_yet = False
-                    self._mss_flag += 1
-                    board.setMSSFlag(self._mss_flag)
+                    board.setMSSFlag(board.getMSSFlag() + 1)
                     yield SimStep.STOP
                 else:
                     yield (
@@ -405,8 +410,8 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
             )
 
         return {
-            ExitEvent.EXIT: handle_exit(),
-            ExitEvent.MAX_TICK: handle_max_tick(),
+            ExitEvent.EXIT: handle_exit(board),
+            ExitEvent.MAX_TICK: handle_max_tick(board),
             ExitEvent.WORKBEGIN: handle_work_begin(board),
             ExitEvent.WORKEND: handle_work_end(board),
         }
@@ -429,7 +434,6 @@ class FSWorkloadWrapper:
         self._num_processes = num_processes
         self._has_warmup = has_warmup
         self._exit_handler = None
-        self._checkpoint_context = None
 
     def generate_cmdline(self):
         return (
@@ -503,14 +507,12 @@ class FSWorkloadWrapper:
         sample_stats: bool,
         sample_period: str,
         take_checkpoint: bool,
-        restore_checkpoint: bool,
         checkpoint_path: Optional[Union[str, Path]],
     ):
         self._exit_handler = ExitEventHandlerWrapper(
             sample_stats,
             sample_period,
             take_checkpoint,
-            restore_checkpoint,
             checkpoint_path,
             self._has_warmup,
         )
@@ -521,14 +523,12 @@ class FSWorkloadWrapper:
         sample_stats: bool,
         sample_period: str,
         take_checkpoint: bool,
-        restore_checkpoint: bool,
         checkpoint_path: Optional[Union[str, Path]],
     ):
         self._create_exit_event_handler(
             sample_stats,
             sample_period,
             take_checkpoint,
-            restore_checkpoint,
             checkpoint_path,
         )
         if self._exit_handler is None:
@@ -536,31 +536,85 @@ class FSWorkloadWrapper:
         self._exit_handler._on_checkpoint = self._write_checkpoint_manifest
         return self._exit_handler.get_exit_event_handler(board)
 
-    def set_checkpoint_context(self, files: dict, **fields) -> None:
-        """Run settings the wrapper can't know (platform, CPU type, mods,
-        kernel/disk paths, ...), recorded in the manifest of any checkpoint
-        this run takes. `files` maps a role to a path."""
-        self._checkpoint_context = {"files": files, **fields}
-
-    def _write_checkpoint_manifest(self, checkpoint_path: Path) -> None:
-        if self._checkpoint_context is None:
-            warn(
-                "No checkpoint context set (set_checkpoint_context); "
-                f"no manifest written for {checkpoint_path}."
-            )
-            return
-        context = dict(self._checkpoint_context)
+    def _write_checkpoint_manifest(
+        self, checkpoint_path: Path, board: AbstractBoard
+    ) -> None:
+        """Write the manifest of the checkpoint just taken in
+        `checkpoint_path`, from the board and this workload only."""
+        restored_from = board.get_checkpoint_path()
         manifest = write_manifest(
             checkpoint_path,
-            files=context.pop("files"),
+            artifacts={
+                "kernel": board.get_kernel_path(),
+                "disk_image": board.get_disk_image_path(),
+                "bootloader": board.get_bootloader_path(),
+            },
             snippet=self.get_snippet(),
-            id_dict=self.generate_id_dict(),
-            id_string=self.generate_id_string(),
-            hov_mem="8GiB" if self.needs_hov_mem() else None,
-            **context,
+            workload=self.generate_id_dict(),
+            variant=self.get_variant().value,
+            kvm=any(
+                core.is_kvm_core()
+                for core in board.get_processor().get_cores()
+            ),
+            memory_size=board.get_memory().get_size(),
+            # gem5 does not checkpoint the MSS flag, but the guest depends
+            # on it, so it is recorded here and set again on restore.
+            mss_flag=board.getMSSFlag(),
+            restored_from=(
+                None
+                if restored_from is None
+                else str(Path(restored_from).resolve())
+            ),
             **self.checkpoint_state(),
         )
         inform(f"Wrote {manifest}.")
+
+    def read_checkpoint_manifest(self, checkpoint_path: Path) -> dict:
+        """The manifest of `checkpoint_path`, checked against this workload.
+
+        A boot checkpoint only has to be of the same variant (hov boots a
+        different machine); any other checkpoint has to be of this workload,
+        with the same warmup.
+        """
+        manifest = read_manifest(checkpoint_path)
+        if manifest["workload"]["name"] == "boot":
+            expected = {"variant": self.get_variant().value}
+        else:
+            expected = {
+                "workload": self.generate_id_dict(),
+                "has_warmup": self._has_warmup,
+            }
+        for key, value in expected.items():
+            if manifest[key] != value:
+                raise ValueError(
+                    f"{checkpoint_path} was taken with {key}={manifest[key]}, "
+                    f"but this workload has {key}={value}."
+                )
+        return manifest
+
+    def restore_checkpoint_manifest(
+        self, manifest: dict, board: AbstractBoard
+    ) -> None:
+        """Continue from the state recorded in a restored checkpoint's
+        `manifest`. Call it after `set_kernel_disk_workload` (which sets the
+        checkpoint) and `get_exit_event_handler`.
+
+        The exit handler continues from the state it had when the checkpoint
+        was taken. The guest spins in annotate_synchronize_ until the MSS
+        flag says the ROI may run, and gem5 does not checkpoint the flag, so
+        the board starts with the recorded one (exit handlers count on from
+        the board's value). The manifest, snippet, and process_info.txt are
+        kept next to the results.
+        """
+        self._exit_handler.set_state(manifest["exit_handler"])
+        board.set_mss_flag(manifest["mss_flag"])
+
+        checkpoint_path = Path(board.get_checkpoint_path())
+        for name in (MANIFEST_NAME, SNIPPET_NAME, "process_info.txt"):
+            if (checkpoint_path / name).exists():
+                shutil.copy(
+                    checkpoint_path / name, get_outdir() / f"checkpoint_{name}"
+                )
 
     def add_workload_insights(self, board: AbstractBoard) -> None:
         pass
@@ -571,20 +625,17 @@ class FSWorkloadWrapper:
     def needs_hov_mem(self) -> bool:
         return False
 
+    def get_variant(self) -> WorkloadVariant:
+        """The variant of this workload; ref-only workloads are ref."""
+        return getattr(self, "_variant", WorkloadVariant.REF)
+
     def checkpoint_state(self) -> dict:
         """State the guest depends on when a checkpoint is taken; stored in
         the checkpoint manifest and used again on restore."""
         return {
             "has_warmup": self._has_warmup,
-            "mss_flag": getattr(self._exit_handler, "_mss_flag", None),
+            "exit_handler": self._exit_handler.get_state(),
         }
-
-    def restore_mss_flag(self, mss_flag: int) -> None:
-        """Continue the exit handler's MSS flag count from the value the
-        board was restored with, so later updates (e.g. at work_end) follow
-        on from it."""
-        if hasattr(self._exit_handler, "_mss_flag"):
-            self._exit_handler._mss_flag = mss_flag
 
     def get_snippet(self) -> Optional[str]:
         """The workload-insights snippet this run uses, if any."""
@@ -602,7 +653,6 @@ class FSMPIWorkloadWrapper(FSWorkloadWrapper):
         sample_stats: bool,
         sample_period: str,
         take_checkpoint: bool,
-        restore_checkpoint: bool,
         checkpoint_path: Optional[Union[str, Path]],
     ):
         self._exit_handler = MPIExitEventHandlerWrapper(
@@ -610,7 +660,6 @@ class FSMPIWorkloadWrapper(FSWorkloadWrapper):
             sample_stats,
             sample_period,
             take_checkpoint,
-            restore_checkpoint,
             checkpoint_path,
             self._has_warmup,
         )
@@ -626,20 +675,18 @@ class BootWrapper(FSWorkloadWrapper):
         def __init__(
             self,
             take_checkpoint: bool,
-            restore_checkpoint: bool,
             checkpoint_path: Path,
         ):
             super().__init__(
                 sample_stats=False,
                 sample_period="none",
                 take_checkpoint=take_checkpoint,
-                restore_checkpoint=restore_checkpoint,
                 checkpoint_path=checkpoint_path,
                 has_warmup=False,
             )
 
         def _get_exit_event_handler(self, board):
-            def handle_exit():
+            def handle_exit(board):
                 inform("Received an exit.")
                 inform("It's from gem5_init.sh.")
                 inform("Continuing simulation past gem5_init.sh.")
@@ -648,7 +695,7 @@ class BootWrapper(FSWorkloadWrapper):
                 if self._take_checkpoint:
                     inform("Taking a checkpoint")
                     take_checkpoint(self._checkpoint_path)
-                    self._after_checkpoint()
+                    self._after_checkpoint(board)
                     yield SimStep.STOP
                 else:
                     inform("Continuing simulation past after_boot.sh.")
@@ -657,7 +704,7 @@ class BootWrapper(FSWorkloadWrapper):
                 yield SimStep.STOP
 
             return {
-                ExitEvent.EXIT: handle_exit(),
+                ExitEvent.EXIT: handle_exit(board),
             }
 
     @staticmethod
@@ -698,7 +745,6 @@ class BootWrapper(FSWorkloadWrapper):
         sample_stats,
         sample_period,
         take_checkpoint,
-        restore_checkpoint,
         checkpoint_path,
     ):
         inform(
@@ -706,7 +752,6 @@ class BootWrapper(FSWorkloadWrapper):
         )
         self._exit_handler = BootWrapper.BootExitEventHandlerWrapper(
             take_checkpoint,
-            restore_checkpoint,
             checkpoint_path,
         )
 

@@ -3,92 +3,74 @@ later where it came from), stored next to m5.cpt.
 
 Written by the workload's exit handler right after it takes a checkpoint
 (the same place process_info.txt is copied into the checkpoint; see
-FSWorkloadWrapper._write_checkpoint_manifest), with run settings provided by
-the run script through FSWorkloadWrapper.set_checkpoint_context. Read by
-run_ckpt_restore.py when restoring, so values that must match the checkpoint
-(platform, MSS flag, ...) come from the checkpoint rather than from whatever
-the current command line or code says.
+FSWorkloadWrapper._write_checkpoint_manifest), from the board and the
+workload wrapper only. Read back through
+FSWorkloadWrapper.read_checkpoint_manifest when restoring, so values that
+must match the checkpoint (KVM, MSS flag, ...) come from the checkpoint
+rather than from whatever the current command line or code says. A
+checkpoint without a manifest cannot be restored.
 """
 
 import datetime
 import json
-import subprocess
 
 from pathlib import Path
 from typing import Optional
 
+from m5.util import warn
+
+from gem5.resources.md5_utils import md5_file
+
 MANIFEST_NAME = "checkpoint_manifest.json"
 SNIPPET_NAME = "insights_snippet.txt"
-SCHEMA_VERSION = 1
 
-_PROJECT_DIR = Path(__file__).resolve().parent.parent
-# Repositories whose state determines the simulator and the guest binaries.
-_REPOS = {
-    "project": _PROJECT_DIR,
-    "gem5": _PROJECT_DIR / "gem5",
-    "workloads": _PROJECT_DIR / "workloads",
-    "hov": _PROJECT_DIR / "workloads" / "hov",
-    "UME": _PROJECT_DIR / "workloads" / "UME",
-    "hpcg": _PROJECT_DIR / "workloads" / "hpcg",
-    "branson": _PROJECT_DIR / "workloads" / "branson",
-}
+# Hashing a disk image takes minutes, so build-arm.sh records its md5 in
+# `<image>.md5` when it builds it; files this large are not worth hashing
+# on every checkpoint.
+_LARGE_FILE_SIZE = 1 << 30
 
 
-def _git_state(repo: Path) -> Optional[dict]:
-    """HEAD and whether the tree has uncommitted changes, or None."""
+def _md5(path: Path) -> str:
+    """md5 of `path`, from `<path>.md5` (md5sum format) if it is at least as
+    new as `path`, otherwise computed."""
+    sidecar = path.with_name(path.name + ".md5")
+    if sidecar.exists() and sidecar.stat().st_mtime >= path.stat().st_mtime:
+        return sidecar.read_text().split()[0]
+    if path.stat().st_size > _LARGE_FILE_SIZE:
+        warn(
+            f"No up-to-date {sidecar.name} next to {path}; hashing it, which "
+            "may take minutes."
+        )
+    return md5_file(path)
 
-    def git(*args):
-        return subprocess.run(
-            ["git", "-C", str(repo), *args],
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.strip()
 
-    try:
-        return {
-            "sha": git("rev-parse", "HEAD"),
-            "dirty": git("status", "--porcelain", "--untracked-files=no")
-            != "",
-        }
-    except (OSError, subprocess.CalledProcessError):
+def _artifact(path: Optional[Path]) -> Optional[dict]:
+    """Path and md5 of an artifact (kernel, disk image, ...), or None."""
+    if path is None:
         return None
-
-
-def _file_state(path: Path) -> dict:
-    """Identity of a large file (disk image, kernel) without hashing it."""
     path = Path(path).resolve()
-    try:
-        stat = path.stat()
-        return {
-            "path": str(path),
-            "size": stat.st_size,
-            "mtime": datetime.datetime.fromtimestamp(stat.st_mtime).isoformat(),
-        }
-    except OSError:
-        return {"path": str(path), "size": None, "mtime": None}
+    return {"path": str(path), "md5": _md5(path)}
 
 
 def write_manifest(
     checkpoint_dir: Path,
-    files: dict,
+    artifacts: dict,
     snippet: Optional[str] = None,
     **fields,
 ) -> Path:
     """Write the manifest into `checkpoint_dir`.
 
-    `files` maps a role (e.g. "disk_image") to a path; `fields` are the
-    checkpoint-specific values (kind, workload, platform, MSS flag, ...).
+    `artifacts` maps a role (e.g. "disk_image") to a path, or None; `fields`
+    are the checkpoint-specific values (workload, KVM, MSS flag, ...).
     The insights snippet, if any, is also saved as plain text so that it
     stays with the binaries it was extracted from.
     """
     checkpoint_dir = Path(checkpoint_dir)
     manifest = {
-        "schema": SCHEMA_VERSION,
         "created": datetime.datetime.now().isoformat(timespec="seconds"),
-        "git": {name: _git_state(repo) for name, repo in _REPOS.items()},
-        "files": {role: _file_state(path) for role, path in files.items()},
-        "has_snippet": snippet is not None,
+        "artifacts": {
+            role: _artifact(path) for role, path in artifacts.items()
+        },
         **fields,
     }
     if snippet is not None:
@@ -98,15 +80,11 @@ def write_manifest(
     return path
 
 
-def read_manifest(checkpoint_dir: Path) -> Optional[dict]:
-    """The manifest of `checkpoint_dir`, or None for older checkpoints."""
+def read_manifest(checkpoint_dir: Path) -> dict:
+    """The manifest of `checkpoint_dir`."""
     path = Path(checkpoint_dir) / MANIFEST_NAME
     if not path.exists():
-        return None
-    manifest = json.loads(path.read_text())
-    if manifest.get("schema") != SCHEMA_VERSION:
-        raise ValueError(
-            f"{path} has schema {manifest.get('schema')}, "
-            f"expected {SCHEMA_VERSION}."
+        raise FileNotFoundError(
+            f"{checkpoint_dir} has no {MANIFEST_NAME}; it cannot be restored."
         )
-    return manifest
+    return json.loads(path.read_text())
