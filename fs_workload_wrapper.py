@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from .checkpoint_manifest import (
     MANIFEST_NAME,
     SNIPPET_NAME,
+    artifact_path,
     read_manifest,
     write_manifest,
 )
@@ -18,6 +19,17 @@ from enum import Enum
 class WorkloadVariant(Enum):
     REF = "ref"
     HOV = "hov"
+
+
+# The disk image each variant boots, relative to the SIFT project root (the
+# run scripts' working directory). build-arm.sh builds them:
+# `./build-arm.sh 22.04 <variant>` writes disk-images/arm-sift-<variant>-2204.
+# A restore does not use these: it takes the image from the checkpoint's
+# manifest (FSWorkloadWrapper.checkpoint_artifact_path).
+DISK_IMAGES = {
+    WorkloadVariant.REF: "workloads/disk-images/arm-sift-ref-2204/disk-image",
+    WorkloadVariant.HOV: "workloads/disk-images/arm-sift-hov-2204/disk-image",
+}
 
 
 from pathlib import Path
@@ -549,7 +561,6 @@ class FSWorkloadWrapper:
                 "disk_image": board.get_disk_image_path(),
                 "bootloader": board.get_bootloader_path(),
             },
-            snippet=self.get_snippet(),
             workload=self.generate_id_dict(),
             variant=self.get_variant().value,
             kvm=any(
@@ -605,6 +616,11 @@ class FSWorkloadWrapper:
         the board starts with the recorded one (exit handlers count on from
         the board's value). The manifest, snippet, and process_info.txt are
         kept next to the results.
+
+        If the checkpoint carries an insights snippet (insights_snippet.txt,
+        written by workloads/eval-artifacts/insights/generate_insights.py),
+        it is registered with the processor's O3 cores; other cores ignore
+        it.
         """
         self._exit_handler.set_state(manifest["exit_handler"])
         board.set_mss_flag(manifest["mss_flag"])
@@ -616,8 +632,36 @@ class FSWorkloadWrapper:
                     checkpoint_path / name, get_outdir() / f"checkpoint_{name}"
                 )
 
-    def add_workload_insights(self, board: AbstractBoard) -> None:
-        pass
+        if (checkpoint_path / SNIPPET_NAME).exists():
+            self.add_workload_insights(
+                board, (checkpoint_path / SNIPPET_NAME).read_text()
+            )
+            inform(f"Registered the insights in {SNIPPET_NAME}.")
+
+    def add_workload_insights(self, board: AbstractBoard, snippet: str) -> None:
+        """Register `snippet` (see workload_insights.py) with the board's
+        processor: per function, its exit PC and labelled access sites; per
+        indirect chain, its PCs and destination-register overrides."""
+        access_sites, indirect_chains = process_snippet(snippet)
+        processor = board.get_processor()
+        for func_name, info in access_sites.items():
+            processor.add_function_info(
+                func_name,
+                info["ret"],
+                [site.label() for site in info["access_sites"]],
+                [site.pc() for site in info["access_sites"]],
+            )
+        for indirect_chain in indirect_chains:
+            name = (
+                f"{indirect_chain[-1].label()}[{indirect_chain[0].label()}]"
+                f"{indirect_chain[-1].label_version()}"
+            )
+            processor.add_indirect_chain(
+                name, [inst.pc() for inst in indirect_chain]
+            )
+            for inst in indirect_chain:
+                if inst.has_override():
+                    processor.add_reg_index_override(inst.override())
 
     def init_mss_flag(self, restoring_checkpoint: bool):
         return -1
@@ -629,6 +673,17 @@ class FSWorkloadWrapper:
         """The variant of this workload; ref-only workloads are ref."""
         return getattr(self, "_variant", WorkloadVariant.REF)
 
+    def get_disk_image_path(self) -> Path:
+        """The disk image to boot this workload from (its variant's)."""
+        return Path(DISK_IMAGES[self.get_variant()])
+
+    @staticmethod
+    def checkpoint_artifact_path(manifest: dict, role: str) -> Path:
+        """The `role` artifact ("kernel", "disk_image", "bootloader") the
+        checkpoint of `manifest` was taken with; raises if the file is gone
+        or its md5 changed since."""
+        return artifact_path(manifest, role)
+
     def checkpoint_state(self) -> dict:
         """State the guest depends on when a checkpoint is taken; stored in
         the checkpoint manifest and used again on restore."""
@@ -636,10 +691,6 @@ class FSWorkloadWrapper:
             "has_warmup": self._has_warmup,
             "exit_handler": self._exit_handler.get_state(),
         }
-
-    def get_snippet(self) -> Optional[str]:
-        """The workload-insights snippet this run uses, if any."""
-        return getattr(type(self), "snippet", None)
 
 
 class FSMPIWorkloadWrapper(FSWorkloadWrapper):
@@ -778,24 +829,6 @@ class BransonWrapper(FSMPIWorkloadWrapper):
         "cube_decomp": "cube_decomp_test.xml",
     }
 
-    snippet = """
-offset: aaaaaaaa0000
-func transport_photon:
-    e404:   ldp@0       w20, w3, [x27]      label:  phtn                main
-    e410:   sub         w5, w20, w4
-    e424:   umaddl      x20, w5, w1, x2
-    e470:   ldr         d12, [x20, #152]    label:  cell                main
-
-    e584:   ldr  x3, [sp, #176]             label:  phtn                main
-    e590:   lsl  x5, x3, #4
-    e594:   add  x6, x28, x5
-    e5ac:   ldr  d6,  [x6,  #8]             label: cell_tallies         main
-ret e658
-
-func main
-ret b17c
-"""
-
     @staticmethod
     def parse_args(args):
         parser = argparse.ArgumentParser()
@@ -838,9 +871,6 @@ ret b17c
             f"{BransonWrapper._base_input_path}/{self._input_name}"
         )
         self._variant = variant
-        self._access_sites, self._indirect_chains = process_snippet(
-            BransonWrapper.snippet
-        )
 
     def _generate_cmdline(self):
         workload_cmd = f"./{self._binary_name} {self._input_path}"
@@ -861,62 +891,8 @@ ret b17c
     def needs_hov_mem(self) -> bool:
         return self._variant == WorkloadVariant.HOV
 
-    def add_workload_insights(self, board: AbstractBoard) -> None:
-        processor = board.get_processor()
-        for func_name, info in self._access_sites.items():
-            labels = [site.label() for site in info["access_sites"]]
-            pcs = [site.pc() for site in info["access_sites"]]
-            processor.add_function_info(
-                func_name,
-                info["ret"],
-                labels,
-                pcs,
-            )
-
-        for indirect_chain in self._indirect_chains:
-            name = f"{indirect_chain[-1].label()}[{indirect_chain[0].label()}]{indirect_chain[-1].label_version()}"
-            processor.add_indirect_chain(
-                name, [inst.pc() for inst in indirect_chain]
-            )
-
-            for override in [
-                inst.override()
-                for inst in indirect_chain
-                if inst.has_override()
-            ]:
-                processor.add_reg_index_override(override)
-
 
 class HPCGWrapper(FSMPIWorkloadWrapper):
-    snippet = """
-offset: aaaaaaaa0000
-func ComputeSPMV_ref
-    21880:  ldrsw   x1, [x4, x0, lsl #2]        label:  cur_inds        main
-    2188c:  ldr     d1, [x5, x1, lsl #3]        label:  xv              main
-ret 218bc
-
-func ComputeSYMGS_ref
-    21990:  ldrsw x2, [x7, x0, lsl #2]          label:  currColInd      main
-    2199c:  ldr   d1, [x1, x2, lsl #3]          label:  xv@0            main
-
-    219f0:  ldrsw x2, [x6, x0, lsl #2]          label:  currColInd      main
-    219fc:  ldr   d1, [x1, x2, lsl #3]          label:  xv@1            main
-ret 21a34
-
-func ComputeRestriction_ref
-    21f20:  ldrsw x1, [x6, x0, lsl #2]          label:  f2c             main
-    21f24:  ldr   d0, [x4, x1, lsl #3]          label:  rf              main
-
-    21f20:  ldrsw x1, [x6, x0, lsl #2]          label:  f2c             main
-    21f28:  ldr   d1, [x3, x1, lsl #3]          label:  Axf             main
-ret 21f44
-
-func ComputeProlongation_ref
-    21ec8:  ldrsw x1, [x5, x0, lsl #2]          label:  f2c             main
-    21ed4:  ldr   d0, [x2, x1, lsl #3]          label:  xfv             main
-ret 21eec
-"""
-
     @staticmethod
     def parse_args(args):
         parser = argparse.ArgumentParser()
@@ -1005,97 +981,6 @@ class UMEWrapper(FSMPIWorkloadWrapper):
     }
     _region_translator = {"gradzatz": 0, "gradzatz_invert": 1, "face_area": 2}
 
-    gradzatz = """
-offset: aaaaaaaa0000
-func gradzatp:
-    2d4bc:  ldr     w1, [x1, x0, lsl #2]    label:  c_to_p_map          main
-    2d4c4:  sxtw    x6, w1
-    2d4d4:  ldr     d0, [x7, x6, lsl #3]    label:  point_volume        gradzatp
-
-    2d4bc:  ldr     w1, [x1, x0, lsl #2]    label:  c_to_p_map          main
-    2d4d0:  smull   x1, w1, w12
-    2d4f8:  ldr     q0, [x3, x1]            label:  point_gradient@0    main
-
-    2d4bc:  ldr     w1, [x1, x0, lsl #2]    label:  c_to_p_map          main
-    2d4d0:  smull   x1, w1, w12
-    2d4ec:  add     x4, x3, x1
-    2d50c:  ldr     d0, [x4, #16]           label:  point_gradient@1    main
-
-    2d4e4:  ldr     w11, [x4, x0, lsl #2]   label:  c_to_z_map          main
-    2d4fc:  ldr     d1, [x10, w11, sxtw #3] label:  zone_field          main
-ret 2d628
-
-func gradzatz:
-    2dbac:  ldrsw   x1, [x1, x0, lsl #2]    label:  c_to_z_map          main
-    2dbb4:  ldr     d0, [x20, x1, lsl #3]   label:  zone_volume@0       gradzatz
-
-    2dd1c:  ldr     w1, [x1, x0, lsl #2]    label:  c_to_z_map          main
-    2dd28:  ldr     d1, [x20, w1, sxtw #3]  label:  zone_volume@1       gradzatz
-
-    2dd1c:  ldr     w1, [x1, x0, lsl #2]    label:  c_to_z_map          main
-    2dd2c:  smull   x1, w1, w6
-    2dd44:  ldr     q1, [x3, x1]            label:  zone_gradient@0     main
-
-    2dd1c:  ldr     w1, [x1, x0, lsl #2]    label:  c_to_z_map          main
-    2dd2c:  smull   x1, w1, w6
-    2dd4c:  add	    x4, x3, x1
-    2dd60:  ldr	    d1, [x4, #16]           label:  zone_gradient@1     main
-
-    2dfd8:  ldr 	w2, [x2, x0, lsl #2]    label:  c_to_p_map          main
-    2dfe8:  smull   x2, w2, w6
-    2dff8:  ldr 	q3, [x5, x2]            label:  point_gradient@0    main
-
-    2dd30:  ldr 	w2, [x2, x0, lsl #2]    label:  c_to_p_map          main
-    2dd40:  smull   x2, w2, w6
-    2dd48:  add	    x8, x5, x2
-    2dd54:  ldr	    d2, [x8, #16]           label:  point_gradient@1    main
-ret 2dea0
-
-func main:
-ret c134
-"""
-
-    gradzatz_invert = """
-offset: aaaaaaaa0000
-func gradzatp_invert:
-    2c5f0:  ldr	    w3, [x17, x3, lsl #2]   label: c_to_z_map           main
-    2c5fc:  ldr	    d2, [x9, w3, sxtw #3]   label: zone_field           main
-ret 2c734
-
-func gradzatz_invert:
-    2ce00:  ldr 	w1, [x13, x1, lsl #2]   label:  c_to_p_map          main
-    2ce08:  smull   x1, w1, w9
-    2ce10:	ldr     q4, [x5, x1]            label:  point_gradient@0    main
-
-    2ce00:  ldr 	w1, [x13, x1, lsl #2]   label:  c_to_p_map          main
-    2ce08:  smull   x1, w1, w9
-    2ce0c:  add 	x7, x5, x1
-    2ce14:  ldr 	d5, [x7, #16]           label:  point_gradient@1    main
-ret 2ce74
-
-func main:
-ret c134
-"""
-
-    face_area = """
-offset: aaaaaaaa0000
-func face_area:
-    2bfa0:  ldrsw   x4, [x4, x2, lsl #2]    label:  s_to_f_map          main
-    2bfd0:  ldr	    d3, [x0, x4, lsl #3]    label:  face_area           main
-
-    2bfd4:  ldrsw   x6, [x8, x6]            label:  s_to_s2_map         main
-    2bff0:  str     w9, [x20, x6, lsl #2]   label:  side_tag            face_area
-ret 2c098
-
-func main:
-ret c134
-"""
-    snippet_translator = {
-        "gradzatz": gradzatz,
-        "gradzatz_invert": gradzatz_invert,
-        "face_area": face_area,
-    }
-
     @staticmethod
     def parse_args(args):
         parser = argparse.ArgumentParser()
@@ -1142,9 +1027,6 @@ ret c134
         self._input_file = input_file
         self._region_name = region
         self._variant = variant
-        self._access_sites, self._indirect_chains = process_snippet(
-            UMEWrapper.snippet_translator[region]
-        )
 
     def _generate_cmdline(self):
         workload_cmd = (
@@ -1171,34 +1053,6 @@ ret c134
 
     def needs_hov_mem(self) -> bool:
         return self._variant == WorkloadVariant.HOV
-
-    def get_snippet(self) -> Optional[str]:
-        return UMEWrapper.snippet_translator.get(self._region_name)
-
-    def add_workload_insights(self, board: AbstractBoard) -> None:
-        processor = board.get_processor()
-        for func_name, info in self._access_sites.items():
-            labels = [site.label() for site in info["access_sites"]]
-            pcs = [site.pc() for site in info["access_sites"]]
-            processor.add_function_info(
-                func_name,
-                info["ret"],
-                labels,
-                pcs,
-            )
-
-        for indirect_chain in self._indirect_chains:
-            name = f"{indirect_chain[-1].label()}[{indirect_chain[0].label()}]{indirect_chain[-1].label_version()}"
-            processor.add_indirect_chain(
-                name, [inst.pc() for inst in indirect_chain]
-            )
-
-            for override in [
-                inst.override()
-                for inst in indirect_chain
-                if inst.has_override()
-            ]:
-                processor.add_reg_index_override(override)
 
 
 class NPBWrapper(FSWorkloadWrapper):

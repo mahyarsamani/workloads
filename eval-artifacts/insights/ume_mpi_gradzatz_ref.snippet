@@ -1,0 +1,53 @@
+// binary: ume_mpi_gradzatz_ref
+// source: UME/src/Ume/gradient.cc, gradzatz() (KERNEL_GRADZATZ); the ROI is the measure loop over corners
+// disk-image md5: 4b703cea2ef33210cd4b48c173e0ff36
+// kernel md5: f46d9b8075dda6279ab155b3fc76f573
+// disassembly md5: 08655ddd203a5312f3b033eafc2d2d7d
+// derived from: checkpoints/NAME.ume-NUM-PROCESSES.1-INPUT.blake-REGION.gradzatz-VARIANT.ref
+// applies to: additional-checkpoints/NAME.ume-NUM-PROCESSES.8-INPUT.pipe_3dx4-REGION.gradzatz-VARIANT.ref
+// applies to: checkpoints/NAME.ume-NUM-PROCESSES.1-INPUT.blake-REGION.gradzatz-VARIANT.ref
+// applies to: checkpoints/NAME.ume-NUM-PROCESSES.1-INPUT.blakex128-REGION.gradzatz-VARIANT.ref
+// applies to: checkpoints/NAME.ume-NUM-PROCESSES.8-INPUT.pipe_3d-REGION.gradzatz-VARIANT.ref
+// applies to: checkpoints/NAME.ume-NUM-PROCESSES.8-INPUT.pipe_3dx2-REGION.gradzatz-VARIANT.ref
+//
+// ROI: for each interior corner, zone_idx = c_to_z_map[c], point_idx = c_to_p_map[c];
+//      zone_gradient[zone_idx] += point_gradient[point_idx] * corner_volume[c] / zone_volume[zone_idx]
+// VEC3 elements are 24 bytes: a q access for x,y and a d access at +16 for z.
+// gradzatp (called before the ROI) never runs after the checkpoint and is left out.
+// gradzatz leaves through a tail call to operator delete (frees zone_volume); the
+// `ret` at 12498 is only taken when zone_volume is empty.
+offset: aaaaaaaa0000
+func gradzatz:
+    122b4:  ldr     w1, [x1, x0, lsl #2]    label:  c_to_z_map          main
+    122c0:  ldr     d1, [x19, w1, sxtw #3]  label:  zone_volume         gradzatz
+
+    122b4:  ldr     w1, [x1, x0, lsl #2]    label:  c_to_z_map          main
+    122c4:  smull   x1, w1, w6
+    122dc:  ldr     q1, [x3, x1]            label:  zone_gradient@0     main
+
+    122b4:  ldr     w1, [x1, x0, lsl #2]    label:  c_to_z_map          main
+    122c4:  smull   x1, w1, w6
+    122e4:  add     x4, x3, x1
+    122f8:  ldr     d1, [x4, #16]           label:  zone_gradient@1     main
+
+    122b4:  ldr     w1, [x1, x0, lsl #2]    label:  c_to_z_map          main
+    122c4:  smull   x1, w1, w6
+    122f4:  str     q1, [x3, x1]            label:  zone_gradient@2     main
+
+    122b4:  ldr     w1, [x1, x0, lsl #2]    label:  c_to_z_map          main
+    122c4:  smull   x1, w1, w6
+    122e4:  add     x4, x3, x1
+    12300:  str     d0, [x4, #16]           label:  zone_gradient@3     main
+
+    122c8:  ldr     w2, [x2, x0, lsl #2]    label:  c_to_p_map          main
+    122d8:  smull   x2, w2, w6
+    122e8:  ldr     q3, [x5, x2]            label:  point_gradient@0    main
+
+    122c8:  ldr     w2, [x2, x0, lsl #2]    label:  c_to_p_map          main
+    122d8:  smull   x2, w2, w6
+    122e0:  add     x8, x5, x2
+    122ec:  ldr     d2, [x8, #16]           label:  point_gradient@1    main
+ret 12394
+
+func main:
+ret c0b8

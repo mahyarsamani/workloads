@@ -7,9 +7,40 @@
 #   -netdev user,id=eth0,hostfwd=tcp::6666-:22 \
 #   -device virtio-net-device,netdev=eth0
 
+# Boot the image in QEMU to look inside it.
+#
+# Any read-write boot changes the image (bash history, the systemd journal,
+# /var/log, ext4 mount counts and timestamps), and the boot checkpoints hold a
+# guest whose filesystem must match the image they were taken on. So by
+# default every guest write goes to a temporary overlay (snapshot=on) that is
+# discarded when QEMU exits, and the image stays byte-identical.
+#
+# Usage (ref and hov are separate images, disk-images/arm-sift-<variant>-2204):
+#   ./boot-disk-qemu <ref|hov>              # inspect; the image is not changed
+#   ./boot-disk-qemu <ref|hov> --writable   # change the image on purpose;
+#                                           # afterwards refresh disk-image.md5
+#                                           # and retake that variant's
+#                                           # checkpoints
+
+variant="${1:-}"
+if [[ "${variant}" != "ref" && "${variant}" != "hov" ]]; then
+  echo "Usage: $0 <ref|hov> [--writable]" >&2
+  exit 1
+fi
+image="disk-images/arm-sift-${variant}-2204/disk-image"
+
+snapshot="on"
+if [[ "${2:-}" == "--writable" ]]; then
+  snapshot="off"
+  echo "Booting ${image} with writes going to the image itself." >&2
+elif [[ -n "${2:-}" ]]; then
+  echo "Unknown option: $2 (only --writable is supported)" >&2
+  exit 1
+fi
+
 qemu-system-aarch64 -m 16384 -smp 8 -cpu host -M virt -M gic-version=3 --enable-kvm -nographic \
   -drive if=pflash,file=files/flash0.img,format=raw \
-  -drive if=none,file=arm-hov-2204/disk-image,id=hd0,format=raw \
+  -drive if=none,file=${image},id=hd0,format=raw,snapshot=${snapshot} \
   -device virtio-blk-device,drive=hd0 \
   -netdev user,id=eth0,hostfwd=tcp::6666-:22 \
   -device virtio-net-device,netdev=eth0

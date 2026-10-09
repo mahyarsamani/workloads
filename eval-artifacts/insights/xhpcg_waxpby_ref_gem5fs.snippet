@@ -1,0 +1,50 @@
+// binary: xhpcg_waxpby_ref_gem5fs
+// source: hpcg/src/ComputeSPMV_ref.cpp, ComputeSYMGS_ref.cpp, ComputeRestriction_ref.cpp, ComputeProlongation_ref.cpp
+// disk-image md5: 4b703cea2ef33210cd4b48c173e0ff36
+// kernel md5: f46d9b8075dda6279ab155b3fc76f573
+// disassembly md5: 54688a992f2026f16f5797034ef033d1
+// derived from: checkpoints/NAME.hpcg-NUM-PROCESSES.1-DIM-X.64-DIM-Y.64-DIM-Z.64-SET-TIME.4-KERNEL.spmvm-VARIANT.ref (translated by function start)
+// applies to: additional-checkpoints/NAME.hpcg-NUM-PROCESSES.1-DIM-X.128-DIM-Y.128-DIM-Z.128-SET-TIME.4-KERNEL.waxpby-VARIANT.ref
+// applies to: additional-checkpoints/NAME.hpcg-NUM-PROCESSES.8-DIM-X.128-DIM-Y.128-DIM-Z.128-SET-TIME.4-KERNEL.waxpby-VARIANT.ref
+// applies to: checkpoints/NAME.hpcg-NUM-PROCESSES.1-DIM-X.104-DIM-Y.104-DIM-Z.104-SET-TIME.4-KERNEL.waxpby-VARIANT.ref
+// applies to: checkpoints/NAME.hpcg-NUM-PROCESSES.1-DIM-X.64-DIM-Y.64-DIM-Z.64-SET-TIME.4-KERNEL.waxpby-VARIANT.ref
+// applies to: checkpoints/NAME.hpcg-NUM-PROCESSES.8-DIM-X.104-DIM-Y.104-DIM-Z.104-SET-TIME.4-KERNEL.waxpby-VARIANT.ref
+// applies to: checkpoints/NAME.hpcg-NUM-PROCESSES.8-DIM-X.64-DIM-Y.64-DIM-Z.64-SET-TIME.4-KERNEL.waxpby-VARIANT.ref
+//
+// WAXPBY itself has no indirect access (wv[i] = alpha*xv[i] + beta*yv[i]). The checkpoint
+// sits at this binary's own marker (ComputeWAXPBY.cpp:52), the first WAXPBY of TestCG's
+// first CG call, and a restore runs that one WAXPBY. The four kernels of
+// xhpcg_spmvm_ref_gem5fs.snippet are listed at this binary's addresses only so every HPCG
+// ref snippet shares one layout; none of them runs in the region.
+offset: aaaaaaaa0000
+func ComputeSPMV_ref:
+    213b0:  ldrsw   x1, [x4, x0, lsl #2]    label:  cur_inds            main
+    213bc:  ldr     d1, [x5, x1, lsl #3]    label:  xv                  main
+ret 213ec
+
+func ComputeSYMGS_ref:
+    214c0:  ldrsw   x2, [x7, x0, lsl #2]    label:  currColInd          main
+    214cc:  ldr     d1, [x1, x2, lsl #3]    label:  xv@0                main
+
+    21520:  ldrsw   x2, [x6, x0, lsl #2]    label:  currColInd          main
+    2152c:  ldr     d1, [x1, x2, lsl #3]    label:  xv@1                main
+ret 21564
+
+func ComputeRestriction_ref:
+    21c50:  ldrsw   x1, [x6, x0, lsl #2]    label:  f2c                 main
+    21c54:  ldr     d0, [x4, x1, lsl #3]    label:  rf                  main
+
+    21c50:  ldrsw   x1, [x6, x0, lsl #2]    label:  f2c                 main
+    21c58:  ldr     d1, [x3, x1, lsl #3]    label:  Axf                 main
+ret 21c74
+
+func ComputeProlongation_ref:
+    21bf8:  ldrsw   x1, [x5, x0, lsl #2]    label:  f2c                 main
+    21c04:  ldr     d0, [x2, x1, lsl #3]    label:  xfv@0               main
+
+    21bf8:  ldrsw   x1, [x5, x0, lsl #2]    label:  f2c                 main
+    21c0c:  str     d0, [x2, x1, lsl #3]    label:  xfv@1               main
+ret 21c1c
+
+func main:
+ret 9ea0

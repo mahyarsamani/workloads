@@ -1,0 +1,32 @@
+// binary: ume_mpi_face_area_ref
+// source: UME/src/Ume/face_area.cc, calc_face_area() (KERNEL_FACE_AREA); the ROI is the measure loop over sides
+// disk-image md5: 4b703cea2ef33210cd4b48c173e0ff36
+// kernel md5: f46d9b8075dda6279ab155b3fc76f573
+// disassembly md5: e53dc59c151d235f76a870a79a64bd02
+// derived from: checkpoints/NAME.ume-NUM-PROCESSES.1-INPUT.blake-REGION.face_area-VARIANT.ref
+// applies to: checkpoints/NAME.ume-NUM-PROCESSES.1-INPUT.blake-REGION.face_area-VARIANT.ref
+// applies to: checkpoints/NAME.ume-NUM-PROCESSES.1-INPUT.blakex128-REGION.face_area-VARIANT.ref
+// applies to: checkpoints/NAME.ume-NUM-PROCESSES.8-INPUT.pipe_3d-REGION.face_area-VARIANT.ref
+// applies to: checkpoints/NAME.ume-NUM-PROCESSES.8-INPUT.pipe_3dx2-REGION.face_area-VARIANT.ref
+//
+// ROI: for each interior, untagged side s: f = s_to_f_map[s];
+//      if (face_comm_type[f] < 3) { face_area[f] += |surz[s]|; side_tag[s_to_s2_map[s]] = 1; }
+// side_tag is a vector local to calc_face_area; the function leaves through a tail
+// call to operator delete that frees it (the `ret` at 12974 is only taken when it is empty).
+offset: aaaaaaaa0000
+func calc_face_area:
+    12894:  ldrsw   x1, [x1, x2, lsl #2]    label:  s_to_f_map          main
+    12898:  ldr     w3, [x3, x1, lsl #2]    label:  face_comm_type      main
+
+    12894:  ldrsw   x1, [x1, x2, lsl #2]    label:  s_to_f_map          main
+    128c4:  ldr     d3, [x3, x1, lsl #3]    label:  face_area@0         main
+
+    12894:  ldrsw   x1, [x1, x2, lsl #2]    label:  s_to_f_map          main
+    128e0:  str     d0, [x3, x1, lsl #3]    label:  face_area@1         main
+
+    128c8:  ldrsw   x5, [x7, x5]            label:  s_to_s2_map         main
+    128e4:  str     w8, [x20, x5, lsl #2]   label:  side_tag            calc_face_area
+ret 12950
+
+func main:
+ret c0bc

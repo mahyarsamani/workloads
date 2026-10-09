@@ -80,6 +80,29 @@ def write_manifest(
     return path
 
 
+def artifact_path(manifest: dict, role: str) -> Path:
+    """Path of the `role` artifact (kernel, disk image, ...) a checkpoint was
+    taken with, after checking that the file there still has the md5 the
+    manifest recorded: restoring on another image or kernel would silently
+    run something else (the checkpoint's disk is a copy-on-write layer over
+    the image)."""
+    artifact = manifest["artifacts"].get(role)
+    if artifact is None:
+        raise ValueError(f"The checkpoint's manifest records no {role}.")
+    path = Path(artifact["path"])
+    if not path.exists():
+        raise FileNotFoundError(
+            f"The checkpoint's {role} {path} does not exist."
+        )
+    md5 = _md5(path)
+    if md5 != artifact["md5"]:
+        raise ValueError(
+            f"The checkpoint's {role} {path} has md5 {md5}, but the "
+            f"checkpoint was taken with md5 {artifact['md5']}."
+        )
+    return path
+
+
 def read_manifest(checkpoint_dir: Path) -> dict:
     """The manifest of `checkpoint_dir`."""
     path = Path(checkpoint_dir) / MANIFEST_NAME

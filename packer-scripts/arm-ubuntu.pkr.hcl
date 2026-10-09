@@ -11,6 +11,17 @@ variable "image_name" {
   type    = string
 }
 
+# ref and hov images are built separately: each holds only its variant's
+# builds (scripts/install-benchmarks-<variant>.sh), so rebuilding one never
+# changes the other or invalidates the checkpoints taken on it.
+variable "variant" {
+  type    = string
+  validation {
+    condition     = contains(["ref", "hov"], var.variant)
+    error_message = "Variant must be either 'ref' or 'hov'."
+  }
+}
+
 variable "ssh_password" {
   type    = string
   default = "12345"
@@ -82,7 +93,8 @@ source "qemu" "initialize" {
   cd_files         = ["packer-scripts/cloud-init/user-data", "packer-scripts/cloud-init/meta-data"]
   cd_label         = "cidata"
   cpus             = "32"
-  disk_size        = "64000"
+  # An image with both variants used about 12 GB; 24 GB leaves room.
+  disk_size        = "24000"
   format           = "raw"
   headless         = "true"
   iso_checksum     = local.iso_data[var.ubuntu_version].iso_checksum
@@ -203,11 +215,13 @@ build {
 
   provisioner "shell" {
     execute_command = "echo '${var.ssh_password}' | {{ .Vars }} sudo -E -S bash '{{ .Path }}'"
+    # Builds libhov for the hov image; a no-op for the ref image.
+    environment_vars = ["VARIANT=${var.variant}"]
     scripts         = ["scripts/install-hov.sh"]
   }
 
   provisioner "shell" {
-    scripts = ["scripts/install-benchmarks.sh"]
+    scripts = ["scripts/install-benchmarks-${var.variant}.sh"]
   }
 
   provisioner "shell" {

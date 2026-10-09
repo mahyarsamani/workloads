@@ -32,8 +32,8 @@ done
 
 # Check if the Ubuntu version variable is provided
 if [ -z "$1" ]; then
-    echo "Usage: $0 [--rebuild-modules] <ubuntu_version> [image_name]"
-    echo "Example: $0 22.04 or $0 --rebuild-modules 22.04"
+    echo "Usage: $0 [--rebuild-modules] <ubuntu_version> <ref|hov> [image_name]"
+    echo "Example: $0 22.04 ref or $0 --rebuild-modules 22.04 hov"
     exit 1
 fi
 
@@ -46,8 +46,17 @@ if [[ "$ubuntu_version" != "22.04" && "$ubuntu_version" != "24.04" ]]; then
     exit 1
 fi
 
-# Store the image name from the second command line argument or default to "arm-ubuntu"
-image_name="${2:-arm-ubuntu}"
+# The variant decides which builds the image holds
+# (scripts/install-benchmarks-<variant>.sh); ref and hov are separate images.
+variant="$2"
+if [[ "$variant" != "ref" && "$variant" != "hov" ]]; then
+    echo "Error: Invalid variant '$variant'. Must be 'ref' or 'hov'."
+    exit 1
+fi
+
+# Store the image name from the third command line argument or default to
+# "arm-sift-<variant>" (the image lands in disk-images/<image_name>-<version>)
+image_name="${3:-arm-sift-${variant}}"
 
 # Optionally rebuild kernel modules from scratch
 if [ "$REBUILD_MODULES" = true ]; then
@@ -68,7 +77,7 @@ cd ..
 ./packer init ./packer-scripts/arm-ubuntu.pkr.hcl
 
 # Build the image with the specified Ubuntu version
-./packer build -var "ubuntu_version=${ubuntu_version}" -var "image_name=${image_name}" ./packer-scripts/arm-ubuntu.pkr.hcl
+./packer build -var "ubuntu_version=${ubuntu_version}" -var "image_name=${image_name}" -var "variant=${variant}" ./packer-scripts/arm-ubuntu.pkr.hcl
 
 # Record the image's md5 next to it (checkpoint manifests read it from there
 # instead of hashing the whole image on every checkpoint).

@@ -128,9 +128,23 @@ def process_snippet(snippet):
 
     current_scope = None
     current_chain = []
-    for line_number, line in enumerate(snippet.splitlines()[1:]):
+    lines = snippet.splitlines()
+    # NOTE: Snippets written as triple-quoted strings start with a newline;
+    # skip that first line only when it is blank, so a snippet read from a
+    # file (e.g. insights_snippet.txt) keeps its first line.
+    if lines and len(lines[0].strip()) == 0:
+        lines = lines[1:]
+    statement_count = 0
+    for line in lines:
         line_no_comment = line.split("//")[0]
-        if line_no_comment.startswith("offset") and line_number != 0:
+        if len(line_no_comment.strip()) == 0:
+            # A comment-only line is nothing; a blank line ends a chain.
+            if len(line.strip()) == 0 and len(current_chain) > 0:
+                indirect_chains.append(current_chain)
+                current_chain = []
+            continue
+        statement_count += 1
+        if line_no_comment.startswith("offset") and statement_count != 1:
             raise ValueError(
                 "Offset line should only appear at the start of the snippet if at all."
             )
@@ -159,10 +173,10 @@ def process_snippet(snippet):
             if current_scope in access_sites:
                 access_sites[current_scope]["ret"] = ret_pc
             current_scope = None
-            continue
-        if len(line_no_comment) == 0:
-            indirect_chains.append(current_chain)
-            current_chain = []
+            # A function's last chain ends at its `ret`, blank line or not.
+            if len(current_chain) > 0:
+                indirect_chains.append(current_chain)
+                current_chain = []
             continue
         if (
             access_site := AccessSite.process_line(line_no_comment, offset)
@@ -176,5 +190,8 @@ def process_snippet(snippet):
                 access_site
             )
         current_chain.append(Instruction.process_line(line_no_comment, offset))
+
+    if len(current_chain) > 0:
+        indirect_chains.append(current_chain)
 
     return access_sites, indirect_chains

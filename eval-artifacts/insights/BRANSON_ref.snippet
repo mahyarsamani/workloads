@@ -1,0 +1,59 @@
+// binary: BRANSON_ref
+// source: branson/src/transport_photon.h, transport_photon(); the ROI wraps the transport sweep in main.cc
+// disk-image md5: 4b703cea2ef33210cd4b48c173e0ff36
+// kernel md5: f46d9b8075dda6279ab155b3fc76f573
+// disassembly md5: f422d617670c9ef77fad07532c5d4770
+// derived from: checkpoints/NAME.branson-NUM-PROCESSES.1-INPUT.3D_hohlraum_single_node.xml-VARIANT.ref
+// applies to: checkpoints/NAME.branson-NUM-PROCESSES.1-INPUT.3D_hohlraum_multi_node.xml-VARIANT.ref
+// applies to: checkpoints/NAME.branson-NUM-PROCESSES.1-INPUT.3D_hohlraum_multi_node_shrunk.xml-VARIANT.ref
+// applies to: checkpoints/NAME.branson-NUM-PROCESSES.1-INPUT.3D_hohlraum_single_node.xml-VARIANT.ref
+// applies to: checkpoints/NAME.branson-NUM-PROCESSES.1-INPUT.3D_hohlraum_single_node_shrunk.xml-VARIANT.ref
+// applies to: checkpoints/NAME.branson-NUM-PROCESSES.8-INPUT.3D_hohlraum_multi_node.xml-VARIANT.ref
+// applies to: checkpoints/NAME.branson-NUM-PROCESSES.8-INPUT.3D_hohlraum_multi_node_shrunk.xml-VARIANT.ref
+// applies to: checkpoints/NAME.branson-NUM-PROCESSES.8-INPUT.3D_hohlraum_single_node.xml-VARIANT.ref
+// applies to: checkpoints/NAME.branson-NUM-PROCESSES.8-INPUT.3D_hohlraum_single_node_shrunk.xml-VARIANT.ref
+//
+// local_cell_index = phtn.get_cell() - rank_cell_offset; cell = &cells[local_cell_index] (192-byte Cell)
+// cell_tallies[local_cell_index] (16-byte Cell_Tally): absorbed_E at +0, track_E at +8
+// Chain 1: the ldp loads the photon's cell id and group; @0 picks the cell id (w20).
+//          The event loop re-enters at e588 with x20 recomputed after a boundary cross
+//          (e894 -> e8b8); that path has no chain, because e588 can end only one chain.
+// Chain 2: local_cell_index is spilled at e53c and reloaded at e69c; the reload starts
+//          the cell_tallies chains, labelled as the stack slot of transport_photon.
+//          e758/e764 are the cutoff path's absorbed_E update, reached with x5 still live.
+offset: aaaaaaaa0000
+func transport_photon:
+    e524:   ldp@0   w20, w3, [x27]          label:  phtn                main
+    e530:   sub     w5, w20, w4
+    e548:   umaddl  x20, w5, w1, x2
+    e588:   ldr     d12, [x20, #152]        label:  cell                main
+
+    e69c:   ldr     x3, [sp, #16]           label:  local_cell_index    transport_photon
+    e6a8:   lsl     x5, x3, #4
+    e6b4:   ldr     d28, [x28, x5]          label:  cell_tallies@0      main
+
+    e69c:   ldr     x3, [sp, #16]           label:  local_cell_index    transport_photon
+    e6a8:   lsl     x5, x3, #4
+    e6c0:   str     d31, [x28, x5]          label:  cell_tallies@1      main
+
+    e69c:   ldr     x3, [sp, #16]           label:  local_cell_index    transport_photon
+    e6a8:   lsl     x5, x3, #4
+    e6ac:   add     x6, x28, x5
+    e6c4:   ldr     d6, [x6, #8]            label:  cell_tallies@2      main
+
+    e69c:   ldr     x3, [sp, #16]           label:  local_cell_index    transport_photon
+    e6a8:   lsl     x5, x3, #4
+    e6ac:   add     x6, x28, x5
+    e6cc:   str     d17, [x6, #8]           label:  cell_tallies@3      main
+
+    e69c:   ldr     x3, [sp, #16]           label:  local_cell_index    transport_photon
+    e6a8:   lsl     x5, x3, #4
+    e758:   ldr     d11, [x28, x5]          label:  cell_tallies@4      main
+
+    e69c:   ldr     x3, [sp, #16]           label:  local_cell_index    transport_photon
+    e6a8:   lsl     x5, x3, #4
+    e764:   str     d17, [x28, x5]          label:  cell_tallies@5      main
+ret e7b4
+
+func main:
+ret b2a8

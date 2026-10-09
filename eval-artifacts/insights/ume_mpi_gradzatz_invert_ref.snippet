@@ -1,0 +1,40 @@
+// binary: ume_mpi_gradzatz_invert_ref
+// source: UME/src/Ume/gradient.cc, gradzatz_invert() (KERNEL_GRADZATZ_INVERT); the ROI is the measure loop over zones
+// disk-image md5: 4b703cea2ef33210cd4b48c173e0ff36
+// kernel md5: f46d9b8075dda6279ab155b3fc76f573
+// disassembly md5: 31283a7755a4cb13b750ecd56fe5fe78
+// derived from: checkpoints/NAME.ume-NUM-PROCESSES.1-INPUT.blake-REGION.gradzatz_invert-VARIANT.ref
+// applies to: additional-checkpoints/NAME.ume-NUM-PROCESSES.8-INPUT.pipe_3dx4-REGION.gradzatz_invert-VARIANT.ref
+// applies to: checkpoints/NAME.ume-NUM-PROCESSES.1-INPUT.blake-REGION.gradzatz_invert-VARIANT.ref
+// applies to: checkpoints/NAME.ume-NUM-PROCESSES.1-INPUT.blakex128-REGION.gradzatz_invert-VARIANT.ref
+// applies to: checkpoints/NAME.ume-NUM-PROCESSES.8-INPUT.pipe_3d-REGION.gradzatz_invert-VARIANT.ref
+// applies to: checkpoints/NAME.ume-NUM-PROCESSES.8-INPUT.pipe_3dx2-REGION.gradzatz_invert-VARIANT.ref
+//
+// ROI: for each interior zone, two passes over its corners (z_to_c_map row):
+//      zone_volume += corner_volume[c];
+//      zone_gradient[zone] += point_gradient[c_to_p_map[c]] * corner_volume[c] / zone_volume
+// The c_to_p_map load (11380) is both the consumer of z_to_c_map and the producer of
+// point_gradient; one PC can only have one role, so it is kept as the producer.
+// zone_gradient[zone] and the z_to_c_map row bounds are direct accesses (no chain).
+// gradzatp_invert (called before the ROI) is left out. The function leaves through a
+// tail call to Entity::scatter and owns no labelled array.
+offset: aaaaaaaa0000
+func gradzatz_invert:
+    11338:  ldrsw   x2, [x1]                label:  z_to_c_map          main
+    11344:  ldr     d0, [x6, x2, lsl #3]    label:  corner_volume@0     main
+
+    11370:  ldrsw   x1, [x0]                label:  z_to_c_map          main
+    1137c:  ldr     d0, [x6, x1, lsl #3]    label:  corner_volume@1     main
+
+    11380:  ldr     w1, [x12, x1, lsl #2]   label:  c_to_p_map          main
+    11388:  smull   x1, w1, w9
+    11390:  ldr     q4, [x5, x1]            label:  point_gradient@0    main
+
+    11380:  ldr     w1, [x12, x1, lsl #2]   label:  c_to_p_map          main
+    11388:  smull   x1, w1, w9
+    1138c:  add     x7, x5, x1
+    11394:  ldr     d5, [x7, #16]           label:  point_gradient@1    main
+ret 11400
+
+func main:
+ret c0c0

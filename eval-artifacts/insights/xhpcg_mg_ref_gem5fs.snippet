@@ -1,0 +1,49 @@
+// binary: xhpcg_mg_ref_gem5fs
+// source: hpcg/src/ComputeSPMV_ref.cpp, ComputeSYMGS_ref.cpp, ComputeRestriction_ref.cpp, ComputeProlongation_ref.cpp
+// disk-image md5: 4b703cea2ef33210cd4b48c173e0ff36
+// kernel md5: f46d9b8075dda6279ab155b3fc76f573
+// disassembly md5: 85580a4b05af8201a4fe80196783bd54
+// derived from: checkpoints/NAME.hpcg-NUM-PROCESSES.1-DIM-X.64-DIM-Y.64-DIM-Z.64-SET-TIME.4-KERNEL.spmvm-VARIANT.ref (translated by function start)
+// applies to: additional-checkpoints/NAME.hpcg-NUM-PROCESSES.1-DIM-X.128-DIM-Y.128-DIM-Z.128-SET-TIME.4-KERNEL.mg-VARIANT.ref
+// applies to: additional-checkpoints/NAME.hpcg-NUM-PROCESSES.8-DIM-X.128-DIM-Y.128-DIM-Z.128-SET-TIME.4-KERNEL.mg-VARIANT.ref
+// applies to: checkpoints/NAME.hpcg-NUM-PROCESSES.1-DIM-X.104-DIM-Y.104-DIM-Z.104-SET-TIME.4-KERNEL.mg-VARIANT.ref
+// applies to: checkpoints/NAME.hpcg-NUM-PROCESSES.1-DIM-X.64-DIM-Y.64-DIM-Z.64-SET-TIME.4-KERNEL.mg-VARIANT.ref
+// applies to: checkpoints/NAME.hpcg-NUM-PROCESSES.8-DIM-X.104-DIM-Y.104-DIM-Z.104-SET-TIME.4-KERNEL.mg-VARIANT.ref
+// applies to: checkpoints/NAME.hpcg-NUM-PROCESSES.8-DIM-X.64-DIM-Y.64-DIM-Z.64-SET-TIME.4-KERNEL.mg-VARIANT.ref
+//
+// Same four kernels as xhpcg_spmvm_ref_gem5fs.snippet (see the comments there), at this
+// binary's addresses. The checkpoint sits at this binary's own marker (ComputeMG.cpp:79),
+// the first MG call of TestCG's second CG call (preconditioned). A restore runs one full
+// V-cycle to roi_end_: SYMGS, SpMV, restriction and prolongation on every level.
+offset: aaaaaaaa0000
+func ComputeSPMV_ref:
+    213b0:  ldrsw   x1, [x4, x0, lsl #2]    label:  cur_inds            main
+    213bc:  ldr     d1, [x5, x1, lsl #3]    label:  xv                  main
+ret 213ec
+
+func ComputeSYMGS_ref:
+    214c0:  ldrsw   x2, [x7, x0, lsl #2]    label:  currColInd          main
+    214cc:  ldr     d1, [x1, x2, lsl #3]    label:  xv@0                main
+
+    21520:  ldrsw   x2, [x6, x0, lsl #2]    label:  currColInd          main
+    2152c:  ldr     d1, [x1, x2, lsl #3]    label:  xv@1                main
+ret 21564
+
+func ComputeRestriction_ref:
+    21c20:  ldrsw   x1, [x6, x0, lsl #2]    label:  f2c                 main
+    21c24:  ldr     d0, [x4, x1, lsl #3]    label:  rf                  main
+
+    21c20:  ldrsw   x1, [x6, x0, lsl #2]    label:  f2c                 main
+    21c28:  ldr     d1, [x3, x1, lsl #3]    label:  Axf                 main
+ret 21c44
+
+func ComputeProlongation_ref:
+    21bc8:  ldrsw   x1, [x5, x0, lsl #2]    label:  f2c                 main
+    21bd4:  ldr     d0, [x2, x1, lsl #3]    label:  xfv@0               main
+
+    21bc8:  ldrsw   x1, [x5, x0, lsl #2]    label:  f2c                 main
+    21bdc:  str     d0, [x2, x1, lsl #3]    label:  xfv@1               main
+ret 21bec
+
+func main:
+ret 9ea0

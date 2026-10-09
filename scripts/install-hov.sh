@@ -13,6 +13,14 @@
 
 set -e
 
+# Only the hov image needs libhov (packer passes VARIANT). The driver
+# module ships with the kernel modules in both images and is loaded only
+# when the kernel command line has use_hov=1 (files/arm/after_boot.sh).
+if [ "${VARIANT}" != "hov" ]; then
+    echo "=== Skipping HOV (VARIANT=${VARIANT}) ==="
+    exit 0
+fi
+
 echo "=== Installing HOV ==="
 
 NPROC=$(nproc)
