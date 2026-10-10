@@ -34,6 +34,16 @@ mv src/ume_mpi_gradzatp_invert src/ume_mpi_gradzatp_invert_hov
 mv src/ume_mpi_face_area src/ume_mpi_face_area_hov
 popd
 
+# The HOV=ON scale_mesh links libhov, which opens /dev/hov at startup; the
+# packer VM has no /dev/hov (the driver loads only under gem5 with
+# use_hov=1). So scale the meshes with a HOV=OFF scale_mesh, built alone in
+# its own directory, as the ref image does.
+mkdir -p build-tools
+pushd build-tools
+cmake ../ -DCMAKE_BUILD_TYPE=Release -DUSE_CATCH2=off -DUSE_MPI=true -DANNOTATE_TOOL=gem5fs -DROI_TYPE=sync -DHOV=OFF
+make -j$NPROC scale_mesh
+popd
+
 pushd inputs/blake
 ./remake_partitioned_files.sh
 ./delete_partitions.sh
@@ -48,10 +58,9 @@ pushd inputs/pipe_3d
 ./delete_compressed_files.sh
 popd
 
-# scale_mesh is built by every UME configuration, HOV=ON included.
-mpirun -np 8 ./build/src/scale_mesh inputs/pipe_3d/pipe_3d/pipe_3d_00001 2
-mpirun -np 8 ./build/src/scale_mesh inputs/pipe_3d/pipe_3d/pipe_3d_00001 4
-mpirun -np 1 ./build/src/scale_mesh inputs/blake/blake/blake 128
+mpirun -np 8 ./build-tools/src/scale_mesh inputs/pipe_3d/pipe_3d/pipe_3d_00001 2
+mpirun -np 8 ./build-tools/src/scale_mesh inputs/pipe_3d/pipe_3d/pipe_3d_00001 4
+mpirun -np 1 ./build-tools/src/scale_mesh inputs/blake/blake/blake 128
 popd
 
 pushd hpcg
