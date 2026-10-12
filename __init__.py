@@ -1,6 +1,7 @@
 from .se_workload_wrapper import (
     test_load,
     test_store,
+    test_forward,
     dot_indirect,
     dot_indirect_sve,
     dot_indirect_hov,
