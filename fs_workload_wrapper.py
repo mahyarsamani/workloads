@@ -178,6 +178,19 @@ class ExitEventHandlerWrapper:
         that restoring it continues from the same state."""
         return {"reacted_yet": self._reacted_yet}
 
+    @staticmethod
+    def _warmup_phase(processor) -> Optional[str]:
+        """The processor phase the first work_begin switches to, or None.
+        A full-system run names it `warmup`; a take-checkpoint run names
+        its timing phase `cores`, so that the checkpoint's CPU state is
+        restored into the plain processor's cores (run_full_system.py)."""
+        if not isinstance(processor, SwitchableProcessor):
+            return None
+        for phase in ("warmup", "cores"):
+            if processor.has_phase(phase):
+                return phase
+        return None
+
     def set_state(self, state: dict) -> None:
         """Continue from `state` (from get_state at checkpoint time)."""
         self._reacted_yet = state["reacted_yet"]
@@ -261,9 +274,15 @@ class ExitEventHandlerWrapper:
             can_switch = isinstance(processor, SwitchableProcessor)
             if self._has_warmup:
                 inform("Received a work_begin.")
-                if can_switch and processor.has_phase("warmup"):
-                    processor.switch("warmup")
-                    inform("Switched cpu without resetting stats.")
+                warmup_phase = self._warmup_phase(processor)
+                if warmup_phase is not None:
+                    processor.switch(warmup_phase)
+                    inform(
+                        f"Switched cpu to phase {warmup_phase} "
+                        "without resetting stats."
+                    )
+                else:
+                    warn("No phase to switch to: the warm-up runs natively.")
                 yield SimStep.REMAINING_TIME
             inform("Received a work_begin.")
             reset_stats()
@@ -380,9 +399,18 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                     # manifest), so count from its current value.
                     board.setMSSFlag(board.getMSSFlag() + 1)
                     if self._has_warmup and not warmed_up_yet:
-                        if can_switch and processor.has_phase("warmup"):
-                            processor.switch("warmup")
-                            inform("Switched cpu without resetting stats.")
+                        warmup_phase = self._warmup_phase(processor)
+                        if warmup_phase is not None:
+                            processor.switch(warmup_phase)
+                            inform(
+                                f"Switched cpu to phase {warmup_phase} "
+                                "without resetting stats."
+                            )
+                        else:
+                            warn(
+                                "No phase to switch to: the warm-up runs "
+                                "natively."
+                            )
                         warmed_up_yet = True
                         yield SimStep.REMAINING_TIME
                     else:
