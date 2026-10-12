@@ -985,8 +985,13 @@ class HPCGWrapper(FSMPIWorkloadWrapper):
         variant: WorkloadVariant,
     ):
         binary_name = f"xhpcg_{kernel}_{variant.value}_gem5fs"
+        # A hov binary issues a pre-ROI marker (its bind phase) before the
+        # ROI marker (hpcg_roi.hpp); a reference binary the ROI marker only.
         super().__init__(
-            "/home/gem5/workloads/hpcg/bin", binary_name, num_processes, False
+            "/home/gem5/workloads/hpcg/bin",
+            binary_name,
+            num_processes,
+            variant == WorkloadVariant.HOV,
         )
         self._x = dim_x
         self._y = dim_y
