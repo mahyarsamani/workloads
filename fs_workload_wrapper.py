@@ -1137,8 +1137,9 @@ class NPBWrapper(FSWorkloadWrapper):
         size: str,
     ):
         binary_name = f"{workload.lower()}.{size.upper()}.x"
+        # One process, no pre-ROI marker.
         super().__init__(
-            f"/home/gem5/workloads/NPB3.4-OMP/bin", f"{binary_name}", False
+            f"/home/gem5/workloads/NPB3.4-OMP/bin", f"{binary_name}", 1, False
         )
         self._workload = workload.lower()
         self._size = size.upper()
@@ -1205,7 +1206,8 @@ class SimpleVectorWrapper(FSWorkloadWrapper):
             "sve" if try_convert_bool(use_sve) else "scalar"
         )
         suffix = "-sve.gem5fs" if try_convert_bool(use_sve) else ".gem5"
-        super().__init__(cwd, binary_name + suffix, False)
+        # One process, no pre-ROI marker.
+        super().__init__(cwd, binary_name + suffix, 1, False)
 
 
 class GUPSWrapper(SimpleVectorWrapper):
