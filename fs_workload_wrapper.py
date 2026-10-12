@@ -31,6 +31,18 @@ DISK_IMAGES = {
     WorkloadVariant.HOV: "workloads/disk-images/arm-sift-hov-2204/disk-image",
 }
 
+# Per-process overrides set by a run script (`--disk-image`), so that a test
+# image (`build-arm.sh 22.04 <variant> <image_name>`) is booted without
+# replacing the real one above. A checkpoint's manifest records whichever
+# image was booted, so its restores use the same image automatically.
+DISK_IMAGE_OVERRIDES = {}
+
+
+def set_disk_image(variant: WorkloadVariant, path: str) -> None:
+    """Boot `variant` from `path` (relative to the SIFT project root)
+    instead of its DISK_IMAGES entry, in this process."""
+    DISK_IMAGE_OVERRIDES[variant] = path
+
 
 from pathlib import Path
 from typing import Optional, Union
@@ -674,8 +686,10 @@ class FSWorkloadWrapper:
         return getattr(self, "_variant", WorkloadVariant.REF)
 
     def get_disk_image_path(self) -> Path:
-        """The disk image to boot this workload from (its variant's)."""
-        return Path(DISK_IMAGES[self.get_variant()])
+        """The disk image to boot this workload from: its variant's, or the
+        override a run script set (set_disk_image)."""
+        variant = self.get_variant()
+        return Path(DISK_IMAGE_OVERRIDES.get(variant, DISK_IMAGES[variant]))
 
     @staticmethod
     def checkpoint_artifact_path(manifest: dict, role: str) -> Path:
