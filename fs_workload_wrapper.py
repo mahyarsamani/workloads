@@ -178,22 +178,31 @@ class ExitEventHandlerWrapper:
         that restoring it continues from the same state."""
         return {"reacted_yet": self._reacted_yet}
 
-    @staticmethod
-    def _warmup_phase(processor) -> Optional[str]:
-        """The processor phase the first work_begin switches to, or None.
-        With `has_warmup` the binary issues a marker before its ROI marker
-        (the hov kernels' bind phase: the side-car registers are undefined
-        on KVM cores, so the binds must run simulated; there is no warm-up
-        of the caches). A full-system run names the phase `warmup`; a
-        take-checkpoint run names its timing phase `cores`, so that the
-        checkpoint's CPU state is restored into the plain processor's cores
-        (run_full_system.py)."""
+    # The processor phase the first work_begin switches to. With
+    # `has_warmup` the binary issues a marker before its ROI marker (the hov
+    # kernels' bind phase: the side-car registers are undefined on KVM
+    # cores, so the binds must run simulated; there is no warm-up of the
+    # caches). run_full_system.py names the timing phase so.
+    SETUP_PHASE = "setup"
+
+    @classmethod
+    def _setup_phase(cls, processor) -> Optional[str]:
+        """SETUP_PHASE if `processor` can switch to it, else None."""
         if not isinstance(processor, SwitchableProcessor):
             return None
-        for phase in ("warmup", "cores"):
-            if processor.has_phase(phase):
-                return phase
+        if processor.has_phase(cls.SETUP_PHASE):
+            return cls.SETUP_PHASE
         return None
+
+    @staticmethod
+    def core_phase(processor) -> Optional[str]:
+        """The phase the processor's cores are in, or None for a plain
+        processor: recorded in a checkpoint's manifest, because gem5
+        checkpoints CPU state by SimObject name and a switchable
+        processor names each phase's cores after the phase."""
+        if not isinstance(processor, SwitchableProcessor):
+            return None
+        return processor.current_phase()
 
     def set_state(self, state: dict) -> None:
         """Continue from `state` (from get_state at checkpoint time)."""
@@ -278,11 +287,11 @@ class ExitEventHandlerWrapper:
             can_switch = isinstance(processor, SwitchableProcessor)
             if self._has_warmup:
                 inform("Received a work_begin.")
-                warmup_phase = self._warmup_phase(processor)
-                if warmup_phase is not None:
-                    processor.switch(warmup_phase)
+                setup_phase = self._setup_phase(processor)
+                if setup_phase is not None:
+                    processor.switch(setup_phase)
                     inform(
-                        f"Switched cpu to phase {warmup_phase} "
+                        f"Switched cpu to phase {setup_phase} "
                         "without resetting stats."
                     )
                 else:
@@ -403,11 +412,11 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                     # manifest), so count from its current value.
                     board.setMSSFlag(board.getMSSFlag() + 1)
                     if self._has_warmup and not warmed_up_yet:
-                        warmup_phase = self._warmup_phase(processor)
-                        if warmup_phase is not None:
-                            processor.switch(warmup_phase)
+                        setup_phase = self._setup_phase(processor)
+                        if setup_phase is not None:
+                            processor.switch(setup_phase)
                             inform(
-                                f"Switched cpu to phase {warmup_phase} "
+                                f"Switched cpu to phase {setup_phase} "
                                 "without resetting stats."
                             )
                         else:
@@ -622,6 +631,12 @@ class FSWorkloadWrapper:
             kvm=any(
                 core.is_kvm_core()
                 for core in board.get_processor().get_cores()
+            ),
+            # The phase whose cores hold the checkpointed CPU state (None
+            # for a plain processor): the restore builds a processor whose
+            # cores carry the same name.
+            core_phase=ExitEventHandlerWrapper.core_phase(
+                board.get_processor()
             ),
             memory_size=board.get_memory().get_size(),
             # gem5 does not checkpoint the MSS flag, but the guest depends
