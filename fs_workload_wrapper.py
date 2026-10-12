@@ -628,9 +628,17 @@ class FSWorkloadWrapper:
             },
             workload=self.generate_id_dict(),
             variant=self.get_variant().value,
-            kvm=any(
-                core.is_kvm_core()
-                for core in board.get_processor().get_cores()
+            # The board's platform (GICv2 and the KVM release when built
+            # for KVM), not the cores running now: a checkpoint taken after
+            # the switch from KVM cores to the setup phase still needs the
+            # KVM platform on restore.
+            kvm=(
+                board.uses_kvm_platform()
+                if hasattr(board, "uses_kvm_platform")
+                else any(
+                    core.is_kvm_core()
+                    for core in board.get_processor().get_cores()
+                )
             ),
             # The phase whose cores hold the checkpointed CPU state (None
             # for a plain processor): the restore builds a processor whose
