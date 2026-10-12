@@ -182,7 +182,7 @@ class ExitEventHandlerWrapper:
     # `has_warmup` the binary issues a marker before its ROI marker (the hov
     # kernels' bind phase: the side-car registers are undefined on KVM
     # cores, so the binds must run simulated; there is no warm-up of the
-    # caches). run_full_system.py names the timing phase so.
+    # caches). run_full_system.py names the atomic phase so.
     SETUP_PHASE = "setup"
 
     @classmethod
