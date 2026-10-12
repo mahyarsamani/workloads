@@ -51,7 +51,7 @@ from m5 import options as m5_options
 from m5.simulate import checkpoint
 from m5.stats import reset as reset_stats
 from m5.stats import dump as m5_dump_stats
-from m5.util import inform, warn
+from m5.util import fatal, inform, warn
 
 from gem5.components.boards.abstract_board import AbstractBoard
 
@@ -229,8 +229,14 @@ class ExitEventHandlerWrapper:
                     inform("It's from after_boot.sh.")
                     inform("Continuing simulation past after_boot.sh.")
                 else:
-                    warn("Received an unexpected exit.")
-                    yield SimStep.STOP
+                    # The workload ended before the handler reached the ROI
+                    # (or the checkpoint): a crashed benchmark, e.g. SIGILL
+                    # from a hov instruction executed natively on a KVM
+                    # boot. Fail the job; the scheduler reads the exit code.
+                    fatal(
+                        "Received an unexpected exit (the workload ended "
+                        "before the ROI); see board.terminal."
+                    )
                 yield SimStep.REMAINING_TIME
 
         def handle_max_tick(board):
@@ -329,8 +335,14 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                     inform("It's from after_boot.sh.")
                     inform("Continuing simulation past after_boot.sh.")
                 else:
-                    warn("Received an unexpected exit.")
-                    yield SimStep.STOP
+                    # The workload ended before the handler reached the ROI
+                    # (or the checkpoint): a crashed benchmark, e.g. SIGILL
+                    # from a hov instruction executed natively on a KVM
+                    # boot. Fail the job; the scheduler reads the exit code.
+                    fatal(
+                        "Received an unexpected exit (the workload ended "
+                        "before the ROI); see board.terminal."
+                    )
                 yield SimStep.REMAINING_TIME
 
         def handle_max_tick(board):
