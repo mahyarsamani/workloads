@@ -181,9 +181,13 @@ class ExitEventHandlerWrapper:
     @staticmethod
     def _warmup_phase(processor) -> Optional[str]:
         """The processor phase the first work_begin switches to, or None.
-        A full-system run names it `warmup`; a take-checkpoint run names
-        its timing phase `cores`, so that the checkpoint's CPU state is
-        restored into the plain processor's cores (run_full_system.py)."""
+        With `has_warmup` the binary issues a marker before its ROI marker
+        (the hov kernels' bind phase: the side-car registers are undefined
+        on KVM cores, so the binds must run simulated; there is no warm-up
+        of the caches). A full-system run names the phase `warmup`; a
+        take-checkpoint run names its timing phase `cores`, so that the
+        checkpoint's CPU state is restored into the plain processor's cores
+        (run_full_system.py)."""
         if not isinstance(processor, SwitchableProcessor):
             return None
         for phase in ("warmup", "cores"):
@@ -282,7 +286,7 @@ class ExitEventHandlerWrapper:
                         "without resetting stats."
                     )
                 else:
-                    warn("No phase to switch to: the warm-up runs natively.")
+                    warn("No phase to switch to: the pre-ROI phase runs natively.")
                 yield SimStep.REMAINING_TIME
             inform("Received a work_begin.")
             reset_stats()
@@ -408,8 +412,8 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                             )
                         else:
                             warn(
-                                "No phase to switch to: the warm-up runs "
-                                "natively."
+                                "No phase to switch to: the pre-ROI phase "
+                                "runs natively."
                             )
                         warmed_up_yet = True
                         yield SimStep.REMAINING_TIME
@@ -636,17 +640,16 @@ class FSWorkloadWrapper:
         """The manifest of `checkpoint_path`, checked against this workload.
 
         A boot checkpoint only has to be of the same variant (hov boots a
-        different machine); any other checkpoint has to be of this workload,
-        with the same warmup.
+        different machine); any other checkpoint has to be of this workload.
+        Whether the binary issued a marker before the ROI (`has_warmup` in
+        the manifest) only matters when the checkpoint is taken: a restore
+        continues from the handler state the manifest recorded.
         """
         manifest = read_manifest(checkpoint_path)
         if manifest["workload"]["name"] == "boot":
             expected = {"variant": self.get_variant().value}
         else:
-            expected = {
-                "workload": self.generate_id_dict(),
-                "has_warmup": self._has_warmup,
-            }
+            expected = {"workload": self.generate_id_dict()}
         for key, value in expected.items():
             if manifest[key] != value:
                 raise ValueError(
@@ -1071,11 +1074,14 @@ class UMEWrapper(FSMPIWorkloadWrapper):
         input_file, num_processes = UMEWrapper._input_translator[input_name]
         binary_name = f"ume_mpi_{region}_{variant.value}"
 
+        # The hov kernels issue a pre-ROI marker (the bind phase) before
+        # their ROI marker; the reference kernels issue the ROI marker only
+        # (ume_mpi.cc has no warm-up marker any more).
         super().__init__(
             "/home/gem5/workloads/UME/build/src",
             binary_name,
             num_processes,
-            True,
+            variant == WorkloadVariant.HOV,
         )
         self._input_name = input_name
         self._input_file = input_file
