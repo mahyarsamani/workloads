@@ -172,6 +172,54 @@ class ExitEventHandlerWrapper:
         # Called with the checkpoint path and the board after each
         # checkpoint; set by the workload wrapper to write the manifest.
         self._on_checkpoint = None
+        # A restore bounded in time (set_window): (warmup, measure).
+        self._window = None
+
+    def set_window(self, warmup: str, measure: str) -> None:
+        """Bound a restore in time: simulate `warmup` (stats reset at its
+        end), then `measure`, then dump the stats and stop. The run
+        script starts the simulator with exit_on_tick_zero so that the
+        first max_tick starts the warm-up. window.json in the output
+        directory records the ticks and how the run ended: `window`, or
+        `roi_end` when the ROI ended first (then the dump covers the
+        warm-up too if it ended during it)."""
+        if self._sample_stats:
+            raise ValueError("A time window excludes sample_stats.")
+        self._window = (warmup, measure)
+        self._window_info = {"warmup": warmup, "measure": measure}
+
+    def _record_window(self, **fields) -> None:
+        import json
+
+        from m5 import curTick
+
+        self._window_info.update(fields)
+        self._window_info["tick"] = curTick()
+        with open(Path(get_outdir()) / "window.json", "w") as f:
+            json.dump(self._window_info, f, indent=2)
+
+    def _window_steps(self):
+        """The max_tick steps of a time window (set_window)."""
+        from m5 import curTick
+
+        warmup, measure = self._window
+        self._record_window(stage="warmup", warmup_start=curTick())
+        inform(f"Warming up for {warmup}.")
+        yield warmup
+        reset_stats()
+        self._record_window(stage="measure", measure_start=curTick())
+        inform(f"Reset sim stats; measuring for {measure}.")
+        yield measure
+        dump_stats()
+        self._record_window(stage="done", ended_by="window")
+        inform("Dumped sim stats at the end of the window.")
+        yield SimStep.STOP
+        raise RuntimeError("Did not expect a max_tick after the window.")
+
+    def _note_roi_end(self) -> None:
+        """A time-bounded restore whose ROI ended inside the window."""
+        if self._window is not None:
+            self._record_window(stage="done", ended_by="roi_end")
 
     def get_state(self) -> dict:
         """The handler's state, recorded in the manifest of a checkpoint so
@@ -282,6 +330,8 @@ class ExitEventHandlerWrapper:
             while not self._reacted_yet:
                 inform("Received a `max_tick` before reacting to the ROI.")
                 yield SimStep.REMAINING_TIME
+            if self._window is not None:
+                yield from self._window_steps()
             not_done = True
             while not_done:
                 inform("Received a max_tick.")
@@ -335,6 +385,7 @@ class ExitEventHandlerWrapper:
 
         def handle_work_end(board):
             inform("Received a work_end.")
+            self._note_roi_end()
             dump_stats()
             inform("Dumped sim stats.")
             yield SimStep.STOP
@@ -395,6 +446,8 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
             while not self._reacted_yet:
                 inform("Received a `max_tick` before reacting to the ROI.")
                 yield SimStep.REMAINING_TIME
+            if self._window is not None:
+                yield from self._window_steps()
             not_done = True
             while not_done:
                 inform("Received a max_tick.")
@@ -483,6 +536,7 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                 num_work_end_received += 1
                 inform(f"Received {num_work_end_received} work_ends so far.")
                 if num_work_end_received == self._num_processes:
+                    self._note_roi_end()
                     dump_stats()
                     inform("Dumped sim stats.")
                     not_dumped_yet = False
@@ -615,7 +669,10 @@ class FSWorkloadWrapper:
         sample_period: str,
         take_checkpoint: bool,
         checkpoint_path: Optional[Union[str, Path]],
+        window: Optional[tuple] = None,
     ):
+        """`window` (warmup, measure), e.g. ("1ms", "5ms"), bounds a
+        restore in time (ExitEventHandlerWrapper.set_window)."""
         self._create_exit_event_handler(
             sample_stats,
             sample_period,
@@ -625,6 +682,8 @@ class FSWorkloadWrapper:
         if self._exit_handler is None:
             raise RuntimeError("Failed to create an exit event handler.")
         self._exit_handler._on_checkpoint = self._write_checkpoint_manifest
+        if window is not None:
+            self._exit_handler.set_window(*window)
         return self._exit_handler.get_exit_event_handler(board)
 
     def _write_checkpoint_manifest(
