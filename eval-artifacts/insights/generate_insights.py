@@ -18,10 +18,12 @@ A checkpoint that fails any check is refused and nothing is written for it.
 hov checkpoints are skipped: their indirect accesses run through the libhov
 trampolines, so PC-keyed snippets cannot describe them.
 
-usage: generate_insights.py [--check] [CHECKPOINT_DIR ...]
+usage: generate_insights.py [--check] [--snippets DIR] [CHECKPOINT_DIR ...]
   With no directory, every checkpoint under workloads/eval-artifacts/checkpoints
   and workloads/additional-checkpoints is processed. With --check, the existing
-  insights_snippet.txt files are compared instead of written.
+  insights_snippet.txt files are compared instead of written. --snippets picks
+  the directory of <binary>.snippet files: this directory by default (the
+  campaign's images), v2/ for the v2 images (checkpoints-v2).
 Exits non-zero if any checkpoint is refused (or differs, with --check).
 """
 
@@ -206,7 +208,8 @@ def check_snippet(snippet, header, checkpoint, manifest, binary):
                 )
 
 
-def process(checkpoint: Path, check_only: bool) -> tuple:
+def process(checkpoint: Path, check_only: bool,
+            snippets: Path = INSIGHTS_DIR) -> tuple:
     """(status, detail) for one checkpoint; status is written, same,
     differs, skipped or refused."""
     manifest = json.loads((checkpoint / MANIFEST_NAME).read_text())
@@ -214,7 +217,7 @@ def process(checkpoint: Path, check_only: bool) -> tuple:
     if workload.get("variant") == "hov":
         return "skipped", "hov (no hov snippets yet)"
     binary = binary_name(workload)
-    source = INSIGHTS_DIR / f"{binary}.snippet"
+    source = snippets / f"{binary}.snippet"
     if not source.exists():
         raise Refused(f"no snippet {source.name}")
     snippet = source.read_text()
@@ -233,6 +236,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--check", action="store_true",
                         help="compare instead of writing")
+    parser.add_argument("--snippets", type=Path, default=INSIGHTS_DIR,
+                        help="directory of <binary>.snippet files "
+                        "(v2/ for the v2 images)")
     parser.add_argument("checkpoints", nargs="*", type=Path)
     args = parser.parse_args()
 
@@ -244,7 +250,8 @@ def main() -> int:
     failed = False
     for checkpoint in checkpoints:
         try:
-            status, detail = process(checkpoint, args.check)
+            status, detail = process(checkpoint, args.check,
+                                     args.snippets.resolve())
         except Refused as error:
             status, detail = "refused", str(error)
         counts[status] = counts.get(status, 0) + 1
