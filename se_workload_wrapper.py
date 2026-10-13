@@ -164,6 +164,7 @@ class HOVUnitTestWrapper(SEWorkloadWrapper):
 test_load = HOVUnitTestWrapper("test_load", [])
 test_store = HOVUnitTestWrapper("test_store", [])
 test_forward = HOVUnitTestWrapper("test_forward", [])
+test_load_idx = HOVUnitTestWrapper("test_load_idx", [])
 
 
 class HOVKernelTestWrapper(SEWorkloadWrapper):
