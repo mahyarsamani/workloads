@@ -741,6 +741,19 @@ class FSWorkloadWrapper:
             )
             inform(f"Registered the insights in {SNIPPET_NAME}.")
 
+        # The hov binary's side-car entries, named (see hov_entries): the
+        # O3 cores label the entries' accesses, and the Gather Unit the IDRs
+        # built from them, with the arrays' names, so the per-name cache
+        # stats of a hov restore match a ref restore's labels.
+        hov_entries = manifest.get("hov_entries", {})
+        if hov_entries:
+            processor = board.get_processor()
+            for pair, arrays in hov_entries.items():
+                processor.add_hov_entry_names(
+                    int(pair), arrays["index"], arrays["data"]
+                )
+            inform(f"Registered the names of {len(hov_entries)} hov entries.")
+
     def add_workload_insights(self, board: AbstractBoard, snippet: str) -> None:
         """Register `snippet` (see workload_insights.py) with the board's
         processor: per function, its exit PC and labelled access sites; per
@@ -1090,10 +1103,11 @@ class HPCGWrapper(FSMPIWorkloadWrapper):
     def hov_entries(self) -> dict:
         # Every hov kernel loads entry HOV_SPMV_ENTRY (0) with the level's
         # pair, mtxIndL (the row-major copy flat_index) indexing x
-        # (hpcg/src/SparseMatrix.hpp); waxpby, the control, binds nothing.
+        # (hpcg/src/SparseMatrix.hpp), named as the ref binaries' insights
+        # label them (cur_inds, xv); waxpby, the control, binds nothing.
         if self._variant != WorkloadVariant.HOV or self._kernel == "waxpby":
             return {}
-        return {0: {"index": "mtxIndL", "data": "x"}}
+        return {0: {"index": "cur_inds", "data": "xv"}}
 
 
 class UMEWrapper(FSMPIWorkloadWrapper):
@@ -1187,34 +1201,38 @@ class UMEWrapper(FSMPIWorkloadWrapper):
     # The entries each region's hov kernels bind (UME/src/Ume/hov_context.hh,
     # the ENTRY_* constants): gradzatz_hov calls gradzatp_hov, so its ROI
     # binds both contexts; gradzatz_invert likewise with gradzatp_invert.
+    # The names are the ref binaries' access labels (the insights snippets,
+    # workloads/eval-artifacts/insights), so a hov restore's per-name stats
+    # line up with a ref restore's; the three components of a VecN array
+    # (hov keeps them in three arrays, ref in one) share its name.
     _GRADZATP_ENTRIES = {
-        0: {"index": "c_to_z", "data": "zone_field"},
-        1: {"index": "c_to_p", "data": "point_gradient_x"},
-        2: {"index": "c_to_p", "data": "point_gradient_y"},
-        3: {"index": "c_to_p", "data": "point_gradient_z"},
-        7: {"index": "c_to_p", "data": "point_volume"},
+        0: {"index": "c_to_z_map", "data": "zone_field"},
+        1: {"index": "c_to_p_map", "data": "point_gradient"},
+        2: {"index": "c_to_p_map", "data": "point_gradient"},
+        3: {"index": "c_to_p_map", "data": "point_gradient"},
+        7: {"index": "c_to_p_map", "data": "point_volume"},
     }
     _GRADZATZ_ENTRIES = {
-        8: {"index": "c_to_z", "data": "zone_volume"},
-        9: {"index": "c_to_p", "data": "point_gradient_x"},
-        10: {"index": "c_to_p", "data": "point_gradient_y"},
-        11: {"index": "c_to_p", "data": "point_gradient_z"},
-        12: {"index": "c_to_z", "data": "zone_gradient_x"},
-        13: {"index": "c_to_z", "data": "zone_gradient_y"},
-        14: {"index": "c_to_z", "data": "zone_gradient_z"},
+        8: {"index": "c_to_z_map", "data": "zone_volume"},
+        9: {"index": "c_to_p_map", "data": "point_gradient"},
+        10: {"index": "c_to_p_map", "data": "point_gradient"},
+        11: {"index": "c_to_p_map", "data": "point_gradient"},
+        12: {"index": "c_to_z_map", "data": "zone_gradient"},
+        13: {"index": "c_to_z_map", "data": "zone_gradient"},
+        14: {"index": "c_to_z_map", "data": "zone_gradient"},
     }
     _HOV_ENTRIES = {
         "gradzatz": {**_GRADZATP_ENTRIES, **_GRADZATZ_ENTRIES},
         "gradzatz_invert": {
-            0: {"index": "c_to_z", "data": "zone_field"},
-            1: {"index": "c_to_p", "data": "point_gradient_x"},
-            2: {"index": "c_to_p", "data": "point_gradient_y"},
-            3: {"index": "c_to_p", "data": "point_gradient_z"},
+            0: {"index": "c_to_z_map", "data": "zone_field"},
+            1: {"index": "c_to_p_map", "data": "point_gradient"},
+            2: {"index": "c_to_p_map", "data": "point_gradient"},
+            3: {"index": "c_to_p_map", "data": "point_gradient"},
         },
         "face_area": {
-            0: {"index": "s_to_f", "data": "face_comm_type"},
-            1: {"index": "s_to_f", "data": "face_area"},
-            2: {"index": "s_to_s2", "data": "side_tag"},
+            0: {"index": "s_to_f_map", "data": "face_comm_type"},
+            1: {"index": "s_to_f_map", "data": "face_area"},
+            2: {"index": "s_to_s2_map", "data": "side_tag"},
         },
     }
 
