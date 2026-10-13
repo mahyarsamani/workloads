@@ -242,10 +242,23 @@ class ExitEventHandlerWrapper:
         self._validate_options(board)
         return self._get_exit_event_handler(board)
 
+    def _check_exit_after_roi(self) -> None:
+        """A restore continues with `_reacted_yet` set (the ROI began before
+        the checkpoint) and stops at the ROI's end, so an exit after that
+        point is the benchmark ending early, e.g. a crash: fail the job
+        instead of counting the exit as the boot scripts' and simulating
+        an idle guest until the scheduler gives up."""
+        if self._reacted_yet:
+            fatal(
+                "Received an exit inside the ROI (the workload ended "
+                "before its ROI marker); see board.terminal."
+            )
+
     def _get_exit_event_handler(self, board: AbstractBoard):
         def handle_exit(board):
             num_exits_received = 0
             while True:
+                self._check_exit_after_roi()
                 inform("Received an exit.")
                 num_exits_received += 1
                 if num_exits_received == 1:
@@ -358,6 +371,7 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
         def handle_exit(board):
             num_exits_received = 0
             while True:
+                self._check_exit_after_roi()
                 inform("Received an exit.")
                 num_exits_received += 1
                 if num_exits_received == 1:
@@ -647,6 +661,12 @@ class FSWorkloadWrapper:
                 board.get_processor()
             ),
             memory_size=board.get_memory().get_size(),
+            # The hov pool carved out of that memory (bytes, 0 for ref): a
+            # restore rebuilds the board from both sizes, so take and
+            # restore cannot disagree on the guest's memory layout.
+            hov_mem=(
+                board.get_hov_mem() if hasattr(board, "get_hov_mem") else 0
+            ),
             # gem5 does not checkpoint the MSS flag, but the guest depends
             # on it, so it is recorded here and set again on restore.
             mss_flag=board.getMSSFlag(),
