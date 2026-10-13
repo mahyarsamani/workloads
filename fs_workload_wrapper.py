@@ -667,6 +667,11 @@ class FSWorkloadWrapper:
             hov_mem=(
                 board.get_hov_mem() if hasattr(board, "get_hov_mem") else 0
             ),
+            # Side-car entry -> the arrays it names (hov binaries only).
+            hov_entries={
+                str(entry): arrays
+                for entry, arrays in self.hov_entries().items()
+            },
             # gem5 does not checkpoint the MSS flag, but the guest depends
             # on it, so it is recorded here and set again on restore.
             mss_flag=board.getMSSFlag(),
@@ -766,6 +771,15 @@ class FSWorkloadWrapper:
 
     def needs_hov_mem(self) -> bool:
         return False
+
+    def hov_entries(self) -> dict:
+        """The side-car entries the hov binary binds in its ROI, as
+        {entry number: {"index": index array, "data": data array}}; {} for
+        a ref binary. gem5 labels hov accesses by entry (hov<p>_index,
+        hov<p>_data) and the checkpoint manifest records this table, so the
+        analysis names the arrays and adds up the entries that share one
+        (several entries read the same index array)."""
+        return {}
 
     def get_variant(self) -> WorkloadVariant:
         """The variant of this workload; ref-only workloads are ref."""
@@ -1073,6 +1087,14 @@ class HPCGWrapper(FSMPIWorkloadWrapper):
     def needs_hov_mem(self) -> bool:
         return self._variant == WorkloadVariant.HOV
 
+    def hov_entries(self) -> dict:
+        # Every hov kernel loads entry HOV_SPMV_ENTRY (0) with the level's
+        # pair, mtxIndL (the row-major copy flat_index) indexing x
+        # (hpcg/src/SparseMatrix.hpp); waxpby, the control, binds nothing.
+        if self._variant != WorkloadVariant.HOV or self._kernel == "waxpby":
+            return {}
+        return {0: {"index": "mtxIndL", "data": "x"}}
+
 
 class UMEWrapper(FSMPIWorkloadWrapper):
     _base_input_path = "/home/gem5/workloads/UME/inputs"
@@ -1161,6 +1183,45 @@ class UMEWrapper(FSMPIWorkloadWrapper):
 
     def needs_hov_mem(self) -> bool:
         return self._variant == WorkloadVariant.HOV
+
+    # The entries each region's hov kernels bind (UME/src/Ume/hov_context.hh,
+    # the ENTRY_* constants): gradzatz_hov calls gradzatp_hov, so its ROI
+    # binds both contexts; gradzatz_invert likewise with gradzatp_invert.
+    _GRADZATP_ENTRIES = {
+        0: {"index": "c_to_z", "data": "zone_field"},
+        1: {"index": "c_to_p", "data": "point_gradient_x"},
+        2: {"index": "c_to_p", "data": "point_gradient_y"},
+        3: {"index": "c_to_p", "data": "point_gradient_z"},
+        7: {"index": "c_to_p", "data": "point_volume"},
+    }
+    _GRADZATZ_ENTRIES = {
+        8: {"index": "c_to_z", "data": "zone_volume"},
+        9: {"index": "c_to_p", "data": "point_gradient_x"},
+        10: {"index": "c_to_p", "data": "point_gradient_y"},
+        11: {"index": "c_to_p", "data": "point_gradient_z"},
+        12: {"index": "c_to_z", "data": "zone_gradient_x"},
+        13: {"index": "c_to_z", "data": "zone_gradient_y"},
+        14: {"index": "c_to_z", "data": "zone_gradient_z"},
+    }
+    _HOV_ENTRIES = {
+        "gradzatz": {**_GRADZATP_ENTRIES, **_GRADZATZ_ENTRIES},
+        "gradzatz_invert": {
+            0: {"index": "c_to_z", "data": "zone_field"},
+            1: {"index": "c_to_p", "data": "point_gradient_x"},
+            2: {"index": "c_to_p", "data": "point_gradient_y"},
+            3: {"index": "c_to_p", "data": "point_gradient_z"},
+        },
+        "face_area": {
+            0: {"index": "s_to_f", "data": "face_comm_type"},
+            1: {"index": "s_to_f", "data": "face_area"},
+            2: {"index": "s_to_s2", "data": "side_tag"},
+        },
+    }
+
+    def hov_entries(self) -> dict:
+        if self._variant != WorkloadVariant.HOV:
+            return {}
+        return dict(UMEWrapper._HOV_ENTRIES[self._region_name])
 
 
 class NPBWrapper(FSWorkloadWrapper):
