@@ -6,7 +6,7 @@ from .checkpoint_manifest import (
     read_manifest,
     write_manifest,
 )
-from .workload_insights import process_snippet
+from .workload_insights import register_snippet
 
 import argparse
 import os
@@ -817,26 +817,7 @@ class FSWorkloadWrapper:
         """Register `snippet` (see workload_insights.py) with the board's
         processor: per function, its exit PC and labelled access sites; per
         indirect chain, its PCs and destination-register overrides."""
-        access_sites, indirect_chains = process_snippet(snippet)
-        processor = board.get_processor()
-        for func_name, info in access_sites.items():
-            processor.add_function_info(
-                func_name,
-                info["ret"],
-                [site.label() for site in info["access_sites"]],
-                [site.pc() for site in info["access_sites"]],
-            )
-        for indirect_chain in indirect_chains:
-            name = (
-                f"{indirect_chain[-1].label()}[{indirect_chain[0].label()}]"
-                f"{indirect_chain[-1].label_version()}"
-            )
-            processor.add_indirect_chain(
-                name, [inst.pc() for inst in indirect_chain]
-            )
-            for inst in indirect_chain:
-                if inst.has_override():
-                    processor.add_reg_index_override(inst.override())
+        register_snippet(board.get_processor(), snippet)
 
     def init_mss_flag(self, restoring_checkpoint: bool):
         return -1

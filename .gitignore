@@ -13,3 +13,8 @@ disk-images/
 /packer
 # verify-benchmark-compile.sh output
 compilation_logs/
+# Per-host sysroots (sysroots/aarch64 links to a local disk; see
+# create_arm_sysroot.sh); SE kernels build into se-bin/ (covered by *bin*).
+sysroots/
+# Generated SE inputs (graphs, matrices); see scripts/make-se-inputs.sh.
+se-inputs/

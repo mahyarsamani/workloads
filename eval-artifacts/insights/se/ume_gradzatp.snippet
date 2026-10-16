@@ -1,0 +1,54 @@
+// binary: se-bin/gem5se/ume/gradzatp
+// binary md5: 9486f25b208af766b5cade7d33c7cae4
+// source: UME-kernels/gradzatp.cpp, gradzatp(); its one parallel region,
+//   the corner loop and the divide loop, is outlined as gradzatp() [clone
+//   ._omp_fn.0] at 0x21a0 and lies between the ROI markers; the warm-up
+//   pass runs the same function.
+// arrays: global std::vectors (gradzatp.cpp:20-35), filled in main(); the
+//   base of the vector headers is 0x14020 (x21 in the corner loop): +0
+//   corner_type, +24 c_to_z_map, +48 corner_volume, +72 c_to_p_map, +96
+//   point_volume_exp, +120 zone_field, +144 csurf, +168 point_gradient_exp,
+//   +192 point_type, +216 point_normal.
+// registers: corner loop: x20 = c * 4; x26 = p * 4 (from c_to_p_map), x28 =
+//   z, x25 = &point_volume_exp[p], then &point_gradient_exp[p]. Divide
+//   loop: x4 = point_type, x6 = point_normal; x0 = p.
+// The `omp atomic` adds are compare-and-swap loops in the outline-atomics
+//   helper at 0x3140, shared by every atomic; it is not labelled, and the
+//   label cache names its accesses by address once the plain load before
+//   the loop has named the line (as in ume_gradzatz).
+offset: 0
+func gradzatp_omp_fn_0:
+    // Corner loop: corner_type[c] (direct)
+    221c:  ldr     w0, [x0, x20]             label:  corner_type         main
+
+    // point_volume_exp[c_to_p_map[c]] += corner_volume[c]: the load before
+    // the CAS loop
+    2234:  ldrsw   x26, [x2, x20]            label:  c_to_p_map          main
+    223c:  lsl     x26, x26, #2
+    2248:  add     x25, x25, x26
+    224c:  ldr     w27, [x25]                label:  point_volume_exp    main
+
+    // point_gradient_exp[p] += ...: the load before the CAS loop (x26 still
+    // holds p * 4)
+    2234:  ldrsw   x26, [x2, x20]            label:  c_to_p_map          main
+    223c:  lsl     x26, x26, #2
+    2284:  add     x25, x25, x26
+    228c:  ldr     w26, [x25]                label:  point_gradient_exp  main
+
+    // zone_field[c_to_z_map[c]]
+    2244:  ldr     w28, [x1, x20]            label:  c_to_z_map          main
+    2278:  ldr     s8, [x1, w28, sxtw #2]    label:  zone_field          main
+
+    // corner_volume[c] and csurf[c] (direct)
+    2240:  ldr     s8, [x0, x20]             label:  corner_volume       main
+
+    2280:  ldr     s0, [x0, x20]             label:  csurf               main
+
+    // Divide loop: point_type[p] and point_normal[p] (direct)
+    2324:  ldr     w2, [x4, x0, lsl #2]      label:  point_type          main
+
+    233c:  ldr     s2, [x6, x0, lsl #2]      label:  point_normal        main
+ret 2384
+
+func main:
+ret 1bf4

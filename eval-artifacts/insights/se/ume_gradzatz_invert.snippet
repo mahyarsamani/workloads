@@ -1,0 +1,46 @@
+// binary: se-bin/gem5se/ume/gradzatz_invert
+// binary md5: ee6941e43ce7354096d08a2bd175b25e
+// source: UME-kernels/gradzatz_invert.cpp, gradzatz_invert_CSR(); its one
+//   parallel region, the loop over zones with its two loops over the
+//   zone's corners, is outlined as gradzatz_invert_CSR() [clone
+//   ._omp_fn.0] at 0x1f60 and lies between the ROI markers; the warm-up
+//   pass runs the same function.
+// arrays: global std::vectors (gradzatz_invert.cpp:20-40), filled in main();
+//   the base of the vector headers is 0x15020: +0 zone_type, +24
+//   z_to_c_indptr, +48 z_to_c_indices, +72 corner_volume, +96 c_to_p_map,
+//   +120 point_gradient, +144 zone_gradient_exp.
+// registers: x11 = zone_type, x12 = z_to_c_indptr, x13 = z_to_c_indptr + 1,
+//   x5 = z_to_c_indices, x4 = corner_volume, x9 = c_to_p_map, x8 =
+//   point_gradient, x7 = zone_gradient_exp; x2 = z, x1 and x0 = idx.
+// The c_to_p_map load (0x2028) is both the consumer of z_to_c_indices and
+//   the producer of point_gradient; one PC can only have one role, so it is
+//   kept as the producer (as in ume_mpi_gradzatz_invert_ref).
+offset: 0
+func gradzatz_invert_omp_fn_0:
+    // zone_type[z] (direct)
+    1fd0:  ldr     w0, [x11, x2, lsl #2]     label:  zone_type           main
+
+    // z_to_c_indptr[z] and [z + 1] (direct; one line each, since
+    // consecutive lines would form a chain)
+    1fdc:  ldr     w6, [x12, x2, lsl #2]     label:  z_to_c_indptr       main
+
+    1fe4:  ldr     w3, [x13, x2, lsl #2]     label:  z_to_c_indptr       main
+
+    // Loop 1, zone volume: corner_volume[z_to_c_indices[idx]]
+    1ff8:  ldrsw   x6, [x5, x1, lsl #2]      label:  z_to_c_indices      main
+    2000:  ldr     s0, [x4, x6, lsl #2]      label:  corner_volume@0     main
+
+    // Loop 2, zone gradient: zone_gradient_exp[z] (direct, read and written)
+    2014:  ldr     s0, [x7, x2, lsl #2]      label:  zone_gradient_exp   main
+
+    // corner_volume[z_to_c_indices[idx]]
+    2018:  ldrsw   x1, [x5, x0, lsl #2]      label:  z_to_c_indices      main
+    2024:  ldr     s1, [x4, x1, lsl #2]      label:  corner_volume@1     main
+
+    // point_gradient[c_to_p_map[c]]
+    2028:  ldrsw   x1, [x9, x1, lsl #2]      label:  c_to_p_map          main
+    2030:  ldr     s2, [x8, x1, lsl #2]      label:  point_gradient      main
+ret 2064
+
+func main:
+ret 19b4
