@@ -1,0 +1,26 @@
+// binary: se-bin/gem5se/spmv/spmv
+// binary md5: 13c55cc0439965304512d4ef98457d62
+// source: spmv/spmv.cpp:168-181, spmv(); the row loop is outlined as
+//   spmv(...) [clone ._omp_fn.0] at 0x3690; the warm-up and the ROI call
+//   the same function, so these PCs run in both.
+// registers: x8 = row_ptr, x10 = row_ptr + 1, x5 = col, x4 = val, x3 = x,
+//   x9 = y; x6 = r, x0 = k.
+// arrays: every one is a member of `a` or a vector in main().
+offset: 0
+func spmv_omp_fn_0:
+    // row_ptr[r] (direct)
+    36f0:  ldr     x0, [x8, x6, lsl #3]      label:  row_ptr     main
+
+    // x[col[k]]: col[k] is the index, x the gathered data (spmv.cpp:178)
+    3708:  ldrsw   x1, [x5, x0, lsl #2]      label:  col         main
+    3714:  ldr     d1, [x3, x1, lsl #3]      label:  x           main
+
+    // val[k] (direct)
+    370c:  ldr     d2, [x4, x0, lsl #3]      label:  val         main
+
+    // y[r] = sum (direct store, spmv.cpp:179)
+    3724:  str     d0, [x9, x6, lsl #3]      label:  y           main
+ret 3740
+
+func main:
+ret 23b0

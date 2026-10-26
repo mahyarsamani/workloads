@@ -6,7 +6,7 @@ from .checkpoint_manifest import (
     read_manifest,
     write_manifest,
 )
-from .workload_insights import process_snippet
+from .workload_insights import register_snippet
 
 import argparse
 import os
@@ -31,6 +31,18 @@ DISK_IMAGES = {
     WorkloadVariant.HOV: "workloads/disk-images/arm-sift-hov-2204/disk-image",
 }
 
+# Per-process overrides set by a run script (`--disk-image`), so that a test
+# image (`build-arm.sh 22.04 <variant> <image_name>`) is booted without
+# replacing the real one above. A checkpoint's manifest records whichever
+# image was booted, so its restores use the same image automatically.
+DISK_IMAGE_OVERRIDES = {}
+
+
+def set_disk_image(variant: WorkloadVariant, path: str) -> None:
+    """Boot `variant` from `path` (relative to the SIFT project root)
+    instead of its DISK_IMAGES entry, in this process."""
+    DISK_IMAGE_OVERRIDES[variant] = path
+
 
 from pathlib import Path
 from typing import Optional, Union
@@ -39,7 +51,7 @@ from m5 import options as m5_options
 from m5.simulate import checkpoint
 from m5.stats import reset as reset_stats
 from m5.stats import dump as m5_dump_stats
-from m5.util import inform, warn
+from m5.util import fatal, inform, warn
 
 from gem5.components.boards.abstract_board import AbstractBoard
 
@@ -160,11 +172,85 @@ class ExitEventHandlerWrapper:
         # Called with the checkpoint path and the board after each
         # checkpoint; set by the workload wrapper to write the manifest.
         self._on_checkpoint = None
+        # A restore bounded in time (set_window): (warmup, measure).
+        self._window = None
+
+    def set_window(self, warmup: str, measure: str) -> None:
+        """Bound a restore in time: simulate `warmup` (stats reset at its
+        end), then `measure`, then dump the stats and stop. The run
+        script starts the simulator with exit_on_tick_zero so that the
+        first max_tick starts the warm-up. window.json in the output
+        directory records the ticks and how the run ended: `window`, or
+        `roi_end` when the ROI ended first (then the dump covers the
+        warm-up too if it ended during it)."""
+        if self._sample_stats:
+            raise ValueError("A time window excludes sample_stats.")
+        self._window = (warmup, measure)
+        self._window_info = {"warmup": warmup, "measure": measure}
+
+    def _record_window(self, **fields) -> None:
+        import json
+
+        from m5 import curTick
+
+        self._window_info.update(fields)
+        self._window_info["tick"] = curTick()
+        with open(Path(get_outdir()) / "window.json", "w") as f:
+            json.dump(self._window_info, f, indent=2)
+
+    def _window_steps(self):
+        """The max_tick steps of a time window (set_window)."""
+        from m5 import curTick
+
+        warmup, measure = self._window
+        self._record_window(stage="warmup", warmup_start=curTick())
+        inform(f"Warming up for {warmup}.")
+        yield warmup
+        reset_stats()
+        self._record_window(stage="measure", measure_start=curTick())
+        inform(f"Reset sim stats; measuring for {measure}.")
+        yield measure
+        dump_stats()
+        self._record_window(stage="done", ended_by="window")
+        inform("Dumped sim stats at the end of the window.")
+        yield SimStep.STOP
+        raise RuntimeError("Did not expect a max_tick after the window.")
+
+    def _note_roi_end(self) -> None:
+        """A time-bounded restore whose ROI ended inside the window."""
+        if self._window is not None:
+            self._record_window(stage="done", ended_by="roi_end")
 
     def get_state(self) -> dict:
         """The handler's state, recorded in the manifest of a checkpoint so
         that restoring it continues from the same state."""
         return {"reacted_yet": self._reacted_yet}
+
+    # The processor phase the first work_begin switches to. With
+    # `has_warmup` the binary issues a marker before its ROI marker (the hov
+    # kernels' bind phase: the side-car registers are undefined on KVM
+    # cores, so the binds must run simulated; there is no warm-up of the
+    # caches). run_full_system.py names the atomic phase so.
+    SETUP_PHASE = "setup"
+
+    @classmethod
+    def _setup_phase(cls, processor) -> Optional[str]:
+        """SETUP_PHASE if `processor` can switch to it, else None."""
+        if not isinstance(processor, SwitchableProcessor):
+            return None
+        if processor.has_phase(cls.SETUP_PHASE):
+            return cls.SETUP_PHASE
+        return None
+
+    @staticmethod
+    def core_phase(processor) -> Optional[str]:
+        """The phase the processor's cores are in, or None for a plain
+        processor: recorded in a checkpoint's manifest, because gem5
+        checkpoints CPU state by SimObject name and a switchable
+        processor names each phase's cores after the phase."""
+        if not isinstance(processor, SwitchableProcessor):
+            return None
+        return processor.current_phase()
 
     def set_state(self, state: dict) -> None:
         """Continue from `state` (from get_state at checkpoint time)."""
@@ -204,10 +290,23 @@ class ExitEventHandlerWrapper:
         self._validate_options(board)
         return self._get_exit_event_handler(board)
 
+    def _check_exit_after_roi(self) -> None:
+        """A restore continues with `_reacted_yet` set (the ROI began before
+        the checkpoint) and stops at the ROI's end, so an exit after that
+        point is the benchmark ending early, e.g. a crash: fail the job
+        instead of counting the exit as the boot scripts' and simulating
+        an idle guest until the scheduler gives up."""
+        if self._reacted_yet:
+            fatal(
+                "Received an exit inside the ROI (the workload ended "
+                "before its ROI marker); see board.terminal."
+            )
+
     def _get_exit_event_handler(self, board: AbstractBoard):
         def handle_exit(board):
             num_exits_received = 0
             while True:
+                self._check_exit_after_roi()
                 inform("Received an exit.")
                 num_exits_received += 1
                 if num_exits_received == 1:
@@ -217,14 +316,22 @@ class ExitEventHandlerWrapper:
                     inform("It's from after_boot.sh.")
                     inform("Continuing simulation past after_boot.sh.")
                 else:
-                    warn("Received an unexpected exit.")
-                    yield SimStep.STOP
+                    # The workload ended before the handler reached the ROI
+                    # (or the checkpoint): a crashed benchmark, e.g. SIGILL
+                    # from a hov instruction executed natively on a KVM
+                    # boot. Fail the job; the scheduler reads the exit code.
+                    fatal(
+                        "Received an unexpected exit (the workload ended "
+                        "before the ROI); see board.terminal."
+                    )
                 yield SimStep.REMAINING_TIME
 
         def handle_max_tick(board):
             while not self._reacted_yet:
                 inform("Received a `max_tick` before reacting to the ROI.")
                 yield SimStep.REMAINING_TIME
+            if self._window is not None:
+                yield from self._window_steps()
             not_done = True
             while not_done:
                 inform("Received a max_tick.")
@@ -243,9 +350,15 @@ class ExitEventHandlerWrapper:
             can_switch = isinstance(processor, SwitchableProcessor)
             if self._has_warmup:
                 inform("Received a work_begin.")
-                if can_switch and processor.has_phase("warmup"):
-                    processor.switch("warmup")
-                    inform("Switched cpu without resetting stats.")
+                setup_phase = self._setup_phase(processor)
+                if setup_phase is not None:
+                    processor.switch(setup_phase)
+                    inform(
+                        f"Switched cpu to phase {setup_phase} "
+                        "without resetting stats."
+                    )
+                else:
+                    warn("No phase to switch to: the pre-ROI phase runs natively.")
                 yield SimStep.REMAINING_TIME
             inform("Received a work_begin.")
             reset_stats()
@@ -272,6 +385,7 @@ class ExitEventHandlerWrapper:
 
         def handle_work_end(board):
             inform("Received a work_end.")
+            self._note_roi_end()
             dump_stats()
             inform("Dumped sim stats.")
             yield SimStep.STOP
@@ -308,6 +422,7 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
         def handle_exit(board):
             num_exits_received = 0
             while True:
+                self._check_exit_after_roi()
                 inform("Received an exit.")
                 num_exits_received += 1
                 if num_exits_received == 1:
@@ -317,14 +432,22 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                     inform("It's from after_boot.sh.")
                     inform("Continuing simulation past after_boot.sh.")
                 else:
-                    warn("Received an unexpected exit.")
-                    yield SimStep.STOP
+                    # The workload ended before the handler reached the ROI
+                    # (or the checkpoint): a crashed benchmark, e.g. SIGILL
+                    # from a hov instruction executed natively on a KVM
+                    # boot. Fail the job; the scheduler reads the exit code.
+                    fatal(
+                        "Received an unexpected exit (the workload ended "
+                        "before the ROI); see board.terminal."
+                    )
                 yield SimStep.REMAINING_TIME
 
         def handle_max_tick(board):
             while not self._reacted_yet:
                 inform("Received a `max_tick` before reacting to the ROI.")
                 yield SimStep.REMAINING_TIME
+            if self._window is not None:
+                yield from self._window_steps()
             not_done = True
             while not_done:
                 inform("Received a max_tick.")
@@ -356,9 +479,18 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                     # manifest), so count from its current value.
                     board.setMSSFlag(board.getMSSFlag() + 1)
                     if self._has_warmup and not warmed_up_yet:
-                        if can_switch and processor.has_phase("warmup"):
-                            processor.switch("warmup")
-                            inform("Switched cpu without resetting stats.")
+                        setup_phase = self._setup_phase(processor)
+                        if setup_phase is not None:
+                            processor.switch(setup_phase)
+                            inform(
+                                f"Switched cpu to phase {setup_phase} "
+                                "without resetting stats."
+                            )
+                        else:
+                            warn(
+                                "No phase to switch to: the pre-ROI phase "
+                                "runs natively."
+                            )
                         warmed_up_yet = True
                         yield SimStep.REMAINING_TIME
                     else:
@@ -404,6 +536,7 @@ class MPIExitEventHandlerWrapper(ExitEventHandlerWrapper):
                 num_work_end_received += 1
                 inform(f"Received {num_work_end_received} work_ends so far.")
                 if num_work_end_received == self._num_processes:
+                    self._note_roi_end()
                     dump_stats()
                     inform("Dumped sim stats.")
                     not_dumped_yet = False
@@ -536,7 +669,10 @@ class FSWorkloadWrapper:
         sample_period: str,
         take_checkpoint: bool,
         checkpoint_path: Optional[Union[str, Path]],
+        window: Optional[tuple] = None,
     ):
+        """`window` (warmup, measure), e.g. ("1ms", "5ms"), bounds a
+        restore in time (ExitEventHandlerWrapper.set_window)."""
         self._create_exit_event_handler(
             sample_stats,
             sample_period,
@@ -546,6 +682,8 @@ class FSWorkloadWrapper:
         if self._exit_handler is None:
             raise RuntimeError("Failed to create an exit event handler.")
         self._exit_handler._on_checkpoint = self._write_checkpoint_manifest
+        if window is not None:
+            self._exit_handler.set_window(*window)
         return self._exit_handler.get_exit_event_handler(board)
 
     def _write_checkpoint_manifest(
@@ -563,11 +701,36 @@ class FSWorkloadWrapper:
             },
             workload=self.generate_id_dict(),
             variant=self.get_variant().value,
-            kvm=any(
-                core.is_kvm_core()
-                for core in board.get_processor().get_cores()
+            # The board's platform (GICv2 and the KVM release when built
+            # for KVM), not the cores running now: a checkpoint taken after
+            # the switch from KVM cores to the setup phase still needs the
+            # KVM platform on restore.
+            kvm=(
+                board.uses_kvm_platform()
+                if hasattr(board, "uses_kvm_platform")
+                else any(
+                    core.is_kvm_core()
+                    for core in board.get_processor().get_cores()
+                )
+            ),
+            # The phase whose cores hold the checkpointed CPU state (None
+            # for a plain processor): the restore builds a processor whose
+            # cores carry the same name.
+            core_phase=ExitEventHandlerWrapper.core_phase(
+                board.get_processor()
             ),
             memory_size=board.get_memory().get_size(),
+            # The hov pool carved out of that memory (bytes, 0 for ref): a
+            # restore rebuilds the board from both sizes, so take and
+            # restore cannot disagree on the guest's memory layout.
+            hov_mem=(
+                board.get_hov_mem() if hasattr(board, "get_hov_mem") else 0
+            ),
+            # Side-car entry -> the arrays it names (hov binaries only).
+            hov_entries={
+                str(entry): arrays
+                for entry, arrays in self.hov_entries().items()
+            },
             # gem5 does not checkpoint the MSS flag, but the guest depends
             # on it, so it is recorded here and set again on restore.
             mss_flag=board.getMSSFlag(),
@@ -584,17 +747,16 @@ class FSWorkloadWrapper:
         """The manifest of `checkpoint_path`, checked against this workload.
 
         A boot checkpoint only has to be of the same variant (hov boots a
-        different machine); any other checkpoint has to be of this workload,
-        with the same warmup.
+        different machine); any other checkpoint has to be of this workload.
+        Whether the binary issued a marker before the ROI (`has_warmup` in
+        the manifest) only matters when the checkpoint is taken: a restore
+        continues from the handler state the manifest recorded.
         """
         manifest = read_manifest(checkpoint_path)
         if manifest["workload"]["name"] == "boot":
             expected = {"variant": self.get_variant().value}
         else:
-            expected = {
-                "workload": self.generate_id_dict(),
-                "has_warmup": self._has_warmup,
-            }
+            expected = {"workload": self.generate_id_dict()}
         for key, value in expected.items():
             if manifest[key] != value:
                 raise ValueError(
@@ -638,30 +800,24 @@ class FSWorkloadWrapper:
             )
             inform(f"Registered the insights in {SNIPPET_NAME}.")
 
+        # The hov binary's side-car entries, named (see hov_entries): the
+        # O3 cores label the entries' accesses, and the Gather Unit the IDRs
+        # built from them, with the arrays' names, so the per-name cache
+        # stats of a hov restore match a ref restore's labels.
+        hov_entries = manifest.get("hov_entries", {})
+        if hov_entries:
+            processor = board.get_processor()
+            for pair, arrays in hov_entries.items():
+                processor.add_hov_entry_names(
+                    int(pair), arrays["index"], arrays["data"]
+                )
+            inform(f"Registered the names of {len(hov_entries)} hov entries.")
+
     def add_workload_insights(self, board: AbstractBoard, snippet: str) -> None:
         """Register `snippet` (see workload_insights.py) with the board's
         processor: per function, its exit PC and labelled access sites; per
         indirect chain, its PCs and destination-register overrides."""
-        access_sites, indirect_chains = process_snippet(snippet)
-        processor = board.get_processor()
-        for func_name, info in access_sites.items():
-            processor.add_function_info(
-                func_name,
-                info["ret"],
-                [site.label() for site in info["access_sites"]],
-                [site.pc() for site in info["access_sites"]],
-            )
-        for indirect_chain in indirect_chains:
-            name = (
-                f"{indirect_chain[-1].label()}[{indirect_chain[0].label()}]"
-                f"{indirect_chain[-1].label_version()}"
-            )
-            processor.add_indirect_chain(
-                name, [inst.pc() for inst in indirect_chain]
-            )
-            for inst in indirect_chain:
-                if inst.has_override():
-                    processor.add_reg_index_override(inst.override())
+        register_snippet(board.get_processor(), snippet)
 
     def init_mss_flag(self, restoring_checkpoint: bool):
         return -1
@@ -669,13 +825,24 @@ class FSWorkloadWrapper:
     def needs_hov_mem(self) -> bool:
         return False
 
+    def hov_entries(self) -> dict:
+        """The side-car entries the hov binary binds in its ROI, as
+        {entry number: {"index": index array, "data": data array}}; {} for
+        a ref binary. gem5 labels hov accesses by entry (hov<p>_index,
+        hov<p>_data) and the checkpoint manifest records this table, so the
+        analysis names the arrays and adds up the entries that share one
+        (several entries read the same index array)."""
+        return {}
+
     def get_variant(self) -> WorkloadVariant:
         """The variant of this workload; ref-only workloads are ref."""
         return getattr(self, "_variant", WorkloadVariant.REF)
 
     def get_disk_image_path(self) -> Path:
-        """The disk image to boot this workload from (its variant's)."""
-        return Path(DISK_IMAGES[self.get_variant()])
+        """The disk image to boot this workload from: its variant's, or the
+        override a run script set (set_disk_image)."""
+        variant = self.get_variant()
+        return Path(DISK_IMAGE_OVERRIDES.get(variant, DISK_IMAGES[variant]))
 
     @staticmethod
     def checkpoint_artifact_path(manifest: dict, role: str) -> Path:
@@ -928,8 +1095,13 @@ class HPCGWrapper(FSMPIWorkloadWrapper):
         variant: WorkloadVariant,
     ):
         binary_name = f"xhpcg_{kernel}_{variant.value}_gem5fs"
+        # A hov binary issues a pre-ROI marker (its bind phase) before the
+        # ROI marker (hpcg_roi.hpp); a reference binary the ROI marker only.
         super().__init__(
-            "/home/gem5/workloads/hpcg/bin", binary_name, num_processes, False
+            "/home/gem5/workloads/hpcg/bin",
+            binary_name,
+            num_processes,
+            variant == WorkloadVariant.HOV,
         )
         self._x = dim_x
         self._y = dim_y
@@ -967,6 +1139,15 @@ class HPCGWrapper(FSMPIWorkloadWrapper):
 
     def needs_hov_mem(self) -> bool:
         return self._variant == WorkloadVariant.HOV
+
+    def hov_entries(self) -> dict:
+        # Every hov kernel loads entry HOV_SPMV_ENTRY (0) with the level's
+        # pair, mtxIndL (the row-major copy flat_index) indexing x
+        # (hpcg/src/SparseMatrix.hpp), named as the ref binaries' insights
+        # label them (cur_inds, xv); waxpby, the control, binds nothing.
+        if self._variant != WorkloadVariant.HOV or self._kernel == "waxpby":
+            return {}
+        return {0: {"index": "cur_inds", "data": "xv"}}
 
 
 class UMEWrapper(FSMPIWorkloadWrapper):
@@ -1017,11 +1198,14 @@ class UMEWrapper(FSMPIWorkloadWrapper):
         input_file, num_processes = UMEWrapper._input_translator[input_name]
         binary_name = f"ume_mpi_{region}_{variant.value}"
 
+        # The hov kernels issue a pre-ROI marker (the bind phase) before
+        # their ROI marker; the reference kernels issue the ROI marker only
+        # (ume_mpi.cc has no warm-up marker any more).
         super().__init__(
             "/home/gem5/workloads/UME/build/src",
             binary_name,
             num_processes,
-            True,
+            variant == WorkloadVariant.HOV,
         )
         self._input_name = input_name
         self._input_file = input_file
@@ -1054,6 +1238,49 @@ class UMEWrapper(FSMPIWorkloadWrapper):
     def needs_hov_mem(self) -> bool:
         return self._variant == WorkloadVariant.HOV
 
+    # The entries each region's hov kernels bind (UME/src/Ume/hov_context.hh,
+    # the ENTRY_* constants): gradzatz_hov calls gradzatp_hov, so its ROI
+    # binds both contexts; gradzatz_invert likewise with gradzatp_invert.
+    # The names are the ref binaries' access labels (the insights snippets,
+    # workloads/eval-artifacts/insights), so a hov restore's per-name stats
+    # line up with a ref restore's; the three components of a VecN array
+    # (hov keeps them in three arrays, ref in one) share its name.
+    _GRADZATP_ENTRIES = {
+        0: {"index": "c_to_z_map", "data": "zone_field"},
+        1: {"index": "c_to_p_map", "data": "point_gradient"},
+        2: {"index": "c_to_p_map", "data": "point_gradient"},
+        3: {"index": "c_to_p_map", "data": "point_gradient"},
+        7: {"index": "c_to_p_map", "data": "point_volume"},
+    }
+    _GRADZATZ_ENTRIES = {
+        8: {"index": "c_to_z_map", "data": "zone_volume"},
+        9: {"index": "c_to_p_map", "data": "point_gradient"},
+        10: {"index": "c_to_p_map", "data": "point_gradient"},
+        11: {"index": "c_to_p_map", "data": "point_gradient"},
+        12: {"index": "c_to_z_map", "data": "zone_gradient"},
+        13: {"index": "c_to_z_map", "data": "zone_gradient"},
+        14: {"index": "c_to_z_map", "data": "zone_gradient"},
+    }
+    _HOV_ENTRIES = {
+        "gradzatz": {**_GRADZATP_ENTRIES, **_GRADZATZ_ENTRIES},
+        "gradzatz_invert": {
+            0: {"index": "c_to_z_map", "data": "zone_field"},
+            1: {"index": "c_to_p_map", "data": "point_gradient"},
+            2: {"index": "c_to_p_map", "data": "point_gradient"},
+            3: {"index": "c_to_p_map", "data": "point_gradient"},
+        },
+        "face_area": {
+            0: {"index": "s_to_f_map", "data": "face_comm_type"},
+            1: {"index": "s_to_f_map", "data": "face_area"},
+            2: {"index": "s_to_s2_map", "data": "side_tag"},
+        },
+    }
+
+    def hov_entries(self) -> dict:
+        if self._variant != WorkloadVariant.HOV:
+            return {}
+        return dict(UMEWrapper._HOV_ENTRIES[self._region_name])
+
 
 class NPBWrapper(FSWorkloadWrapper):
 
@@ -1072,8 +1299,9 @@ class NPBWrapper(FSWorkloadWrapper):
         size: str,
     ):
         binary_name = f"{workload.lower()}.{size.upper()}.x"
+        # One process, no pre-ROI marker.
         super().__init__(
-            f"/home/gem5/workloads/NPB3.4-OMP/bin", f"{binary_name}", False
+            f"/home/gem5/workloads/NPB3.4-OMP/bin", f"{binary_name}", 1, False
         )
         self._workload = workload.lower()
         self._size = size.upper()
@@ -1140,7 +1368,8 @@ class SimpleVectorWrapper(FSWorkloadWrapper):
             "sve" if try_convert_bool(use_sve) else "scalar"
         )
         suffix = "-sve.gem5fs" if try_convert_bool(use_sve) else ".gem5"
-        super().__init__(cwd, binary_name + suffix, False)
+        # One process, no pre-ROI marker.
+        super().__init__(cwd, binary_name + suffix, 1, False)
 
 
 class GUPSWrapper(SimpleVectorWrapper):

@@ -1,0 +1,37 @@
+// binary: se-bin/gem5se/gapbs/pr
+// binary md5: 02373d3ff21dad19a5e291731aca11f8
+// source: gapbs/src/pr.cc:43-105, PageRankPullGS() (Gauss-Seidel); the
+//   iteration's parallel loop (pr.cc:85-94) is outlined as
+//   PageRankPullGS(...) [clone ._omp_fn.1] at 0x3620; iteration 0 (warm-up)
+//   and 1 (ROI) run the same function.
+// registers: x6 = in_index_ (CSRGraph +40, row pointers into
+//   in_neighbors_), x7 = out_index_ (+24), x4 = outgoing_contrib.data(),
+//   x5 = scores.data(); x2 = u, x0 = the neighbour pointer.
+// arrays: the graph's in_index_, in_neighbors_ and out_index_ are built in
+//   main() (the builder); scores and outgoing_contrib are pvectors of
+//   PageRankPullGS.
+// The neighbour load is post-indexed, a macro-op in gem5 (load, then a
+//   MicroAddXiUop for x0): both micro-ops match the PC, the load tags x1
+//   (the chain), the add tags x0 (unused), so producer instance ids
+//   advance by two per neighbour.
+offset: 0
+func PageRankPullGS_omp_fn_1:
+    // in_index_[u] (direct; the pointer to u's in-neighbours)
+    36c0:  ldr     x0, [x6, x2, lsl #3]      label:  in_index            main
+
+    // outgoing_contrib[v] for v in in_neigh(u) (pr.cc:88-89)
+    36d8:  ldrsw   x1, [x0], #4              label:  in_neighbors        main
+    36dc:  ldr     s1, [x4, x1, lsl #2]      label:  outgoing_contrib    PageRankPullGS
+
+    // out_index_[u] (direct, out_degree(u))
+    36f8:  ldr     x1, [x7, x2, lsl #3]      label:  out_index           main
+
+    // scores[u] (direct, pr.cc:90-91)
+    36fc:  ldr     s1, [x5, x2, lsl #2]      label:  scores              PageRankPullGS
+ret 37a0
+
+func PageRankPullGS:
+ret 51f0
+
+func main:
+ret 2de8

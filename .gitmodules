@@ -21,3 +21,11 @@
 [submodule "hov"]
 	path = hov
 	url = https://github.com/mahyarsamani/hov.git
+[submodule "gapbs"]
+	path = gapbs
+	url = https://github.com/mahyarsamani/gapbs.git
+	branch = master
+[submodule "NPB-CPP"]
+	path = NPB-CPP
+	url = https://github.com/mahyarsamani/NPB-CPP.git
+	branch = master

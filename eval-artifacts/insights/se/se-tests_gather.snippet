@@ -1,0 +1,26 @@
+// binary: se-bin/gem5se/se-tests/gather
+// binary md5: 7e58b94540b0355cf67117c891f96912
+// source: se-tests/gather.cpp, gather<T>() (sum += data[index[i]]), kept
+//   out of line: float gather<float>(...) at 0x1f60, double
+//   gather<double>(...) at 0x2120; the warm-up and the ROI pass call the
+//   same function.
+// registers: x1 = the index pointer (post-incremented), x0 = data,
+//   w2/x2 = index[i].
+// arrays: each thread's data and index are vectors of run<T>(), inlined
+//   into main(); the relations are data[index]0 (float) and
+//   data[index]1 (double).
+// The index load is post-indexed, a macro-op in gem5 (see gapbs_pr).
+offset: 0
+func gather_float:
+    // data[index[i]] (gather.cpp, gather())
+    1f70:  ldr     w2, [x1], #4              label:  index               main
+    1f74:  ldr     s1, [x0, x2, lsl #2]      label:  data@0              main
+ret 1f84
+
+func gather_double:
+    2130:  ldr     w2, [x1], #4              label:  index               main
+    2134:  ldr     d1, [x0, x2, lsl #3]      label:  data@1              main
+ret 2144
+
+func main:
+ret 1290

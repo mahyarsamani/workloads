@@ -1,0 +1,61 @@
+// binary: xhpcg_spmvm_ref_gem5fs
+// source: hpcg/src/ComputeSPMV_ref.cpp, ComputeSYMGS_ref.cpp, ComputeRestriction_ref.cpp, ComputeProlongation_ref.cpp
+// disk-image md5: 0d77facd562f331eec2a0837cbdd40b0
+// kernel md5: f46d9b8075dda6279ab155b3fc76f573
+// disassembly md5: 1300057214c93bcad0dad27298bc3000
+// derived from: checkpoints-v2/NAME.hpcg-NUM-PROCESSES.8-DIM-X.104-DIM-Y.104-DIM-Z.104-SET-TIME.4-KERNEL.spmvm-VARIANT.ref (2026-10-13, image arm-sift-v2-ref)
+// applies to: checkpoints-v2/NAME.hpcg-NUM-PROCESSES.8-DIM-X.104-DIM-Y.104-DIM-Z.104-SET-TIME.4-KERNEL.spmvm-VARIANT.ref
+//
+// The campaign snippet (../xhpcg_spmvm_ref_gem5fs.snippet) at this binary's PCs: the same
+// labels and chains, every listed instruction the same, only moved.
+// ROI (hpcg_roi.hpp): main() arms it right before the first timed CG call
+// (main.cpp, hpcg_roi_armed), and ComputeSPMV marks only its first call after that:
+// CG's first SpMV (Ap = A*p, before CG's loop), on the real matrix. ComputeSPMV calls
+// ComputeSPMV_ref out of line (bl at 213cc) inside the ROI and tail-calls it (b at 2138c)
+// otherwise, so a restore runs that one SpMV to roi_end_.
+// Every HPCG ref snippet lists the same four indirect kernels, so the files share one
+// layout; labels on code that does not run in the region are harmless.
+// None of the four kernels is inlined in this build: ComputeSPMV, ComputeSYMGS and
+// ComputeMG_impl reach them by bl or by a tail-call b, so the PCs below are the ones
+// that execute.
+// SpMV:         sum += cur_vals[j] * xv[cur_inds[j]]
+// SYMGS:        sum -= currentValues[j] * xv[currentColIndices[j]]  (forward, then backward sweep)
+// Restriction:  rcv[i] = rfv[f2c[i]] - Axfv[f2c[i]]
+// Prolongation: xfv[f2c[i]] += xcv[i]
+// xv is the x argument of each kernel (a different vector in SpMV and in SYMGS).
+// ExchangeHalo, called by SpMV (bl at 2143c) and SYMGS, packs
+// sendBuffer[i] = xv[elementsToSend[i]]; with 8 processes it runs inside the ROI, but it
+// is not listed, as in the campaign snippet (hov does not offload it either, so the xv
+// counts of ref and hov stay comparable).
+offset: aaaaaaaa0000
+func ComputeSPMV_ref:
+    21480:  ldrsw   x1, [x4, x0, lsl #2]    label:  cur_inds            main
+    2148c:  ldr     d1, [x5, x1, lsl #3]    label:  xv                  main
+ret 214bc
+
+func ComputeSYMGS_ref:
+    21590:  ldrsw   x2, [x7, x0, lsl #2]    label:  currColInd          main
+    2159c:  ldr     d1, [x1, x2, lsl #3]    label:  xv@0                main
+
+    215f0:  ldrsw   x2, [x6, x0, lsl #2]    label:  currColInd          main
+    215fc:  ldr     d1, [x1, x2, lsl #3]    label:  xv@1                main
+ret 21634
+
+func ComputeRestriction_ref:
+    21ca0:  ldrsw   x1, [x6, x0, lsl #2]    label:  f2c                 main
+    21ca4:  ldr     d0, [x4, x1, lsl #3]    label:  rf                  main
+
+    21ca0:  ldrsw   x1, [x6, x0, lsl #2]    label:  f2c                 main
+    21ca8:  ldr     d1, [x3, x1, lsl #3]    label:  Axf                 main
+ret 21cc4
+
+func ComputeProlongation_ref:
+    21c48:  ldrsw   x1, [x5, x0, lsl #2]    label:  f2c                 main
+    21c54:  ldr     d0, [x2, x1, lsl #3]    label:  xfv@0               main
+
+    21c48:  ldrsw   x1, [x5, x0, lsl #2]    label:  f2c                 main
+    21c5c:  str     d0, [x2, x1, lsl #3]    label:  xfv@1               main
+ret 21c6c
+
+func main:
+ret 9ee0
