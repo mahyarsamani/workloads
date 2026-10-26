@@ -27,6 +27,11 @@ from .se_workload_wrapper import (
     ume_gradzatp_300k,
     share_inval,
     share_false,
+    GatherWrapper,
+    gather_float,
+    gather_double,
+    gather_float_dense,
+    gather_double_dense,
 )
 
 from .fs_workload_wrapper import (

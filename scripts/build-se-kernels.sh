@@ -19,6 +19,10 @@
 # and SpMV's mtx2csr (SuiteSparse matrices).
 #
 # Usage (from workloads/): scripts/build-se-kernels.sh [gem5se|native ...]
+# SE_KERNELS limits the kernel groups (default: all of gapbs npb spmv
+# se-tests ume), e.g. SE_KERNELS=se-tests to build the small tests without
+# the gapbs, NPB-CPP and UME-kernels submodules; the host tools are built
+# with their group (gapbs's converter, SpMV's mtx2csr).
 set -e
 
 WORKLOADS_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -29,6 +33,15 @@ FLAVOURS=("${@:-gem5se native gem5se-hov}")
 # shellcheck disable=SC2206
 FLAVOURS=(${FLAVOURS[*]})
 NPB_CLASSES="S B C D"
+SE_KERNELS="${SE_KERNELS:-gapbs npb spmv se-tests ume}"
+
+# True if kernel group $1 is in SE_KERNELS.
+want() {
+    case " $SE_KERNELS " in
+    *" $1 "*) return 0 ;;
+    *) return 1 ;;
+    esac
+}
 
 if [ ! -x "$SYSROOT/usr/bin/g++-13" ]; then
     echo "No usable sysroot at $SYSROOT (see create_arm_sysroot.sh)." >&2
@@ -72,58 +85,75 @@ for flavour in "${FLAVOURS[@]}"; do
     *) echo "Unknown flavour $flavour (gem5se, native, gem5se-hov)." >&2; exit 1 ;;
     esac
 
-    echo "### gapbs ($flavour)"
-    # NOTE: PR and pr_spmv mark two iterations (warm-up, ROI); BFS marks
-    # two trials (-DANNOTATE_TRIALS; run with -n 2).
-    for kernel in $KERNELS_GAPBS; do
-        trials=""
-        [ "$kernel" = bfs ] && trials="-DANNOTATE_TRIALS"
-        $CXX -std=c++11 $CXXFLAGS $HOV -Wall -DANNOTATE $trials \
-            "$WORKLOADS_DIR/gapbs/src/$kernel.cc" -o "$out/gapbs/$kernel" $LIBS
-    done
+    if want gapbs; then
+        echo "### gapbs ($flavour)"
+        # NOTE: PR and pr_spmv mark two iterations (warm-up, ROI); BFS
+        # marks two trials (-DANNOTATE_TRIALS; run with -n 2).
+        for kernel in $KERNELS_GAPBS; do
+            trials=""
+            [ "$kernel" = bfs ] && trials="-DANNOTATE_TRIALS"
+            $CXX -std=c++11 $CXXFLAGS $HOV -Wall -DANNOTATE $trials \
+                "$WORKLOADS_DIR/gapbs/src/$kernel.cc" \
+                -o "$out/gapbs/$kernel" $LIBS
+        done
+    fi
 
-    echo "### NPB-CPP CG ($flavour)"
-    npb="$WORKLOADS_DIR/NPB-CPP/NPB-OMP"
-    for class in $NPB_CLASSES; do
-        # NOTE: The objects are built in the source tree, so clean before
-        # each flavour and class; setparams runs on the host (UCC).
-        rm -f "$npb"/common/*.o "$npb"/CG/*.o
-        make -C "$npb/CG" CLASS="$class" BINDIR="$out/npb" \
-            CC="$CXX -std=c++14" CLINK="$CXX -std=c++14" \
-            CFLAGS="$CXXFLAGS $HOV -DANNOTATE" CLINKFLAGS="-O3 -fopenmp" \
-            C_LIB="-lm $LIBS" UCC="g++ -fopenmp" >/dev/null
-    done
-    rm -f "$npb"/common/*.o "$npb"/CG/*.o "$npb"/CG/npbparams.hpp
+    if want npb; then
+        echo "### NPB-CPP CG ($flavour)"
+        npb="$WORKLOADS_DIR/NPB-CPP/NPB-OMP"
+        for class in $NPB_CLASSES; do
+            # NOTE: The objects are built in the source tree, so clean
+            # before each flavour and class; setparams runs on the host
+            # (UCC).
+            rm -f "$npb"/common/*.o "$npb"/CG/*.o
+            make -C "$npb/CG" CLASS="$class" BINDIR="$out/npb" \
+                CC="$CXX -std=c++14" CLINK="$CXX -std=c++14" \
+                CFLAGS="$CXXFLAGS $HOV -DANNOTATE" CLINKFLAGS="-O3 -fopenmp" \
+                C_LIB="-lm $LIBS" UCC="g++ -fopenmp" >/dev/null
+        done
+        rm -f "$npb"/common/*.o "$npb"/CG/*.o "$npb"/CG/npbparams.hpp
+    fi
 
-    echo "### SpMV ($flavour)"
-    mkdir -p "$out/spmv"
-    $CXX -std=c++14 $CXXFLAGS $HOV -Wall -DANNOTATE \
-        "$WORKLOADS_DIR/spmv/spmv.cpp" -o "$out/spmv/spmv" $LIBS
+    if want spmv; then
+        echo "### SpMV ($flavour)"
+        mkdir -p "$out/spmv"
+        $CXX -std=c++14 $CXXFLAGS $HOV -Wall -DANNOTATE \
+            "$WORKLOADS_DIR/spmv/spmv.cpp" -o "$out/spmv/spmv" $LIBS
+    fi
 
-    if [ -z "$HOV" ]; then
+    if [ -z "$HOV" ] && want se-tests; then
         echo "### se-tests ($flavour)"
         mkdir -p "$out/se-tests"
-        for test in share_inval share_false; do
+        # NOTE: gather is the indirect-prefetcher microbenchmark M1.
+        for test in share_inval share_false gather; do
             $CXX -std=c++17 $CXXFLAGS -Wall -DANNOTATE \
                 "$WORKLOADS_DIR/se-tests/$test.cpp" \
                 -o "$out/se-tests/$test" $LIBS
         done
     fi
 
-    echo "### UME-kernels ($flavour)"
-    for kernel in gradzatz gradzatz_invert gradzatp_invert gradzatp; do
-        $CXX -std=c++11 $CXXFLAGS $HOV -DSIFT \
-            "$WORKLOADS_DIR/UME-kernels/$kernel.cpp" -o "$out/ume/$kernel" $LIBS
-    done
+    if want ume; then
+        echo "### UME-kernels ($flavour)"
+        for kernel in gradzatz gradzatz_invert gradzatp_invert gradzatp; do
+            $CXX -std=c++11 $CXXFLAGS $HOV -DSIFT \
+                "$WORKLOADS_DIR/UME-kernels/$kernel.cpp" \
+                -o "$out/ume/$kernel" $LIBS
+        done
+    fi
 done
 
-echo "### gapbs converter (host)"
-mkdir -p "$OUT_DIR/host"
-g++ -std=c++11 -O3 -fopenmp "$WORKLOADS_DIR/gapbs/src/converter.cc" \
-    -o "$OUT_DIR/host/converter"
+if want gapbs; then
+    echo "### gapbs converter (host)"
+    mkdir -p "$OUT_DIR/host"
+    g++ -std=c++11 -O3 -fopenmp "$WORKLOADS_DIR/gapbs/src/converter.cc" \
+        -o "$OUT_DIR/host/converter"
+fi
 
-echo "### SpMV mtx2csr (host)"
-g++ -std=c++14 -O3 -Wall "$WORKLOADS_DIR/spmv/mtx2csr.cpp" \
-    -o "$OUT_DIR/host/mtx2csr"
+if want spmv; then
+    echo "### SpMV mtx2csr (host)"
+    mkdir -p "$OUT_DIR/host"
+    g++ -std=c++14 -O3 -Wall "$WORKLOADS_DIR/spmv/mtx2csr.cpp" \
+        -o "$OUT_DIR/host/mtx2csr"
+fi
 
 echo "Built into $OUT_DIR."

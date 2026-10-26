@@ -858,3 +858,41 @@ share_inval = OpenMPWorkloadWrapper(
 share_false = OpenMPWorkloadWrapper(
     _se_bin_dir / "se-tests" / "share_false", [], threads=2
 )
+
+
+class GatherWrapper(OpenMPWorkloadWrapper):
+    """se-tests/gather, the indirect-prefetcher microbenchmark M1
+    (docs/agents/2026-10-23-imp-dmp-baselines/SPEC.md, section 5.2): each
+    thread sums data[index[i]] over `elements` 4-byte indices into its own
+    4 MiB `data` of `dtype` ("float" or "double"), uniformly random
+    (`mode` "random") or i mod n ("dense"). One pass is the warm-up and the
+    next the region of interest; one thread unless the run script's
+    --threads says otherwise, and a cold warm-up (on the atomic setup
+    cores) unless --warmup-cpu says otherwise. Its insights snippet labels
+    the arrays `index` and `data`."""
+
+    def __init__(
+        self,
+        dtype: str,
+        mode: str,
+        elements: int = 1 << 20,
+        seed: int = 1,
+        threads=1,
+        **options,
+    ):
+        assert dtype in ("float", "double"), dtype
+        assert mode in ("random", "dense"), mode
+        options.setdefault("warmup_cpu", "none")
+        super().__init__(
+            _se_bin_dir / "se-tests" / "gather",
+            [dtype, mode, elements, seed],
+            threads,
+            has_warmup=True,
+            **options,
+        )
+
+
+gather_float = GatherWrapper("float", "random")
+gather_double = GatherWrapper("double", "random")
+gather_float_dense = GatherWrapper("float", "dense")
+gather_double_dense = GatherWrapper("double", "dense")
