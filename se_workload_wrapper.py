@@ -194,10 +194,10 @@ class SEWorkloadWrapper:
     (otherwise on its main cores from the start, with gem5's default exit
     handling, as the hov unit and kernel tests expect); `has_warmup`: it
     also marks a warm-up iteration with a pair before the ROI's;
-    `warmup_cpu`: the CPU of that warm-up iteration ("timing", or "none"
-    to stay on the atomic setup cores, which leave the caches cold);
-    `mem_size`: the board's memory. Both are the run script's defaults
-    when it is not given others."""
+    `warmup_cpu`: the CPU of that warm-up iteration ("none", the default,
+    to stay on the atomic setup cores, which leave the caches cold, or
+    "timing"); `mem_size`: the board's memory. Both are the run script's
+    defaults when it is not given others."""
 
     def __init__(
         self,
@@ -205,7 +205,7 @@ class SEWorkloadWrapper:
         arguments: List,
         marks_roi: bool = False,
         has_warmup: bool = False,
-        warmup_cpu: str = "timing",
+        warmup_cpu: str = "none",
         mem_size: str = "16GiB",
     ):
         assert marks_roi or not has_warmup
@@ -217,6 +217,7 @@ class SEWorkloadWrapper:
         self._warmup_cpu = warmup_cpu
         self._mem_size = mem_size
         self._hov_entries = {}
+        self._runahead_off_pairs = ()
 
     def insights_snippet(self) -> Optional[str]:
         """The insights snippet of this binary, or None: the snippet
@@ -246,6 +247,14 @@ class SEWorkloadWrapper:
         {"index": index array, "data": data array}}, named as the ref
         snippet labels the arrays; {} for a ref binary."""
         return self._hov_entries
+
+    def runahead_off_pairs(self) -> tuple:
+        """The side-car entries whose pair must never run ahead at the
+        Gather Unit, because their index is read at positions another
+        gather returned (the run script clears their bits of the Gather
+        Unit's hov_ra_pair_mask); () for a ref binary and for most hov
+        ones."""
+        return self._runahead_off_pairs
 
     def add_workload_insights(self, board: AbstractBoard) -> None:
         """Register the binary's insights snippet and the hov entries' names
@@ -439,7 +448,7 @@ class OpenMPWorkloadWrapper(SEWorkloadWrapper):
         threads: Optional[int] = None,
         marks_roi: bool = True,
         has_warmup: bool = False,
-        warmup_cpu: str = "timing",
+        warmup_cpu: str = "none",
         mem_size: str = "16GiB",
     ):
         super().__init__(
@@ -631,6 +640,9 @@ class UMEKernelWrapper(OpenMPWorkloadWrapper):
                 0: {"index": "z_to_c_indices", "data": "corner_volume"},
                 1: {"index": "c_to_p_map", "data": "point_gradient"},
             }
+            # Pair 1's positions are pair 0's results: no run-ahead
+            # (E31 test 5).
+            self._runahead_off_pairs = (1,)
         elif variant == "hov" and kernel == "gradzatp_invert":
             # HOV_ENTRY_CORNER_VOLUME, HOV_ENTRY_CSURF and
             # HOV_ENTRY_ZONE_FIELD in gradzatp_invert.cpp (the third is
@@ -640,6 +652,9 @@ class UMEKernelWrapper(OpenMPWorkloadWrapper):
                 1: {"index": "p_to_c_indices", "data": "csurf"},
                 2: {"index": "c_to_z_map", "data": "zone_field"},
             }
+            # Pair 2's positions are pair 0's results: no run-ahead
+            # (E31 test 5).
+            self._runahead_off_pairs = (2,)
         elif variant == "hov" and kernel == "gradzatp":
             # HOV_ENTRY_ZONE_FIELD in gradzatp.cpp (its scatter-adds stay
             # atomics).
@@ -695,14 +710,16 @@ def _evaluation_workloads() -> dict:
     kernels with one, its hov variant (`<name>_hov`). Every run goes to
     completion: the warm-up iteration, then the region of interest.
 
-    An input whose gathered data are smaller than 4 MiB runs its warm-up
-    on the atomic setup cores (`cold`), leaving the caches cold for both
-    variants: on TimingSimpleCPU the ref warm-up would leave the whole
-    data set in the private caches, which the ref region of interest then
-    hits and SIFT, whose region gathers through the Gather and Value
-    Units, cannot (author, 2026-10-13)."""
+    Every input runs its warm-up on the atomic setup cores, leaving the
+    caches cold for both variants (the wrappers' default since 2026-11-03;
+    every campaign since v3 asked for it). The reason, first given for the
+    inputs whose gathered data are smaller than 4 MiB: on TimingSimpleCPU
+    the ref warm-up would leave the whole data set in the private caches,
+    which the ref region of interest then hits and SIFT, whose region
+    gathers through the Gather and Value Units, cannot (author,
+    2026-10-13). A run that wants a warm cache asks for
+    `--warmup-cpu timing`."""
     workloads = {}
-    cold = {"warmup_cpu": "none"}
 
     def add(name, wrapper_cls, *args, hov=True, **kwargs):
         workloads[name] = wrapper_cls(*args, **kwargs)
@@ -729,9 +746,9 @@ def _evaluation_workloads() -> dict:
                     ["-f", graph],
                     **big,
                 )
-    # NPB CG as the standard benchmark: x is 1.2 MB (C, cold) and 12 MB (D),
+    # NPB CG as the standard benchmark: x is 1.2 MB (C) and 12 MB (D),
     # below the system cache (no class reaches it: E allocates ~78 GB).
-    add("npb_cg_C", NPBCGWrapper, "C", **cold)
+    add("npb_cg_C", NPBCGWrapper, "C")
     add("npb_cg_D", NPBCGWrapper, "D")
     # SpMV: x is 8 B per row; 2^22 rows (32 MiB), 2^23 (64 MiB) and 2^26
     # (512 MiB; ~12 GB of matrix) uniform with 16 per row. The stencil
@@ -759,12 +776,12 @@ def _evaluation_workloads() -> dict:
         mem_size="32GiB",
     )
     # UME gradzatz: DX100's setting (2M corners, window 85,000: a ~680 KB
-    # working set, cold) and windows of 2^22, 2^23 and 2^27 elements, whose
+    # working set) and windows of 2^22, 2^23 and 2^27 elements, whose
     # active working sets span 2 * window floats: 32, 64 and 512 MiB.
-    add("ume_gradzatz_dx100", UMEKernelWrapper, "gradzatz", 2_000_000, **cold)
+    add("ume_gradzatz_dx100", UMEKernelWrapper, "gradzatz", 2_000_000)
     # DX100's setting with 8x its distance (window 680,000): the active
     # working set of each gathered float array is about 5.4 MB, past the
-    # L2s and within the system cache (warm-up on TimingSimpleCPU).
+    # L2s and within the system cache.
     add(
         "ume_gradzatz_dx100_w8",
         UMEKernelWrapper,
@@ -793,7 +810,7 @@ def _evaluation_workloads() -> dict:
     # zone_field gather offloads (its scatter-adds stay atomics), and its
     # 512m input is left out with the others'.
     for kernel in ["gradzatz_invert", "gradzatp_invert", "gradzatp"]:
-        add(f"ume_{kernel}_dx100", UMEKernelWrapper, kernel, 2_000_000, **cold)
+        add(f"ume_{kernel}_dx100", UMEKernelWrapper, kernel, 2_000_000)
         add(
             f"ume_{kernel}_dx100_w8",
             UMEKernelWrapper,
@@ -818,31 +835,14 @@ def _evaluation_workloads() -> dict:
         "pr",
         ["-f", _graphs_dir / "uniform-20.sg"],
     )
-    # Small inputs of every kernel, for functional checks (all cold).
-    add("smoke_pr_u16", GapbsWrapper, "pr", ["-u", 16], **cold)
-    add("smoke_pr_spmv_u16", GapbsWrapper, "pr_spmv", ["-u", 16], **cold)
-    add("smoke_cg_S", NPBCGWrapper, "S", **cold)
-    add(
-        "smoke_spmv_uniform_64k",
-        SpMVWrapper,
-        ["uniform", 1 << 16, 16],
-        **cold,
-    )
-    add(
-        "smoke_ume_gradzatz_300k",
-        UMEKernelWrapper,
-        "gradzatz",
-        300000,
-        **cold,
-    )
+    # Small inputs of every kernel, for functional checks.
+    add("smoke_pr_u16", GapbsWrapper, "pr", ["-u", 16])
+    add("smoke_pr_spmv_u16", GapbsWrapper, "pr_spmv", ["-u", 16])
+    add("smoke_cg_S", NPBCGWrapper, "S")
+    add("smoke_spmv_uniform_64k", SpMVWrapper, ["uniform", 1 << 16, 16])
+    add("smoke_ume_gradzatz_300k", UMEKernelWrapper, "gradzatz", 300000)
     for kernel in ["gradzatz_invert", "gradzatp_invert", "gradzatp"]:
-        add(
-            f"smoke_ume_{kernel}_300k",
-            UMEKernelWrapper,
-            kernel,
-            300000,
-            **cold,
-        )
+        add(f"smoke_ume_{kernel}_300k", UMEKernelWrapper, kernel, 300000)
     return workloads
 
 
