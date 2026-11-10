@@ -27,6 +27,7 @@ from .se_workload_wrapper import (
     ume_gradzatp_300k,
     share_inval,
     share_false,
+    dx100_gather,
 )
 
 from .fs_workload_wrapper import (

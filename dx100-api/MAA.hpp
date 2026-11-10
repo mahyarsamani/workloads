@@ -17,7 +17,10 @@
 #ifndef NUM_CORES
 #define NUM_CORES 4
 #endif
-#define NUM_TILES_PER_CORE 8
+// DX100 port: 4 tiles per core, 8 cores x 4 tiles x 16K elements = 2 MB of
+// scratchpad, the paper's size (docs/plans/dx100-port-plan.md, decision 3);
+// components/dx100/dx100.py builds the accelerator with the same count.
+#define NUM_TILES_PER_CORE 4
 #define NUM_REGS_PER_CORE 8
 #define NUM_TILES (NUM_CORES * NUM_TILES_PER_CORE)
 #define NUM_SCALAR_REGS (NUM_CORES * NUM_REGS_PER_CORE)

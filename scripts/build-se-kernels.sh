@@ -14,11 +14,13 @@
 #   (workloads/annotate built with -DGEM5SE, and the sysroot's libm5.a),
 #   for gem5;
 # - native: the same markers as no-ops, to run and verify under
-#   qemu-aarch64-static (gem5's m5 instructions are illegal there).
+#   qemu-aarch64-static (gem5's m5 instructions are illegal there);
+# - gem5se-dx100, only when named: the DX100 tests, against dx100-api.
 # Also builds two host tools that make the inputs: gapbs's converter (graphs)
 # and SpMV's mtx2csr (SuiteSparse matrices).
 #
-# Usage (from workloads/): scripts/build-se-kernels.sh [gem5se|native ...]
+# Usage (from workloads/): scripts/build-se-kernels.sh
+#   [gem5se|native|gem5se-hov|gem5se-dx100 ...]
 set -e
 
 WORKLOADS_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -69,7 +71,22 @@ for flavour in "${FLAVOURS[@]}"; do
         HOV="-DSIFT_HOV -I$WORKLOADS_DIR/hov/include"
         KERNELS_GAPBS="pr pr_spmv"
         ;;
-    *) echo "Unknown flavour $flavour (gem5se, native, gem5se-hov)." >&2; exit 1 ;;
+    gem5se-dx100)
+        # NOTE: DX100's API (dx100-api, the fork's MAA_gem5.hpp ported to
+        # AArch64) for an accelerator shared by 8 cores; it needs no m5
+        # library (its memory regions are registers). Only the DX100 tests
+        # so far (docs/plans/dx100-port-plan.md, Sprint 1).
+        echo "### se-tests ($flavour)"
+        mkdir -p "$out/se-tests"
+        for test in dx100_gather; do
+            $CXX -std=c++17 -O2 -Wall -DGEM5 -DNUM_CORES=8 \
+                -I"$WORKLOADS_DIR/dx100-api" \
+                "$WORKLOADS_DIR/se-tests/$test.cpp" \
+                -o "$out/se-tests/$test"
+        done
+        continue
+        ;;
+    *) echo "Unknown flavour $flavour (gem5se, native, gem5se-hov, gem5se-dx100)." >&2; exit 1 ;;
     esac
 
     echo "### gapbs ($flavour)"

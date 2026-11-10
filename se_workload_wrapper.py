@@ -858,3 +858,15 @@ share_inval = OpenMPWorkloadWrapper(
 share_false = OpenMPWorkloadWrapper(
     _se_bin_dir / "se-tests" / "share_false", [], threads=2
 )
+
+# DX100 tests (flavour gem5se-dx100, against workloads/dx100-api); they need
+# the dx100 mod of run_syscall_emulation.py (--dx100-mods dx100), which
+# builds the accelerator and maps its registers into the process.
+_se_dx100_bin_dir = _base_dir / "se-bin" / "gem5se-dx100"
+
+# se-tests/dx100_gather: one 4096-element gather into a tile, read back
+# uncached and checked against the CPU (exit code 1 on a mismatch);
+# single-threaded, no ROI markers, so it runs on O3 cores from the start.
+dx100_gather = SEWorkloadWrapper(
+    _se_dx100_bin_dir / "se-tests" / "dx100_gather", []
+)

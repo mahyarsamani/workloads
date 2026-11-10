@@ -1,7 +1,15 @@
 #pragma once
 #include "MAA.hpp"
-#include <gem5/m5ops.h>
 #include <atomic>
+
+// DX100 port to AArch64 and our CHI system (docs/plans/dx100-port-plan.md,
+// Sections 3.1 and 3.4): the fork's x86 `mfence` after every instruction
+// and register access becomes `dmb ish`; the accelerator's window sits at
+// DX100_BASE_ADDR, which components/dx100/dx100.py maps into the SE process
+// uncacheable (strictly ordered on ARM SE); memory regions are written to
+// the accelerator's region registers instead of the fork's m5 pseudo-ops,
+// so no gem5 header or library is needed.
+#define DX100_FENCE() __asm__ __volatile__("dmb ish" ::: "memory")
 
 /*******************************************************************************/
 /*******************************************************************************/
@@ -10,15 +18,13 @@
 /*******************************************************************************/
 
 #define BASE_ADDR 0x000000000
-#if NUM_CORES == 4
-#define MEM_SIZE 0x400000000 // 16GB
-#elif NUM_CORES == 8
-#define MEM_SIZE 0x800000000 // 32GB
-#elif NUM_CORES == 16
-#define MEM_SIZE 0x1000000000 // 64GB
-#else
-#error "NUM_CORES not supported"
+// DX100 port: one window for every core count, at the paper's Figure 6
+// address, above the SE board's memory (16 GiB by default); the fork put it
+// at 16, 32 or 64 GiB after 4, 8 or 16 cores' memory.
+#ifndef DX100_BASE_ADDR
+#define DX100_BASE_ADDR 0x400000000
 #endif
+#define MEM_SIZE DX100_BASE_ADDR
 #define SPD_DATA_SIZE (NUM_TILES * TILE_SIZE * sizeof(uint32_t)) // 128KB = 32 tiles x 1K elements x 4B each element (uint32_t, int32_t, float)
 #define SPD_SIZE_SIZE (NUM_TILES * sizeof(uint16_t))             // 64B = 32 tiles x 2B each tile (uint16_t)
 #define SPD_READY_SIZE (NUM_TILES * sizeof(uint16_t))            // 64B = 32 tiles x 2B each tile (uint16_t)
@@ -53,18 +59,33 @@ volatile uint64_t *INSTR_baseaddr;
 uint64_t MAA_end_addr;
 int8_t region_count;
 
+// DX100 port: the region registers follow the 64 B instruction file; region
+// i's start is at REGION_regs[2 i] and its end at REGION_regs[2 i + 1]
+// (writing the end registers the region), and a write to
+// REGION_regs[2 NUM_REGIONS] clears every region (gem5
+// src/mem/dx100/PioPort.cc, recvRegionWrite).
+#define INSTR_FILE_SIZE 64
+volatile uint64_t *REGION_regs;
+
+inline void dx100_add_mem_region(void *start, void *end, int id) {
+    REGION_regs[2 * id] = (uint64_t)start;
+    REGION_regs[2 * id + 1] = (uint64_t)end;
+    DX100_FENCE();
+}
+
 void add_mem_region(void *start, void *end) {
-    m5_add_mem_region(start, end, region_count++);
+    dx100_add_mem_region(start, end, region_count++);
 }
 
 void clear_mem_region() {
-    m5_clear_mem_region();
-    m5_add_mem_region((void *)SPD_data_cacheable, (void *)SPD_data_noncacheable, 0);
-    m5_add_mem_region((void *)SPD_data_noncacheable, (void *)SPD_size_noncacheable, 1);
-    m5_add_mem_region((void *)SPD_size_noncacheable, (void *)SPD_ready_noncacheable, 2);
-    m5_add_mem_region((void *)SPD_ready_noncacheable, (void *)REG_noncacheable, 3);
-    m5_add_mem_region((void *)REG_noncacheable, (void *)INSTR_opcode_datatype_optype_tdst1_tdst2, 4);
-    m5_add_mem_region((void *)INSTR_opcode_datatype_optype_tdst1_tdst2, (void *)MAA_end_addr, 5);
+    REGION_regs[2 * NUM_REGIONS] = 0;
+    DX100_FENCE();
+    dx100_add_mem_region((void *)SPD_data_cacheable, (void *)SPD_data_noncacheable, 0);
+    dx100_add_mem_region((void *)SPD_data_noncacheable, (void *)SPD_size_noncacheable, 1);
+    dx100_add_mem_region((void *)SPD_size_noncacheable, (void *)SPD_ready_noncacheable, 2);
+    dx100_add_mem_region((void *)SPD_ready_noncacheable, (void *)REG_noncacheable, 3);
+    dx100_add_mem_region((void *)REG_noncacheable, (void *)INSTR_opcode_datatype_optype_tdst1_tdst2, 4);
+    dx100_add_mem_region((void *)INSTR_opcode_datatype_optype_tdst1_tdst2, (void *)MAA_end_addr, 5);
     region_count = 6;
 }
 
@@ -81,12 +102,11 @@ void alloc_MAA() {
     REG_noncacheable = (volatile void *)(current_addr);
     current_addr += REG_SIZE;
     INSTR_opcode_datatype_optype_tdst1_tdst2 = (volatile uint64_t *)(current_addr);
-    current_addr += 8;
-    INSTR_tsrc1_tsrc2_rdst1_rdst2_rsrc1_rsrc2_rsrc3_csrc = (volatile uint64_t *)(current_addr);
-    current_addr += 8;
-    INSTR_baseaddr = (volatile uint64_t *)(current_addr);
-    current_addr += 8;
+    INSTR_tsrc1_tsrc2_rdst1_rdst2_rsrc1_rsrc2_rsrc3_csrc = (volatile uint64_t *)(current_addr + 8);
+    INSTR_baseaddr = (volatile uint64_t *)(current_addr + 16);
+    current_addr += INSTR_FILE_SIZE;
     MAA_end_addr = current_addr;
+    REGION_regs = (volatile uint64_t *)(current_addr);
     clear_mem_region();
 }
 
@@ -97,23 +117,23 @@ inline void init_MAA() {
 }
 void wait_ready(int SPD_id) {
     volatile uint16_t ready __attribute__((unused)) = SPD_ready_noncacheable[SPD_id];
-    __asm__ __volatile__("mfence;");
+    DX100_FENCE();
 }
 inline volatile uint16_t get_tile_size(int SPD_id) {
     volatile uint16_t sz = SPD_size_noncacheable[SPD_id];
-    __asm__ __volatile__("mfence;");
+    DX100_FENCE();
     return sz;
 }
 template <class T1>
 inline volatile T1 get_reg(int reg_id) {
     volatile T1 data = *((T1 *)(&(((volatile uint32_t *)REG_noncacheable)[reg_id])));
-    __asm__ __volatile__("mfence;");
+    DX100_FENCE();
     return data;
 }
 template <class T1>
 inline void set_reg(int reg_id, T1 data) {
     *((T1 *)(&(((volatile uint32_t *)REG_noncacheable)[reg_id]))) = data;
-    __asm__ __volatile__("mfence;");
+    DX100_FENCE();
 }
 template <class T1>
 inline int get_new_reg(T1 data) {
@@ -145,7 +165,9 @@ inline int get_new_tile() {
 }
 template <class T1>
 void maa_const(T1 data, int dst_reg) {
-    *((T1 *)(&(((volatile uint32_t *)REG_noncacheable)[dst_reg]))) = data;
+    // DX100 port: a volatile store, so the compiler keeps it before the
+    // next instruction's stores (the fork's cast drops the volatile).
+    *((volatile T1 *)(&(((volatile uint32_t *)REG_noncacheable)[dst_reg]))) = data;
 }
 
 template <class T1>
@@ -188,7 +210,7 @@ inline void maa_alu_scalar(int src1_tile, int src2_reg, int dst_tile, Operation_
                                                             ((uint64_t)NA_UINT8 << 8) |                         // rsrc3
                                                             (uint64_t)(cond_tile == -1 ? NA_UINT8 : cond_tile); // cond
     *INSTR_baseaddr = NA_UINT64;                                                                                // baseaddr
-    __asm__ __volatile__("mfence;");
+    DX100_FENCE();
 }
 template <class T1>
 inline void maa_alu_vector(int src1_tile, int src2_tile, int dst_tile, Operation_t op, int cond_tile = -1) {
@@ -207,7 +229,7 @@ inline void maa_alu_vector(int src1_tile, int src2_tile, int dst_tile, Operation
                                                             ((uint64_t)NA_UINT8 << 8) |                         // rsrc3
                                                             (uint64_t)(cond_tile == -1 ? NA_UINT8 : cond_tile); // cond
     *INSTR_baseaddr = NA_UINT64;                                                                                // baseaddr
-    __asm__ __volatile__("mfence;");
+    DX100_FENCE();
 }
 template <class T1>
 inline void maa_alu_reduce(int src1_tile, int dst_reg, Operation_t op, int cond_tile = -1) {
@@ -226,7 +248,7 @@ inline void maa_alu_reduce(int src1_tile, int dst_reg, Operation_t op, int cond_
                                                             ((uint64_t)NA_UINT8 << 8) |                         // rsrc3
                                                             (uint64_t)(cond_tile == -1 ? NA_UINT8 : cond_tile); // cond
     *INSTR_baseaddr = NA_UINT64;                                                                                // baseaddr
-    __asm__ __volatile__("mfence;");
+    DX100_FENCE();
 }
 template <class T1>
 inline void maa_stream_load(T1 *data, int min_reg, int max_reg, int stride_reg, int dst_tile, int cond_tile = -1) {
@@ -245,7 +267,7 @@ inline void maa_stream_load(T1 *data, int min_reg, int max_reg, int stride_reg, 
                                                             ((uint64_t)stride_reg << 8) |                       // rsrc3
                                                             (uint64_t)(cond_tile == -1 ? NA_UINT8 : cond_tile); // cond
     *INSTR_baseaddr = (uint64_t)data;                                                                           // baseaddr
-    __asm__ __volatile__("mfence;");
+    DX100_FENCE();
 }
 template <class T1>
 inline void maa_stream_store(T1 *data, int min_reg, int max_reg, int stride_reg, int src_tile, int cond_tile = -1) {
@@ -264,7 +286,7 @@ inline void maa_stream_store(T1 *data, int min_reg, int max_reg, int stride_reg,
                                                             ((uint64_t)stride_reg << 8) |                       // rsrc3
                                                             (uint64_t)(cond_tile == -1 ? NA_UINT8 : cond_tile); // cond
     *INSTR_baseaddr = (uint64_t)data;                                                                           // baseaddr
-    __asm__ __volatile__("mfence;");
+    DX100_FENCE();
 }
 template <class T1>
 inline void maa_indirect_load(T1 *data, int idx_tile, int dst_tile, int cond_tile = -1) {
@@ -283,7 +305,7 @@ inline void maa_indirect_load(T1 *data, int idx_tile, int dst_tile, int cond_til
                                                             ((uint64_t)NA_UINT8 << 8) |                         // rsrc3
                                                             (uint64_t)(cond_tile == -1 ? NA_UINT8 : cond_tile); // cond
     *INSTR_baseaddr = (uint64_t)data;                                                                           // baseaddr
-    __asm__ __volatile__("mfence;");
+    DX100_FENCE();
 }
 template <class T1>
 inline void maa_indirect_store_vector(T1 *data, int idx_tile, int src_tile, int cond_tile = -1, int dst_tile = -1) {
@@ -302,7 +324,7 @@ inline void maa_indirect_store_vector(T1 *data, int idx_tile, int src_tile, int 
                                                             ((uint64_t)NA_UINT8 << 8) |                         // rsrc3
                                                             (uint64_t)(cond_tile == -1 ? NA_UINT8 : cond_tile); // cond
     *INSTR_baseaddr = (uint64_t)data;                                                                           // baseaddr
-    __asm__ __volatile__("mfence;");
+    DX100_FENCE();
 }
 template <class T1>
 inline void maa_indirect_store_scalar(T1 *data, int idx_tile, int src_reg, int cond_tile = -1, int dst_tile = -1) {
@@ -321,7 +343,7 @@ inline void maa_indirect_store_scalar(T1 *data, int idx_tile, int src_reg, int c
                                                             ((uint64_t)NA_UINT8 << 8) |                         // rsrc3
                                                             (uint64_t)(cond_tile == -1 ? NA_UINT8 : cond_tile); // cond
     *INSTR_baseaddr = (uint64_t)data;                                                                           // baseaddr
-    __asm__ __volatile__("mfence;");
+    DX100_FENCE();
 }
 template <class T1>
 inline void maa_indirect_rmw_vector(T1 *data, int idx_tile, int src_tile, Operation_t o_type, int cond_tile = -1, int dst_tile = -1) {
@@ -340,7 +362,7 @@ inline void maa_indirect_rmw_vector(T1 *data, int idx_tile, int src_tile, Operat
                                                             ((uint64_t)NA_UINT8 << 8) |                         // rsrc3
                                                             (uint64_t)(cond_tile == -1 ? NA_UINT8 : cond_tile); // cond
     *INSTR_baseaddr = (uint64_t)data;                                                                           // baseaddr
-    __asm__ __volatile__("mfence;");
+    DX100_FENCE();
 }
 template <class T1>
 inline void maa_indirect_rmw_scalar(T1 *data, int idx_tile, int src_reg, Operation_t o_type, int cond_tile = -1, int dst_tile = -1) {
@@ -359,7 +381,7 @@ inline void maa_indirect_rmw_scalar(T1 *data, int idx_tile, int src_reg, Operati
                                                             ((uint64_t)NA_UINT8 << 8) |                         // rsrc3
                                                             (uint64_t)(cond_tile == -1 ? NA_UINT8 : cond_tile); // cond
     *INSTR_baseaddr = (uint64_t)data;                                                                           // baseaddr
-    __asm__ __volatile__("mfence;");
+    DX100_FENCE();
 }
 // for each tile of i, set last_i_reg to 0 and last_j_reg to -1
 template <class T1>
@@ -379,5 +401,5 @@ inline void maa_range_loop(int last_i_reg, int last_j_reg, int min_tile, int max
                                                             ((uint64_t)NA_UINT8 << 8) |                         // rsrc3
                                                             (uint64_t)(cond_tile == -1 ? NA_UINT8 : cond_tile); // cond
     *INSTR_baseaddr = NA_UINT64;                                                                                // baseaddr
-    __asm__ __volatile__("mfence;");
+    DX100_FENCE();
 }
