@@ -1,0 +1,54 @@
+// binary: se-bin/gem5se/ume/gradzatp_invert
+// binary md5: b1b09dd23ed6612462d15db65adddf49
+// source: UME-kernels/gradzatp_invert.cpp, gradzatp_invert_CSR(); its one
+//   parallel region, the loop over points with its loop over the point's
+//   corners, then the divide loop, is outlined as gradzatp_invert_CSR()
+//   [clone ._omp_fn.0] at 0x20a0 and lies between the ROI markers; the
+//   warm-up pass runs the same function.
+// arrays: global std::vectors (gradzatp_invert.cpp:20-41), filled in main();
+//   the base of the vector headers is 0x15020: +0 p_to_c_indptr, +24
+//   p_to_c_indices, +48 c_to_z_map, +72 corner_volume, +96
+//   point_volume_exp, +120 csurf, +144 zone_field, +168 point_gradient_exp,
+//   +192 point_type, +216 point_normal.
+// registers: corner loop: x12 = p_to_c_indptr, x13 = p_to_c_indptr + 1,
+//   x11 = p_to_c_indices, x10 = c_to_z_map, x9 = corner_volume, x4 =
+//   point_volume_exp, x8 = csurf, x7 = zone_field, x3 = point_gradient_exp;
+//   x0 = p, x1 = idx, x2 = c, x5 = z. Divide loop: x2 = point_type, x4 =
+//   point_normal; x19 = p.
+// The c_to_z_map load (0x2140) is both a consumer of p_to_c_indices and the
+//   producer of zone_field; one PC can only have one role, so it is kept as
+//   the producer.
+offset: 0
+func gradzatp_invert_omp_fn_0:
+    // p_to_c_indptr[p] and [p + 1] (direct; one line each, since
+    // consecutive lines would form a chain)
+    2118:  ldr     w2, [x12, x0, lsl #2]     label:  p_to_c_indptr       main
+
+    211c:  ldr     w6, [x13, x0, lsl #2]     label:  p_to_c_indptr       main
+
+    // corner_volume[p_to_c_indices[idx]]
+    2130:  ldrsw   x2, [x11, x1, lsl #2]     label:  p_to_c_indices      main
+    213c:  ldr     s1, [x9, x2, lsl #2]      label:  corner_volume       main
+
+    // csurf[p_to_c_indices[idx]]
+    2130:  ldrsw   x2, [x11, x1, lsl #2]     label:  p_to_c_indices      main
+    214c:  ldr     s2, [x8, x2, lsl #2]      label:  csurf               main
+
+    // zone_field[c_to_z_map[c]]
+    2140:  ldr     w5, [x10, x2, lsl #2]     label:  c_to_z_map          main
+    2150:  ldr     s1, [x7, w5, sxtw #2]     label:  zone_field          main
+
+    // point_volume_exp[p] and point_gradient_exp[p] (direct, read and
+    // written)
+    2138:  ldr     s0, [x4, x0, lsl #2]      label:  point_volume_exp    main
+
+    2154:  ldr     s0, [x3, x0, lsl #2]      label:  point_gradient_exp  main
+
+    // Divide loop: point_type[p] and point_normal[p] (direct)
+    21ac:  ldr     w0, [x2, x19, lsl #2]     label:  point_type          main
+
+    21c4:  ldr     s2, [x4, x19, lsl #2]     label:  point_normal        main
+ret 2208
+
+func main:
+ret 1af4

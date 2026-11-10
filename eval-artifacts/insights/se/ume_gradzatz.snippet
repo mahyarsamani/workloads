@@ -1,0 +1,50 @@
+// binary: se-bin/gem5se/ume/gradzatz
+// binary md5: 00cbc054edbe6d646ef66a4a63afb167
+// source: UME-kernels/gradzatz.cpp:68-122, gradzatz(); its one parallel
+//   region, both loops, is outlined as gradzatz() [clone ._omp_fn.0] at
+//   0x1f60 and lies between the ROI markers; the warm-up pass runs the
+//   same function.
+// arrays: global std::vectors (gradzatz.cpp:20-30), filled in main(); the
+//   base of the vector headers is 0x14020: +0 corner_type, +24
+//   corner_volume, +48 zone_volume_exp, +72 c_to_z_map, +96
+//   point_gradient, +120 c_to_p_map, +144 zone_gradient_exp.
+// The `omp atomic` adds are compare-and-swap loops in the outline-atomics
+//   helper at 0x2e50, shared by every atomic; it is not labelled, and the
+//   label cache names its accesses by address once the plain load before
+//   the loop has named the line.
+offset: 0
+func gradzatz_omp_fn_0:
+    // Loop 1, zone volume (gradzatz.cpp:92-98): corner_type[c] (direct)
+    1fd8:  ldr     w0, [x0, x20]             label:  corner_type         main
+
+    // zone_volume_exp[c_to_z_map[c]] += corner_volume[c]: the load before
+    // the CAS loop (x24 = &zone_volume_exp[z])
+    1ff0:  ldrsw   x24, [x2, x20]            label:  c_to_z_map          main
+    1ff8:  add     x24, x0, x24, lsl #2
+    1ffc:  ldr     w25, [x24]                label:  zone_volume_exp@0   main
+
+    // corner_volume[c] (direct)
+    1ff4:  ldr     s8, [x1, x20]             label:  corner_volume       main
+
+    // Loop 2, zone gradient (gradzatz.cpp:102-110): corner_type[c] (direct)
+    2054:  ldr     w0, [x0, x19]             label:  corner_type         main
+
+    // corner_volume[c] / zone_volume_exp[c_to_z_map[c]]
+    206c:  ldrsw   x22, [x2, x19]            label:  c_to_z_map          main
+    2078:  ldr     s0, [x1, x22, lsl #2]     label:  zone_volume_exp@1   main
+
+    // zone_gradient_exp[z] += ...: the load before the CAS loop
+    206c:  ldrsw   x22, [x2, x19]            label:  c_to_z_map          main
+    2090:  add     x22, x0, x22, lsl #2
+    20a0:  ldr     w23, [x22]                label:  zone_gradient_exp   main
+
+    // point_gradient[c_to_p_map[c]]
+    2084:  ldrsw   x2, [x0, x19]             label:  c_to_p_map          main
+    208c:  ldr     s0, [x1, x2, lsl #2]      label:  point_gradient      main
+
+    // corner_volume[c] (direct)
+    2070:  ldr     s8, [x0, x19]             label:  corner_volume       main
+ret 20ec
+
+func main:
+ret 1a04

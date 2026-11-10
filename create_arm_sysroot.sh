@@ -2,8 +2,59 @@
 set -e
 
 # 1. Create a directory for our sysroot
-SYSROOT_DIR="${SYSROOT_DIR:=/scr/msamani/robust_sysroots/aarch64}"
+SYSROOT_DIR="${SYSROOT_DIR:=/scr/msamani/sysroots/aarch64}"
 HOST_ARCH=$(uname -m)
+
+# Install the host packages this script uses: debootstrap (step 2),
+# symlinks (step 6), git, scons and a compiler (step 7); on a non-aarch64
+# host also qemu-user-static and binfmt-support (the arm64 chroot runs
+# through qemu) and the aarch64 cross compilers (step 7).
+echo "Installing host packages..."
+HOST_PACKAGES="debootstrap symlinks git scons build-essential"
+if [ "$HOST_ARCH" != "aarch64" ]; then
+    HOST_PACKAGES="$HOST_PACKAGES qemu-user-static binfmt-support gcc-aarch64-linux-gnu g++-aarch64-linux-gnu"
+fi
+sudo apt-get update -y
+# shellcheck disable=SC2086
+sudo apt-get install -y $HOST_PACKAGES
+
+# The chroot runs arm64 programs only if the kernel hands them to qemu: the
+# qemu-aarch64 binfmt handler must be registered, enabled, and carry the F
+# (fix binary) flag so it works inside the chroot.
+if [ "$HOST_ARCH" != "aarch64" ]; then
+    BINFMT=/proc/sys/fs/binfmt_misc/qemu-aarch64
+    if ! grep -qx enabled "$BINFMT" 2>/dev/null \
+        || ! grep -q '^flags: *[A-Z]*F' "$BINFMT"; then
+        echo "qemu-aarch64 is not registered with binfmt_misc (enabled, F flag): see $BINFMT." >&2
+        exit 1
+    fi
+fi
+
+# Every mount point at or under the sysroot, innermost first. Note that
+# `findmnt -R "$SYSROOT_DIR"` prints nothing when the sysroot itself is not
+# a mount point, however much is mounted below it.
+list_mounts() {
+    findmnt -rn -o TARGET \
+        | awk -v d="$SYSROOT_DIR" '$0 == d || index($0, d "/") == 1' \
+        | sort -r
+}
+
+# RECREATE=1 deletes an existing sysroot first: unmount whatever a failed
+# earlier run left mounted under it (a live bind mount of /dev would let
+# rm delete the host's device nodes), then remove it without crossing into
+# another file system.
+if [ "${RECREATE:-0}" = 1 ] && [ -e "$SYSROOT_DIR" ]; then
+    echo "Removing the existing sysroot at $SYSROOT_DIR..."
+    list_mounts | while read -r target; do
+        sudo umount -l "$target"
+    done
+    if [ -n "$(list_mounts)" ]; then
+        echo "Still mounted under $SYSROOT_DIR:" >&2
+        list_mounts >&2
+        exit 1
+    fi
+    sudo rm -rf --one-file-system "$SYSROOT_DIR"
+fi
 mkdir -p "$SYSROOT_DIR"
 
 # 2. Install debootstrap to setup a fake root
@@ -15,13 +66,8 @@ else
     sudo cp /usr/bin/qemu-aarch64-static "$SYSROOT_DIR/usr/bin/"
 fi
 
-# 4. Mount virtual filesystems needed for package installation
-echo "Mounting virtual filesystems..."
-sudo mount -t proc /proc "$SYSROOT_DIR/proc"
-sudo mount -t sysfs /sys "$SYSROOT_DIR/sys"
-sudo mount -o bind /dev "$SYSROOT_DIR/dev"
-sudo mount -o bind /dev/pts "$SYSROOT_DIR/dev/pts"
-
+# 4. Mount virtual filesystems needed for package installation. The cleanup
+# trap is set first, so a mount that fails still unmounts the earlier ones.
 cleanup() {
     echo "Unmounting virtual filesystems..."
     sudo umount -l "$SYSROOT_DIR/dev/pts" 2>/dev/null || true
@@ -30,6 +76,12 @@ cleanup() {
     sudo umount -l "$SYSROOT_DIR/proc" 2>/dev/null || true
 }
 trap cleanup EXIT
+
+echo "Mounting virtual filesystems..."
+sudo mount -t proc /proc "$SYSROOT_DIR/proc"
+sudo mount -t sysfs /sys "$SYSROOT_DIR/sys"
+sudo mount -o bind /dev "$SYSROOT_DIR/dev"
+sudo mount -o bind /dev/pts "$SYSROOT_DIR/dev/pts"
 
 # 5. Run second stage (if cross-arch) and install DEV dependencies natively via chroot
 echo "Configuring sysroot natively..."
@@ -89,7 +141,7 @@ cd util/m5
 if [ "$HOST_ARCH" = "aarch64" ]; then
     scons build/arm64/out/m5
 else
-    scons build/arm64/out/m5 CROSS_COMPILE=aarch64-linux-gnu- CXX="aarch64-linux-gnu-gcc --sysroot=$SYSROOT_DIR" CC="aarch64-linux-gnu-gcc --sysroot=$SYSROOT_DIR"
+    scons build/arm64/out/m5 CROSS_COMPILE=aarch64-linux-gnu- CXX="aarch64-linux-gnu-g++ --sysroot=$SYSROOT_DIR" CC="aarch64-linux-gnu-gcc --sysroot=$SYSROOT_DIR"
 fi
 sudo mkdir -p "$SYSROOT_DIR/usr/local/include/gem5"
 sudo cp -r ../../include/gem5/* "$SYSROOT_DIR/usr/local/include/gem5/"

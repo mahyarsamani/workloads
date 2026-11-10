@@ -1,0 +1,49 @@
+// binary: xhpcg_symgs_ref_gem5fs
+// source: hpcg/src/ComputeSPMV_ref.cpp, ComputeSYMGS_ref.cpp, ComputeRestriction_ref.cpp, ComputeProlongation_ref.cpp
+// disk-image md5: ae210429870ba8815cbdc38e909c1cbe
+// kernel md5: f46d9b8075dda6279ab155b3fc76f573
+// disassembly md5: bac4b6128c4e4aa7d59e2b726974e76e
+// derived from: checkpoints/NAME.hpcg-NUM-PROCESSES.1-DIM-X.64-DIM-Y.64-DIM-Z.64-SET-TIME.4-KERNEL.symgs-VARIANT.ref (derived 2026-10-09 from this disassembly)
+// applies to: checkpoints/NAME.hpcg-NUM-PROCESSES.1-DIM-X.104-DIM-Y.104-DIM-Z.104-SET-TIME.4-KERNEL.symgs-VARIANT.ref
+// applies to: checkpoints/NAME.hpcg-NUM-PROCESSES.1-DIM-X.64-DIM-Y.64-DIM-Z.64-SET-TIME.4-KERNEL.symgs-VARIANT.ref
+// applies to: checkpoints/NAME.hpcg-NUM-PROCESSES.8-DIM-X.104-DIM-Y.104-DIM-Z.104-SET-TIME.4-KERNEL.symgs-VARIANT.ref
+// applies to: checkpoints/NAME.hpcg-NUM-PROCESSES.8-DIM-X.64-DIM-Y.64-DIM-Z.64-SET-TIME.4-KERNEL.symgs-VARIANT.ref
+//
+// Same four kernels as xhpcg_spmvm_ref_gem5fs.snippet (see the comments there), at this
+// binary's addresses. ROI (hpcg_roi.hpp): main() arms it right before the first timed CG
+// call (main.cpp, hpcg_roi_armed), and ComputeSYMGS marks only its first call after that:
+// the finest level's presmoother in the first MG of that CG call. A restore runs that one
+// ComputeSYMGS_ref (bl at 214bc; not inlined), forward then backward sweep, to roi_end_;
+// the SpMV, restriction and prolongation labels do not fire in the region.
+offset: aaaaaaaa0000
+func ComputeSPMV_ref:
+    213f0:  ldrsw   x1, [x4, x0, lsl #2]    label:  cur_inds            main
+    213fc:  ldr     d1, [x5, x1, lsl #3]    label:  xv                  main
+ret 2142c
+
+func ComputeSYMGS_ref:
+    21570:  ldrsw   x2, [x7, x0, lsl #2]    label:  currColInd          main
+    2157c:  ldr     d1, [x1, x2, lsl #3]    label:  xv@0                main
+
+    215d0:  ldrsw   x2, [x6, x0, lsl #2]    label:  currColInd          main
+    215dc:  ldr     d1, [x1, x2, lsl #3]    label:  xv@1                main
+ret 21614
+
+func ComputeRestriction_ref:
+    21c80:  ldrsw   x1, [x6, x0, lsl #2]    label:  f2c                 main
+    21c84:  ldr     d0, [x4, x1, lsl #3]    label:  rf                  main
+
+    21c80:  ldrsw   x1, [x6, x0, lsl #2]    label:  f2c                 main
+    21c88:  ldr     d1, [x3, x1, lsl #3]    label:  Axf                 main
+ret 21ca4
+
+func ComputeProlongation_ref:
+    21c28:  ldrsw   x1, [x5, x0, lsl #2]    label:  f2c                 main
+    21c34:  ldr     d0, [x2, x1, lsl #3]    label:  xfv@0               main
+
+    21c28:  ldrsw   x1, [x5, x0, lsl #2]    label:  f2c                 main
+    21c3c:  str     d0, [x2, x1, lsl #3]    label:  xfv@1               main
+ret 21c4c
+
+func main:
+ret 9ee0

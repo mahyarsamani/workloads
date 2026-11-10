@@ -1,0 +1,41 @@
+// binary: se-bin/gem5se/npb/cg.C
+// binary md5: 68492f61dfed590c35b062dff860a5b9
+// source: NPB-CPP/NPB-OMP/CG/cg.cpp:572-770, conj_grad(), called by every
+//   thread inside the parallel region of each iteration (the warm-up's and
+//   the ROI's alike); not inlined, at 0x2700. Its two sparse products:
+//   - q = A p in the CG loop (cg.cpp:655-662);
+//   - r = A z after it (cg.cpp:742-749).
+// registers (from the arguments): x26 = colidx, x24 = rowstr, x27 = a,
+//   x25 = p, x22 = z, x21 = q, x28 = r; x0 = k.
+// arrays: malloc'd in main() (cg.cpp:206-).
+offset: 0
+func conj_grad:
+    // q = A p: rowstr[j] (direct)
+    2a98:  ldr     w0, [x24, x2, lsl #2]     label:  rowstr      main
+
+    // p[colidx[k]] (cg.cpp:659)
+    2ab0:  ldrsw   x1, [x26, x0, lsl #2]     label:  colidx      main
+    2abc:  ldr     d1, [x25, x1, lsl #3]     label:  p           main
+
+    // a[k] (direct)
+    2ab4:  ldr     d2, [x27, x0, lsl #3]     label:  a           main
+
+    // q[j] = suml (direct store, cg.cpp:661)
+    2acc:  str     d0, [x21, x2, lsl #3]     label:  q           main
+
+    // r = A z: rowstr[j] (direct)
+    2be4:  ldr     w0, [x24, x3, lsl #2]     label:  rowstr      main
+
+    // z[colidx[k]] (cg.cpp:746)
+    2c00:  ldrsw   x1, [x26, x0, lsl #2]     label:  colidx      main
+    2c0c:  ldr     d1, [x22, x1, lsl #3]     label:  z           main
+
+    // a[k] (direct)
+    2c04:  ldr     d2, [x27, x0, lsl #3]     label:  a           main
+
+    // r[j] = suml (direct store, cg.cpp:748)
+    2c1c:  str     d0, [x28, x3, lsl #3]     label:  r           main
+ret 2ce4
+
+func main:
+ret 1d74

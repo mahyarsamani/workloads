@@ -1,0 +1,35 @@
+// binary: se-bin/gem5se/npb/cg.D
+// binary md5: 1701fd2285f2607d5d69e4bbe67381e2
+// source and registers: as npb_cg.C.snippet (conj_grad at 0x23c0 here);
+//   the class changes only the addresses.
+offset: 0
+func conj_grad:
+    // q = A p: rowstr[j] (direct)
+    2758:  ldr     w0, [x24, x2, lsl #2]     label:  rowstr      main
+
+    // p[colidx[k]] (cg.cpp:659)
+    2770:  ldrsw   x1, [x26, x0, lsl #2]     label:  colidx      main
+    277c:  ldr     d1, [x25, x1, lsl #3]     label:  p           main
+
+    // a[k] (direct)
+    2774:  ldr     d2, [x27, x0, lsl #3]     label:  a           main
+
+    // q[j] = suml (direct store, cg.cpp:661)
+    278c:  str     d0, [x21, x2, lsl #3]     label:  q           main
+
+    // r = A z: rowstr[j] (direct)
+    28a4:  ldr     w0, [x24, x3, lsl #2]     label:  rowstr      main
+
+    // z[colidx[k]] (cg.cpp:746)
+    28c0:  ldrsw   x1, [x26, x0, lsl #2]     label:  colidx      main
+    28cc:  ldr     d1, [x22, x1, lsl #3]     label:  z           main
+
+    // a[k] (direct)
+    28c4:  ldr     d2, [x27, x0, lsl #3]     label:  a           main
+
+    // r[j] = suml (direct store, cg.cpp:748)
+    28dc:  str     d0, [x28, x3, lsl #3]     label:  r           main
+ret 29a4
+
+func main:
+ret 1a20

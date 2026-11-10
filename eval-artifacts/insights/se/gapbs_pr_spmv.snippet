@@ -1,0 +1,46 @@
+// binary: se-bin/gem5se/gapbs/pr_spmv
+// binary md5: 17753cc31e91191c1a07f1f5638d72a2
+// source: gapbs/src/pr_spmv.cc, PageRankPull() (Jacobi); each iteration
+//   runs two parallel loops, both inside the ROI markers:
+//   - contributions (pr_spmv.cc:65-67), PageRankPull(...) [clone
+//     ._omp_fn.0] at 0x37a0;
+//   - the gather (pr_spmv.cc:85-92), PageRankPull(...) [clone ._omp_fn.1]
+//     at 0x3620.
+//   Iteration 0 (warm-up) and 1 (ROI) run the same functions.
+// registers, _omp_fn.1: x6 = in_index_ (CSRGraph +40), x3 =
+//   outgoing_contrib.data(), x5 = scores.data(); x4 = u, x0 = the
+//   neighbour pointer. _omp_fn.0: x4 = out_index_ (+24), x7 =
+//   scores.data(), x5 = outgoing_contrib.data(); x1 = n.
+// arrays: the graph's in_index_, in_neighbors_ and out_index_ are built in
+//   main() (the builder); scores and outgoing_contrib are pvectors of
+//   PageRankPull.
+// The neighbour load is post-indexed, a macro-op in gem5 (see gapbs_pr).
+offset: 0
+func PageRankPull_omp_fn_1:
+    // in_index_[u] (direct)
+    36bc:  ldr     x0, [x6, x4, lsl #3]      label:  in_index            main
+
+    // outgoing_contrib[v] for v in in_neigh(u) (pr_spmv.cc:88-89)
+    36d0:  ldrsw   x1, [x0], #4              label:  in_neighbors        main
+    36d4:  ldr     s1, [x3, x1, lsl #2]      label:  outgoing_contrib    PageRankPull
+
+    // scores[u] (direct, pr_spmv.cc:90-91)
+    36ec:  ldr     s1, [x5, x4, lsl #2]      label:  scores              PageRankPull
+ret 377c
+
+func PageRankPull_omp_fn_0:
+    // out_index_[n] (direct, out_degree(n))
+    380c:  ldr     x3, [x4, x1, lsl #3]      label:  out_index           main
+
+    // scores[n] (direct)
+    3810:  ldr     s0, [x7, x1, lsl #2]      label:  scores              PageRankPull
+
+    // outgoing_contrib[n] = ... (direct store)
+    3824:  str     s0, [x5, x1, lsl #2]      label:  outgoing_contrib    PageRankPull
+ret 3840
+
+func PageRankPull:
+ret 5200
+
+func main:
+ret 2de8

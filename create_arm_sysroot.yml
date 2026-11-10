@@ -1,0 +1,409 @@
+---
+# Build an Ubuntu jammy arm64 sysroot with the toolchains the workloads
+# need and gem5's m5 library, on an x86_64 host (through qemu-user) or an
+# aarch64 host (natively). The Ansible version of create_arm_sysroot.sh.
+#
+# Usage (from this directory; -K asks for the sudo password):
+#   ansible-playbook -i taurus, -K create_arm_sysroot.yml
+#   ansible-playbook -i localhost, -c local -K create_arm_sysroot.yml
+#   ansible-playbook -i taurus, -K create_arm_sysroot.yml \
+#       -e sysroot_dir=/scr/msamani/sysroots/aarch64 \
+#       -e runtime_export_dir=$PWD/sysroots/aarch64
+#
+# The sysroot must sit on a local disk: debootstrap writes root-owned files
+# and sudo does not work on the NFS home, so the play refuses an NFS path.
+# Rerunning is safe: finished stages are skipped, and the chroot's
+# /proc, /sys, /dev and /dev/pts are always unmounted at the end, even
+# when a task fails. `-e recreate=true` instead deletes an existing
+# sysroot first (after unmounting anything left mounted under it) and
+# builds a fresh one.
+#
+# `runtime_export_dir` (optional) copies, as the calling user and without
+# sudo, the shared libraries an OpenMP binary loads at run time (the
+# loader, libc, libm, libstdc++, libgcc_s, libgomp) out of the sysroot,
+# e.g. to workloads/sysroots/aarch64 in the shared home, which gem5 SE runs
+# on every host read through run_syscall_emulation.py's setup_linking.
+
+- name: Create an arm64 sysroot
+  hosts: all
+  gather_facts: true
+
+  vars:
+    sysroot_dir: "/scr/{{ ansible_facts['user_id'] }}/sysroots/aarch64"
+    ubuntu_suite: jammy
+    ubuntu_mirror: http://ports.ubuntu.com/ubuntu-ports/
+    gem5_repo: https://github.com/gem5/gem5.git
+    gem5_branch: stable
+    runtime_export_dir: ""
+    recreate: false
+
+    # NOTE: Prints every mount point at or under the sysroot, innermost
+    # first. `findmnt -R <dir>` would print nothing when <dir> itself is
+    # not a mount point, however much is mounted below it.
+    list_mounts: >-
+      findmnt -rn -o TARGET
+      | awk -v d="{{ sysroot_dir }}" '$0 == d || index($0, d "/") == 1'
+      | sort -r
+
+    cross: "{{ ansible_facts['architecture'] != 'aarch64' }}"
+    markers: "{{ sysroot_dir }}/.ansible-sysroot"
+    chroot_env:
+      DEBIAN_FRONTEND: noninteractive
+      LC_ALL: C
+
+    host_packages_common: [debootstrap, symlinks, git, scons, build-essential]
+    host_packages_cross:
+      - qemu-user-static
+      - binfmt-support
+      - gcc-aarch64-linux-gnu
+      - g++-aarch64-linux-gnu
+
+    sysroot_core_packages:
+      - software-properties-common
+      - ca-certificates
+      - build-essential
+      - libc6-dev
+      - gnupg
+    sysroot_toolchain_packages:
+      - gcc-13
+      - g++-13
+      - gfortran-13
+      - python3-pip
+      - cmake
+      - openmpi-bin
+      - libopenmpi-dev
+      - libpfm4
+      - libpfm4-dev
+
+    # NOTE: (name, link, target) for update-alternatives, in this order.
+    alternatives:
+      - [gcc, /usr/bin/gcc, /usr/bin/gcc-13]
+      - [g++, /usr/bin/g++, /usr/bin/g++-13]
+      - [gfortran, /usr/bin/gfortran, /usr/bin/gfortran-13]
+      - [cc, /usr/bin/cc, /usr/bin/gcc]
+      - [c++, /usr/bin/c++, /usr/bin/g++]
+      - [cpp, /usr/bin/cpp, /usr/bin/cpp-13]
+
+    # NOTE: Relative to the sysroot; jammy's /lib is a symlink to usr/lib.
+    runtime_libraries:
+      - usr/lib/ld-linux-aarch64.so.1
+      - usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1
+      - usr/lib/aarch64-linux-gnu/libc.so.6
+      - usr/lib/aarch64-linux-gnu/libm.so.6
+      - usr/lib/aarch64-linux-gnu/libgcc_s.so.1
+      - usr/lib/aarch64-linux-gnu/libstdc++.so.6
+      - usr/lib/aarch64-linux-gnu/libgomp.so.1
+
+    # NOTE: (filesystem type, source, mount point under the sysroot).
+    chroot_mounts:
+      - [proc, proc, proc]
+      - [sysfs, sysfs, sys]
+      - [bind, /dev, dev]
+      - [bind, /dev/pts, dev/pts]
+
+  tasks:
+    - name: Install the host packages
+      become: true
+      ansible.builtin.apt:
+        name: "{{ host_packages_common + (host_packages_cross if cross else []) }}"
+        state: present
+        update_cache: true
+
+    - name: Check that the kernel runs arm64 binaries through qemu
+      when: cross
+      ansible.builtin.command: cat /proc/sys/fs/binfmt_misc/qemu-aarch64
+      register: binfmt
+      changed_when: false
+      # NOTE: The F (fix binary) flag lets the chroot run arm64 programs
+      # without finding qemu inside it.
+      failed_when: >-
+        binfmt.rc != 0 or 'enabled' not in binfmt.stdout
+        or 'F' not in (binfmt.stdout | regex_search('flags: *[A-Z]*') | default('', true))
+
+    - name: Create the sysroot's parent directory
+      ansible.builtin.file:
+        path: "{{ sysroot_dir | dirname }}"
+        state: directory
+        mode: "0755"
+
+    - name: Find the sysroot's file system type
+      ansible.builtin.command: stat -f -c %T "{{ sysroot_dir | dirname }}"
+      register: fs_type
+      changed_when: false
+
+    - name: Refuse a sysroot on NFS
+      ansible.builtin.assert:
+        that: "'nfs' not in fs_type.stdout"
+        fail_msg: >-
+          {{ sysroot_dir }} is on {{ fs_type.stdout }}; sudo cannot write
+          there. Use a local disk such as /scr.
+
+    - name: Delete an existing sysroot
+      when: recreate | bool
+      become: true
+      block:
+        - name: Unmount anything still mounted under the sysroot
+          ansible.builtin.shell: |
+            set -o pipefail
+            {{ list_mounts }} | while read -r target; do
+              umount -l "$target"
+              echo "unmounted $target"
+            done
+          args:
+            executable: /bin/bash
+          register: stale_mounts
+          changed_when: stale_mounts.stdout | length > 0
+
+        - name: Check that nothing is mounted under the sysroot
+          ansible.builtin.shell: "{{ list_mounts }}"
+          args:
+            executable: /bin/bash
+          register: still_mounted
+          changed_when: false
+          failed_when: still_mounted.stdout | length > 0
+
+        - name: Remove the sysroot, never crossing into another file system
+          ansible.builtin.command: rm -rf --one-file-system "{{ sysroot_dir }}"
+          args:
+            removes: "{{ sysroot_dir }}"
+
+    - name: Create the sysroot directory and its marker directory
+      become: true
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop: ["{{ sysroot_dir }}", "{{ markers }}"]
+
+    - name: Run debootstrap (first stage when cross-building)
+      become: true
+      ansible.builtin.command:
+        argv: >-
+          {{ ['debootstrap', '--arch=arm64']
+             + (['--foreign'] if cross else [])
+             + [ubuntu_suite, sysroot_dir, ubuntu_mirror] }}
+        creates: "{{ markers }}/debootstrap"
+
+    - name: Mark debootstrap as done
+      become: true
+      ansible.builtin.file:
+        path: "{{ markers }}/debootstrap"
+        state: touch
+        modification_time: preserve
+        access_time: preserve
+
+    - name: Copy the qemu bridge into the sysroot
+      when: cross
+      become: true
+      ansible.builtin.copy:
+        src: /usr/bin/qemu-aarch64-static
+        dest: "{{ sysroot_dir }}/usr/bin/qemu-aarch64-static"
+        remote_src: true
+        mode: "0755"
+
+    - name: Configure the sysroot inside a chroot
+      become: true
+      block:
+        - name: Mount /proc, /sys, /dev and /dev/pts in the chroot
+          ansible.builtin.shell: |
+            mountpoint -q "{{ sysroot_dir }}/{{ item[2] }}" && exit 0
+            {% if item[0] == 'bind' %}
+            mount -o bind "{{ item[1] }}" "{{ sysroot_dir }}/{{ item[2] }}"
+            {% else %}
+            mount -t "{{ item[0] }}" "{{ item[1] }}" "{{ sysroot_dir }}/{{ item[2] }}"
+            {% endif %}
+            echo mounted
+          loop: "{{ chroot_mounts }}"
+          register: mounted
+          changed_when: "'mounted' in mounted.stdout"
+
+        - name: Run debootstrap's second stage
+          when: cross
+          ansible.builtin.command:
+            argv: [chroot, "{{ sysroot_dir }}", /debootstrap/debootstrap, --second-stage]
+            creates: "{{ markers }}/second-stage"
+          environment: "{{ chroot_env }}"
+
+        - name: Mark the second stage as done
+          when: cross
+          ansible.builtin.file:
+            path: "{{ markers }}/second-stage"
+            state: touch
+            modification_time: preserve
+            access_time: preserve
+
+        - name: Update and upgrade the sysroot's packages
+          ansible.builtin.command:
+            argv:
+              - chroot
+              - "{{ sysroot_dir }}"
+              - /bin/bash
+              - -c
+              - >-
+                apt-get update -y &&
+                apt-get -y -o Dpkg::Options::=--force-confnew upgrade
+          environment: "{{ chroot_env }}"
+          register: upgrade
+          changed_when: "'0 upgraded, 0 newly installed' not in upgrade.stdout"
+
+        - name: Install the core packages
+          ansible.builtin.command:
+            argv: >-
+              {{ ['chroot', sysroot_dir, 'apt-get', 'install', '-y',
+                  '--no-install-recommends'] + sysroot_core_packages }}
+          environment: "{{ chroot_env }}"
+          register: core
+          changed_when: "'0 upgraded, 0 newly installed' not in core.stdout"
+
+        - name: Add the universe repository and the toolchain PPA
+          ansible.builtin.command:
+            argv:
+              - chroot
+              - "{{ sysroot_dir }}"
+              - /bin/bash
+              - -c
+              - >-
+                add-apt-repository -y universe &&
+                add-apt-repository -y ppa:ubuntu-toolchain-r/test &&
+                apt-get update -y
+            creates: "{{ markers }}/repositories"
+          environment: "{{ chroot_env }}"
+
+        - name: Mark the repositories as added
+          ansible.builtin.file:
+            path: "{{ markers }}/repositories"
+            state: touch
+            modification_time: preserve
+            access_time: preserve
+
+        - name: Install the toolchains and libraries
+          ansible.builtin.command:
+            argv: >-
+              {{ ['chroot', sysroot_dir, 'apt-get', 'install', '-y']
+                 + sysroot_toolchain_packages }}
+          environment: "{{ chroot_env }}"
+          register: toolchains
+          changed_when: "'0 upgraded, 0 newly installed' not in toolchains.stdout"
+
+        - name: Make GCC 13 the default compiler
+          ansible.builtin.command:
+            argv:
+              - chroot
+              - "{{ sysroot_dir }}"
+              - /bin/bash
+              - -c
+              - >-
+                update-alternatives --install {{ item[1] }} {{ item[0] }} {{ item[2] }} 130 &&
+                update-alternatives --set {{ item[0] }} {{ item[2] }}
+          loop: "{{ alternatives }}"
+          environment: "{{ chroot_env }}"
+          changed_when: false
+
+      always:
+        - name: Unmount the chroot's file systems, innermost first
+          ansible.builtin.shell: |
+            if mountpoint -q "{{ sysroot_dir }}/{{ item }}"; then
+              umount -l "{{ sysroot_dir }}/{{ item }}"
+              echo unmounted
+            fi
+          loop: [dev/pts, dev, sys, proc]
+          register: unmounted
+          changed_when: "'unmounted' in unmounted.stdout"
+
+    - name: Check that nothing is still mounted under the sysroot
+      ansible.builtin.shell: "{{ list_mounts }}"
+      args:
+        executable: /bin/bash
+      register: leftover
+      changed_when: false
+      failed_when: leftover.stdout | length > 0
+
+    - name: Convert absolute symlinks in the sysroot to relative ones
+      become: true
+      ansible.builtin.command: symlinks -cr "{{ sysroot_dir }}"
+      register: symlinks
+      changed_when: "'changed' in symlinks.stdout"
+
+    - name: Build and install gem5's m5 library
+      block:
+        - name: Make a scratch directory for gem5's sources
+          ansible.builtin.tempfile:
+            state: directory
+            suffix: gem5-m5
+          register: gem5_tmp
+
+        - name: Check out util/m5 and include from gem5
+          ansible.builtin.shell: |
+            set -e
+            git clone "{{ gem5_repo }}" --depth=1 --filter=blob:none \
+                --no-checkout --sparse --single-branch \
+                --branch="{{ gem5_branch }}" "{{ gem5_tmp.path }}"
+            cd "{{ gem5_tmp.path }}"
+            git sparse-checkout add util/m5 util/gem5_bridge include
+            git checkout
+
+        - name: Build libm5.a for arm64
+          ansible.builtin.command:
+            argv: >-
+              {{ ['scons', 'build/arm64/out/m5']
+                 + ([
+                      'CROSS_COMPILE=aarch64-linux-gnu-',
+                      'CC=aarch64-linux-gnu-gcc --sysroot=' ~ sysroot_dir,
+                      'CXX=aarch64-linux-gnu-g++ --sysroot=' ~ sysroot_dir,
+                    ] if cross else []) }}
+            chdir: "{{ gem5_tmp.path }}/util/m5"
+
+        - name: Create the m5 include and library directories
+          become: true
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            mode: "0755"
+          loop:
+            - "{{ sysroot_dir }}/usr/local/include/gem5"
+            - "{{ sysroot_dir }}/usr/local/lib"
+
+        - name: Install the m5 headers and libm5.a
+          become: true
+          ansible.builtin.shell: |
+            set -e
+            cp -r "{{ gem5_tmp.path }}/include/gem5/." \
+                "{{ sysroot_dir }}/usr/local/include/gem5/"
+            cp "{{ gem5_tmp.path }}/util/m5/src/m5_mmap.h" \
+                "{{ sysroot_dir }}/usr/local/include/gem5/"
+            cp "{{ gem5_tmp.path }}/util/m5/build/arm64/out/libm5.a" \
+                "{{ sysroot_dir }}/usr/local/lib/"
+
+      always:
+        - name: Remove gem5's sources
+          when: gem5_tmp.path is defined
+          ansible.builtin.file:
+            path: "{{ gem5_tmp.path }}"
+            state: absent
+
+    - name: Export the run-time libraries (no sudo)
+      when: runtime_export_dir | length > 0
+      block:
+        - name: Create the export directories
+          ansible.builtin.file:
+            path: "{{ runtime_export_dir }}/{{ item | dirname }}"
+            state: directory
+            mode: "0755"
+          loop: "{{ runtime_libraries }}"
+
+        - name: Copy each library, following symlinks to the real file
+          ansible.builtin.command:
+            argv:
+              - cp
+              - -L
+              - --preserve=mode,timestamps
+              - "{{ sysroot_dir }}/{{ item }}"
+              - "{{ runtime_export_dir }}/{{ item }}"
+          loop: "{{ runtime_libraries }}"
+          changed_when: true
+
+        - name: Point lib at usr/lib, as in the sysroot
+          ansible.builtin.file:
+            src: usr/lib
+            dest: "{{ runtime_export_dir }}/lib"
+            state: link

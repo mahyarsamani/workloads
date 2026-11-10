@@ -1,3 +1,5 @@
+import re
+
 from typing import Tuple, Union
 
 
@@ -195,3 +197,53 @@ def process_snippet(snippet):
         indirect_chains.append(current_chain)
 
     return access_sites, indirect_chains
+
+
+def read_header(snippet: str) -> dict:
+    """`// key: value` lines before the first statement; `applies to` may
+    repeat and is collected into a list."""
+    header = {"applies to": []}
+    for line in snippet.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if not stripped.startswith("//"):
+            break
+        m = re.match(r"^//\s*([a-z0-9 -]+):\s*(.*)$", stripped)
+        if m:
+            key, value = m.group(1).strip(), m.group(2).strip()
+            if key == "applies to":
+                header[key].append(value)
+            else:
+                header.setdefault(key, value)
+    return header
+
+
+def register_snippet(processor, snippet: str) -> None:
+    """Register `snippet` with `processor` (a VectorAwareProcessor, which
+    hands it to its O3 cores): per function, its exit PC and labelled access
+    sites; per indirect chain, its PCs and destination-register overrides.
+    A labelled instruction on its own (a one-line chain) only labels its
+    access, e.g. the direct access val[k]: the O3 CPU takes no chain
+    shorter than two."""
+    access_sites, indirect_chains = process_snippet(snippet)
+    for func_name, info in access_sites.items():
+        processor.add_function_info(
+            func_name,
+            info["ret"],
+            [site.label() for site in info["access_sites"]],
+            [site.pc() for site in info["access_sites"]],
+        )
+    for indirect_chain in indirect_chains:
+        if len(indirect_chain) < 2:
+            continue
+        name = (
+            f"{indirect_chain[-1].label()}[{indirect_chain[0].label()}]"
+            f"{indirect_chain[-1].label_version()}"
+        )
+        processor.add_indirect_chain(
+            name, [inst.pc() for inst in indirect_chain]
+        )
+        for inst in indirect_chain:
+            if inst.has_override():
+                processor.add_reg_index_override(inst.override())
